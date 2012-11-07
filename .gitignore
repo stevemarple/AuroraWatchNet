@@ -1,0 +1,5 @@
+*~
+*.o
+
+software/server/awnetd/.metadata
+
