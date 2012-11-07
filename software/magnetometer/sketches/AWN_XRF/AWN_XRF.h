@@ -1,0 +1,6 @@
+#ifndef AURORAWATCHATHOME4_H
+#define AURORAWATCHATHOME4
+
+
+#endif
+
