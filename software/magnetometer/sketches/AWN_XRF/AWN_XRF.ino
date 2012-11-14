@@ -1,11 +1,12 @@
 #include <avr/eeprom.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#include <avr/boot.h>
+#include <util/atomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-// #include <EEPROM.h>
 #include <Wire.h>
 #include <Streaming.h>
 
@@ -165,31 +166,31 @@ void doSleep(uint8_t mode)
 // halfway through the second at 1Hz.
 void setupTimer2(void)
 {
-  noInterrupts();
-  startSampling = false;
-  ASSR = (1 << EXCLK); // Must be done before asynchronous operation enabled
-  ASSR |= (1 << AS2);
-  TCCR2A = 0;
-  TCCR2B = 0;
-  TCNT2 = 0; // Clear any count
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    startSampling = false;
+    ASSR = (1 << EXCLK); // Must be done before asynchronous operation enabled
+    ASSR |= (1 << AS2);
+    TCCR2A = 0;
+    TCCR2B = 0;
+    TCNT2 = 0; // Clear any count
   
-  const uint16_t prescaler = 1024;
-  uint32_t ticksPerSecond = counter2Frequency / prescaler;
-  uint16_t maxSleep = 256 / ticksPerSecond;
-  uint32_t mySleep = ((samplingInterval_ms + 500) / 1000);
-  if (mySleep > maxSleep)
-    mySleep = maxSleep;
+    const uint16_t prescaler = 1024;
+    uint32_t ticksPerSecond = counter2Frequency / prescaler;
+    uint16_t maxSleep = 256 / ticksPerSecond;
+    uint32_t mySleep = ((samplingInterval_ms + 500) / 1000);
+    if (mySleep > maxSleep)
+      mySleep = maxSleep;
   
-  OCR2A = (mySleep * ticksPerSecond) - 1;
-  OCR2B = 255;
-  TCCR2A |= _BV(WGM21); // CTC mode
-  TCCR2B |= (_BV(CS22) | _BV(CS21) | _BV(CS20));  // Divide by 1024
+    OCR2A = (mySleep * ticksPerSecond) - 1;
+    OCR2B = 255;
+    TCCR2A |= _BV(WGM21); // CTC mode
+    TCCR2B |= (_BV(CS22) | _BV(CS21) | _BV(CS20));  // Divide by 1024
 
-  while((ASSR & ((1 << TCN2UB) | (1 << OCR2AUB) | (1 << OCR2BUB) | (1 << TCR2AUB) | (1 << TCR2BUB))) != 0)
-    ; // Wait for changes to latch
+    while((ASSR & ((1 << TCN2UB) | (1 << OCR2AUB) | (1 << OCR2BUB) | (1 << TCR2AUB) | (1 << TCR2BUB))) != 0)
+      ; // Wait for changes to latch
   
-  TIMSK2 |= (1 << OCIE2A);
-  interrupts();
+    TIMSK2 |= (1 << OCIE2A);
+  }
 }
 
 
@@ -329,7 +330,22 @@ void setup(void)
   Serial1.begin(9600);
 
   console << "Firmware version: " << firmwareVersion << endl;
-    
+
+  // Print fuses
+  uint8_t lowFuse = boot_lock_fuse_bits_get(GET_LOW_FUSE_BITS);
+  uint8_t highFuse = boot_lock_fuse_bits_get(GET_HIGH_FUSE_BITS);
+  uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
+  console << "Low fuse: " << _HEX(lowFuse) << endl
+	  << "High fuse: " << _HEX(highFuse) << endl
+	  << "Extended fuse: " << _HEX(extendedFuse) << endl;
+
+  // Is the internal RC oscillator in use? Programmed fuses read low
+  bool isRcOsc = ((lowFuse & ~(FUSE_CKSEL3 & FUSE_CKSEL2 &
+			       FUSE_CKSEL1 & FUSE_CKSEL0)) ==
+		   (FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0));
+  console << "Uses RC oscillator: " << isRcOsc << endl;
+  console << "CKSEL: " << _HEX(lowFuse & ~(FUSE_CKSEL3 & FUSE_CKSEL2 &
+					   FUSE_CKSEL1 & FUSE_CKSEL0)) << endl;
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
   useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
   
