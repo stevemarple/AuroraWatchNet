@@ -317,17 +317,24 @@ def parsePacket(buf):
 def tidyPendingTags(pendingTags, messageTags):
     delList = []
     for tag in pendingTags:  
-        if tag in messageTags and pendingTags[tag] in messageTags[tag]:
+        if tag == "reboot" and "rebootFlags" in messageTags:
+            delList.append(tag)
+            
+        elif tag == "upgradeFirmware" and "currentFirmware" in messageTags:
+            currentFirmware = str(messageTags["currentFirmware"][0]).split('\0', 1)[0]
+            upgradeFirmware = "" + str(pendingTags[tag]).split('\0', 1)[0]
+            if currentFirmware == upgradeFirmware:
+                # Current firmware version matches so cancel
+                print("Firmware already at version " + upgradeFirmware)
+                delList.append(tag)
+
+        elif tag in messageTags and pendingTags[tag] in messageTags[tag]:
             # This tag appears in messageTags, and one of the values matches
             # pendingTags[tag]
             delList.append(tag)
+
     for d in delList:
         del pendingTags[d]
-
-    if "reboot" in pendingTags and "rebootFlags" in messageTags:
-        del pendingTags["reboot"]
-        
-    #TODO: remove upgradeFirmware if currentFirmware matches
     
 def myHex(a):
     return hex(a)[2:].zfill(2)
