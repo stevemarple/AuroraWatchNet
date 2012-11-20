@@ -13,9 +13,10 @@
 
 extern uint8_t sdSelect;
 extern bool useSd;
-extern uint32_t samplingInterval_ms;
+extern uint32_t samplingInterval;
 extern bool samplingIntervalChanged;
 extern volatile bool startSampling;
+extern uint8_t verbosity;
 
 bool startsWith_P(const char *match, const char *str, char **ep)
 {
@@ -31,34 +32,36 @@ bool startsWith_P(const char *match, const char *str, char **ep)
   return true;
 }
 
-bool CommandHandler::checkTime(RTCx::time_t t, RTCx::time_t &err)
-{
-  struct RTCx::tm tm;
-  if (rtc.readClock(tm)) {
-    RTCx::time_t now = RTCx::mktime(tm);
-    err = now - t;
-    return true;
-  }
-  return false;
-}
+
+// bool CommandHandler::checkTime(RTCx::time_t t, RTCx::time_t &err)
+// {
+//   struct RTCx::tm tm;
+//   if (rtc.readClock(tm)) {
+//     RTCx::time_t now = RTCx::mktime(tm);
+//     err = now - t;
+//     return true;
+//   }
+//   return false;
+// }
 
 
-bool CommandHandler::setTime(RTCx::time_t t)
-{
-  struct RTCx::tm tm;
-  RTCx::gmtime_r(&t, &tm);
-  AWPacket::incrementDefaultSequenceId();
+// bool CommandHandler::setTime(RTCx::time_t t)
+// {
+//   struct RTCx::tm tm;
+//   RTCx::gmtime_r(&t, &tm);
+//   AWPacket::incrementDefaultSequenceId();
   
-  // Time changing so increment the sequenceId to prevent replay
-  // attacks. Normally the timestamp is increasing but it is possible
-  // that it has decreased slightly, giving an attacker a potential
-  // opportunity to replay a server response and set time back
-  // again. By incrementing the sequenceId we guarantee old responses
-  // will be invalid.
-  AWPacket::incrementDefaultSequenceId();
+//   // Time changing so increment the sequenceId to prevent replay
+//   // attacks. Normally the timestamp is increasing but it is possible
+//   // that it has decreased slightly, giving an attacker a potential
+//   // opportunity to replay a server response and set time back
+//   // again. By incrementing the sequenceId we guarantee old responses
+//   // will be invalid.
+//   AWPacket::incrementDefaultSequenceId();
   
-  return rtc.setClock(&tm);
-}
+//   return rtc.setClock(&tm);
+// }
+
 
 
 void CommandHandler::process(Stream &console, Stream &xrf)
@@ -68,6 +71,7 @@ void CommandHandler::process(Stream &console, Stream &xrf)
     if (c == '\r' || c == '\n') {
       // Check for matching substr
       char *ep;
+      /*
       if (startsWith_P(PSTR("checkTime="), buffer, &ep)) {
 	// Makes no sense without a value
 	RTCx::time_t t = strtol(ep, NULL, 0);
@@ -77,7 +81,9 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 	else
 	  console << "ERROR: failed to read time" << endl;
       }
-      else if (startsWith_P(PSTR("key"), buffer, &ep)) {
+      else
+	*/
+      if (startsWith_P(PSTR("key"), buffer, &ep)) {
 	if (*ep == '=') {
 	  console << "TODO: set key" << endl;
 	}
@@ -98,16 +104,16 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 	//while (1)
 	//;
       }
-      else if (startsWith_P(PSTR("samplingInterval_ms"), buffer, &ep)) {
+      else if (startsWith_P(PSTR("samplingInterval"), buffer, &ep)) {
 	if (*ep++ == '=') {
 	  char *ep2;
 	  long s = strtol(ep, &ep2, 0);
-	  if (s >= 0 && s <= 600000 && ep2 != ep && *ep2 == '\0') {
-	    samplingInterval_ms = s;
+	  if (s >= 0 && s <= 600 && ep2 != ep && *ep2 == '\0') {
+	    samplingInterval = s;
 	    samplingIntervalChanged = true;
 	  }
 	}
-	console << "samplingInterval_ms:" << samplingInterval_ms << endl;
+	console << "samplingInterval:" << samplingInterval << endl;
       }
       else if (startsWith_P(PSTR("sdSelect"), buffer, &ep)) {
 	if (*ep++ == '=') {
@@ -119,21 +125,21 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 	console << "sdSelect:"
 		<< eeprom_read_byte((const uint8_t*)EEPROM_SD_SELECT) << endl;
       }
-      else if (startsWith_P(PSTR("setTime="), buffer, &ep)) {
-	// Makes no sense without a value
-	char *ep2;
-	RTCx::time_t t = strtol(ep, &ep2, 0);
-	if (ep2 != ep && *ep2 == '\0') {
-	  // Must have some number for the time
-	  if (setTime(t))
-	    console << "setTime:" << t << endl;
-	  else
-	    console << "setTime: call to setTime() failed\n";
-	}
-	else {
-	  console << "ERROR: bad value for time" << endl;
-	}
-      }
+      // else if (startsWith_P(PSTR("setTime="), buffer, &ep)) {
+      // 	// Makes no sense without a value
+      // 	char *ep2;
+      // 	RTCx::time_t t = strtol(ep, &ep2, 0);
+      // 	if (ep2 != ep && *ep2 == '\0') {
+      // 	  // Must have some number for the time
+      // 	  if (setTime(t))
+      // 	    console << "setTime:" << t << endl;
+      // 	  else
+      // 	    console << "setTime: call to setTime() failed\n";
+      // 	}
+      // 	else {
+      // 	  console << "ERROR: bad value for time" << endl;
+      // 	}
+      // }
       else if (startsWith_P(PSTR("siteId"), buffer, &ep)) {
 	if (*ep++ == '=') {
 	  char *ep2;
@@ -174,6 +180,17 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 		<< eeprom_read_byte((const uint8_t*)EEPROM_USE_SD)
 		<< " (EEPROM)" << endl;
       }
+      else  if (startsWith_P(PSTR("verbosity"), buffer, &ep)) {
+	if (*ep++ == '=') {
+	  char *ep2;
+	  long v = strtol(ep, &ep2, 0);
+	  if (v >= 0 && v <= 255 && ep2 != ep && *ep2 == '\0') {
+	    verbosity = v;
+	  }
+	}
+	console << "verbosity:" << verbosity << endl;
+      }
+      
       /*
       else if (startsWith_P(PSTR("configXrf="), buffer, &ep)) {
 	long initialBaud = 0;

@@ -13,7 +13,7 @@ __all__ = ["validatePacket"]
 defaultMagic = "AW"
 defaultVersion = 1
 
-headerLength = 12
+headerLength = 14
 signatureBlockLength = 10
 magicOffset = 0
 magicSize = len(defaultMagic)
@@ -26,7 +26,11 @@ packetLengthSize = 2
 siteIdOffset = 6
 siteIdSize = 2
 timestampOffset = 8
-timestampSize = 4
+timestampSecondsOffset = timestampOffset
+timestampSecondsSize = 4
+timestampFractionOffset = timestampSecondsOffset + timestampSecondsSize
+timestampFractionSize = 2
+timestampSize = timestampSecondsSize + timestampFractionSize
 numAxes = 3
 
 # Signature offsets are relative to the start of the signature block,
@@ -95,12 +99,12 @@ tagLengths = {"magDataX": 6,
               "sensorTemperature": 3,
               "MCUTemperature": 3,
               "batteryVoltage": 3,
-              "timeAdjustment": 5,
+              "timeAdjustment": 7,
               "rebootFlags": 2,
-              "samplingInterval": 5, # ???
+              "samplingInterval": 3,
               "paddingByte": 1,
               "padding": 0,
-              "currentUnixTime": 5,
+              "currentUnixTime": 7,
               "reboot": 1, 
               "currentFirmware": (sizeOfTag + firmwareVersionMaxLength),
               "upgradeFirmware": (sizeOfTag + firmwareVersionMaxLength +
@@ -111,8 +115,9 @@ tagLengths = {"magDataX": 6,
                                sizeOfFirmwarePageNumber + firmwareBlockSize),
               } 
 
-tagFormat = {"samplingInterval": "!L",
-             "currentUnixTime": "!L",
+tagFormat = {"magDataX": "!cl",
+             "samplingInterval": "!H",
+             "currentUnixTime": "!LH",
              "currentFirmware": ("!" + str(firmwareVersionMaxLength) + "c"),
              "upgradeFirmware": ("!" + str(firmwareVersionMaxLength) + "cHH"),
              "getFirmwarePage": ("!" + str(firmwareVersionMaxLength) + "cH"),
@@ -152,7 +157,11 @@ def getSiteId(buf):
     return getHeaderField(buf, siteIdOffset, siteIdSize)
 
 def getTimestamp(buf):
-    return getHeaderField(buf, timestampOffset, timestampSize)
+    seconds = getHeaderField(buf, timestampSecondsOffset, 
+                             timestampSecondsSize)
+    fraction = getHeaderField(buf, timestampFractionOffset, 
+                              timestampFractionSize)
+    return [seconds, fraction]
 
 def isSignedMessage(buf):
     global flagsSignedMessageBit
@@ -194,8 +203,11 @@ def setFlags(buf, flags):
 def setSiteId(buf, siteId):
     setHeaderField(buf, siteId, siteIdOffset, siteIdSize)
         
-def setTimestamp(buf, timestamp):
-    setHeaderField(buf, timestamp, timestampOffset, timestampSize)
+def setTimestamp(buf, seconds, fraction):
+    setHeaderField(buf, seconds, timestampSecondsOffset, 
+                   timestampSecondsSize)
+    setHeaderField(buf, fraction, timestampFractionOffset, 
+                   timestampFractionSize)
 
 def putHeader(buf, siteId, timestamp, magic="AW", version=defaultVersion, flags=0):
     buf[headerLength-1] = 0 # Set size
@@ -204,7 +216,7 @@ def putHeader(buf, siteId, timestamp, magic="AW", version=defaultVersion, flags=
     setFlags(buf, flags)
     setPacketLength(buf, headerLength)
     setSiteId(buf, siteId)
-    setTimestamp(buf, timestamp)
+    setTimestamp(buf, *timestamp)
 
 def putData(buf, tag, data):
     packetLength = getPacketLength(buf) 
@@ -232,12 +244,20 @@ def putCurrentUnixTime(buf):
     packetLength = getPacketLength(buf)
     tagLen = tagLengths["currentUnixTime"]
     i = packetLength 
+    now = time.time()
+    seconds = long(now);
+    frac = int(round((now % 1) * 32768.0))
+    
     timestamp = long(round(time.time()))
     buf[i] = tags["currentUnixTime"]
     i += 1
     for n in range(tagLen-2, -1, -1):
-        buf[i + n] = timestamp & 0xff
-        timestamp >>= 8
+        # buf[i + n] = timestamp & 0xff
+        # timestamp >>= 8
+        buf[i + n] = 0
+    data = bytearray(struct.pack(tagFormat["currentUnixTime"], seconds, frac))
+    buf[packetLength + 1 : packetLength + tagLen] = data
+    
     setPacketLength(buf, packetLength + tagLen)
 
 def putPadding(buf, paddingLength):
@@ -351,8 +371,9 @@ def printHeader(buf):
     print("Packet length: " + str(getPacketLength(buf)))
     print("Site ID: " + str(getSiteId(buf)))
     t = getTimestamp(buf)
-    dt = datetime.utcfromtimestamp(t)
-    print("Timestamp: " + str(t) + " (" + dt.isoformat() + ")")
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    print("Timestamp: " + str(t[0]) + "," + str(t[1]) \
+              + " (" + dt.isoformat() + ")")
     
 def printTags(buf):
     i = headerLength

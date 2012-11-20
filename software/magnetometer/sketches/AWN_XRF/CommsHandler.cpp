@@ -209,10 +209,16 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
       if (validateResponse(responseBuffer, responseLen)) {
 	// The response in the buffer is valid, but is it a response
 	// to our last message?
+	uint32_t messageSeconds, responseSeconds;
+	uint16_t messageFraction, responseFraction;
+	AWPacket::getTimestamp(messageBuffer, messageSeconds,
+			       messageFraction);
+	AWPacket::getTimestamp(responseBuffer, responseSeconds,
+			       responseFraction);
 	if ((AWPacket::getSiteId(responseBuffer)
 	     == AWPacket::getSiteId(messageBuffer)) &&
-	    (AWPacket::getTimestamp(responseBuffer)
-	     == AWPacket::getTimestamp(messageBuffer)) &&
+	    (messageSeconds == responseSeconds) &&
+	    (messageFraction == responseFraction) &&
 	    (AWPacket::getSequenceId(responseBuffer)
 	     == AWPacket::getSequenceId(messageBuffer)) &&
 	    (AWPacket::getRetries(responseBuffer)
@@ -224,6 +230,11 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	}
 	else {
 	  // Need another response
+	  Serial.println("######################");
+	  Serial.println("Packet valid but incorrect response");
+	  AWPacket::printPacket(responseBuffer, responseLen, Serial);
+	  Serial.println("######################");
+	  
 	  responseLen = 0;
 	  responsePacketLen = 65535; // Use maximum value until we know
 	}

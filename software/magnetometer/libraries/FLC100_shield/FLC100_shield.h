@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <AsyncDelay.h>
 #include <MCP342x.h>
-#include <RTCx.h>
+//#include <RTCx.h>
+#include <CounterRTC.h>
 
 #define XRF_RESET 5
 #define XRF_SLEEP 7
@@ -36,6 +37,10 @@ public:
     return i2cHandler.isFinished() && miscHandler.isFinished();
   }
 
+  inline bool isSampling(void) const {
+    return i2cHandler.isSampling();
+  }
+  
   inline void start(void) {
     i2cHandler.start();
     miscHandler.start();
@@ -52,7 +57,10 @@ public:
     miscHandler.finish();
   }
 
-  inline RTCx::time_t getTimestamp(void) const {
+  // inline RTCx::time_t getTimestamp(void) const {
+  //   return i2cHandler.getTimestamp();
+  // }
+  inline CounterRTC::time_t getTimestamp(void) const {
     return i2cHandler.getTimestamp();
   }
   inline int16_t getSensorTemperature(void) const {
@@ -89,6 +97,10 @@ private:
       return state == finished;
     }
 
+    inline bool isSampling(void) const {
+      return !(state == off || state == finished);
+    }
+    
     bool initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
 	uint8_t adcChannelList[numAxes]);
     inline void start(void) {
@@ -100,10 +112,13 @@ private:
     void process(void);
     void finish(void);
 
-    inline RTCx::time_t getTimestamp(void) const {
+    // inline RTCx::time_t getTimestamp(void) const {
+    //   return timestamp;
+    // }
+    inline CounterRTC::time_t getTimestamp(void) const {
       return timestamp;
     }
-    
+  
     inline int16_t getSensorTemperature(void) const {
       return sensorTemperature;
     }
@@ -155,7 +170,8 @@ private:
     AsyncDelay timeout;
 
     // Data fields
-    RTCx::time_t timestamp;
+    //RTCx::time_t timestamp;
+    CounterRTC::time_t timestamp;
     int16_t sensorTemperature; // hundredths of degrees Celsius
     int32_t magData[numAxes];
     uint8_t magResGain[numAxes];

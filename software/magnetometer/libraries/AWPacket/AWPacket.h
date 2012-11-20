@@ -12,7 +12,7 @@
 class AWPacket {
 public:
   // magic (2), version, flags, packetLength(2), siteId(2) and timestamp(4)
-  static const uint8_t headerLength = 12;
+  static const uint8_t headerLength = 14;
   static const uint8_t hmacLength = 8;
   // sequenceId, retries, truncated HMAC-MSD signature (8)
   static const uint8_t signatureBlockLength = 10;
@@ -34,7 +34,8 @@ public:
   // SPM_PAGESIZE must be a multiple of firmwareBlockSize
   static const uint16_t firmwareBlockSize = 128;
   enum flags_t {
-    flagsSignedMessageBit = 0
+    flagsSignedMessageBit = 0,
+    flagsSampleTimingError = 1,
   };
 
   enum tags_t {
@@ -70,8 +71,12 @@ public:
   static inline void setPacketLength(uint8_t* buffer, uint16_t length);
   static inline uint16_t getSiteId(const uint8_t* buffer);
   static inline void setSiteId(uint8_t* buffer, uint16_t siteId);
-  static inline uint32_t getTimestamp(const uint8_t* buffer);
-  static inline void setTimestamp(uint8_t* buffer, uint32_t timestamp);
+  //static inline uint32_t getTimestamp(const uint8_t* buffer);
+  static inline void getTimestamp(const uint8_t* buffer,
+				  uint32_t& t_s, uint16_t& t_32768th);
+  //static inline void setTimestamp(uint8_t* buffer, uint32_t timestamp);
+  static inline void setTimestamp(uint8_t* buffer, uint32_t seconds,
+				  uint16_t fraction);
   static inline uint8_t getSequenceId(const uint8_t* buffer);
   static inline uint8_t getRetries(const uint8_t* buffer);
 
@@ -98,11 +103,13 @@ public:
   inline uint16_t getSiteId(void) const;
   
   inline void setSiteId(uint16_t s);
-  inline void setTimestamp(int32_t t);
+  //inline void setTimestamp(uint32_t t);
+  inline void setTimestamp(uint32_t seconds, uint16_t fraction);
   inline uint8_t getRetries(void);
   inline void incrementRetries(void);
   inline void clearRetries(void);
   inline void setKey(uint8_t *k, uint8_t len);
+  inline void setFlagBit(uint8_t flagBit, bool val);
   
   bool putHeader(uint8_t* buffer, size_t bufferLength) const;
   bool putMagData(uint8_t* buffer, size_t bufferLength,
@@ -126,6 +133,8 @@ public:
 
   bool putGetFirmwarePage(uint8_t* buffer, size_t bufferLength,
 			  const char* version, uint16_t pageNumber) const;
+  bool putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
+			 int32_t seconds, int16_t fraction) const;
   bool putPadding(uint8_t* buffer, size_t bufferLength,
 		  uint16_t paddingLength) const;
   bool putSignature(uint8_t* buffer, size_t bufferLength);
@@ -143,7 +152,8 @@ private:
   uint8_t version;
   uint8_t flags;
   uint16_t siteId;
-  int32_t timestamp;
+  uint32_t timestamp_s;
+  uint16_t timestamp_32768th;
   uint8_t sequenceId;
   uint8_t retries;
   
@@ -217,16 +227,26 @@ void AWPacket::setSiteId(uint8_t* buffer, uint16_t siteId)
   buffer[siteIdOffset+1] = (uint8_t)(siteId & (uint8_t)0xff);
 }
 
-uint32_t AWPacket::getTimestamp(const uint8_t* buffer)
+// uint32_t AWPacket::getTimestamp(const uint8_t* buffer)
+// {
+//   uint32_t t = 0;
+//   networkToAvr(&t, buffer + timestampOffset, sizeof(t));
+//   return t;
+// }
+
+void AWPacket::getTimestamp(const uint8_t* buffer,
+			    uint32_t& t_s, uint16_t& t_32768th)
 {
-  uint32_t t = 0;
-  networkToAvr(&t, buffer + timestampOffset, sizeof(t));
-  return t;
+  networkToAvr(&t_s, buffer + timestampOffset, sizeof(t_s));
+  networkToAvr(&t_32768th, buffer + timestampOffset + sizeof(t_s),
+	       sizeof(t_32768th));
 }
 
-void AWPacket::setTimestamp(uint8_t* buffer, uint32_t timestamp)
+void AWPacket::setTimestamp(uint8_t* buffer, uint32_t t_s, uint16_t t_32768th)
 {
-  avrToNetwork(buffer + timestampOffset, &timestamp, sizeof(timestamp));
+  avrToNetwork(buffer + timestampOffset, &t_s, sizeof(t_s));
+  avrToNetwork(buffer + timestampOffset + sizeof(t_s),
+	       &t_32768th, sizeof(t_32768th));
 }
 
 
@@ -250,9 +270,16 @@ void AWPacket::setSiteId(uint16_t s)
   siteId = s;
 }
 
-void AWPacket::setTimestamp(int32_t t)
+// void AWPacket::setTimestamp(uint32_t t)
+// {
+//   timestamp_s = t;
+//   timestamp_32768th = 0;
+// }
+
+void AWPacket::setTimestamp(uint32_t seconds, uint16_t fraction)
 {
-  timestamp = t;
+  timestamp_s = seconds;
+  timestamp_32768th = fraction;
 }
 
 uint8_t AWPacket::getRetries(void)
@@ -274,6 +301,16 @@ void AWPacket::setKey(uint8_t *k, uint8_t len)
 {
   key = k;
   keyLen = len;
+}
+
+void AWPacket::setFlagBit(uint8_t flagBit, bool val)
+{
+  if (flagBit != flagsSignedMessageBit) {
+    if (val)
+      flags |= (1 << flagBit);
+    else
+      flags &= ~(1<< flagBit);
+  }
 }
 
 bool AWPacket::putDataInt8(uint8_t* buffer, size_t bufferLength,

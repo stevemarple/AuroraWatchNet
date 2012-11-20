@@ -67,12 +67,12 @@ def readConfig(configFile):
 
 # AuroraWatch realtime file
 realtimeFile = None
-def writeAuroraWatchRealTimeData(timestamp, x, y, z):
+def writeAuroraWatchRealTimeData(timestamp, data):
     global realtimeFile
-    
+    seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
     tmpName = time.strftime(config.get("aurorawatchrealtime", 
                                        "filename"),
-                            time.gmtime(timestamp))
+                            time.gmtime(seconds))
     if realtimeFile is not None and tmpName != realtimeFile.name:
         # Filename has changed
         realtimeFile.close()
@@ -95,8 +95,14 @@ def writeAuroraWatchRealTimeData(timestamp, x, y, z):
             realtimeFile = None
     
     if realtimeFile is not None:
-        realtimeFile.write("{:05d} {:.1f} {:.1f} {:.1f}\n".format(timestamp % 86400, x, y, x))
-        
+        realtimeFile.write("{:05d}".format(seconds % 86400))
+        for tag in ["magDataX", "magDataY", "magDataZ"]:
+            if tag in data:
+                realtimeFile.write(" {:.1f}".format(data[tag]))
+            else:
+                realtimeFile.write(" nan")
+        realtimeFile.write("\n")
+
     
 # Process any CR or LF terminated messages which are in the buffer    
 def handleControlMessage(buf, pendingTags):
@@ -116,11 +122,11 @@ def handleControlMessage(buf, pendingTags):
             continue
         
         if cmd.startswith("samplingInterval="):
-            val = long(cmd.replace("samplingInterval=", "", 1))
+            val = float(cmd.replace("samplingInterval=", "", 1)) * 16
             # pendingTags["samplingInterval"] = struct.pack('!L', val)
             pendingTags["samplingInterval"] = \
                 struct.pack(AWPacket.tagFormat["samplingInterval"], val)
-            r.append("samplingInterval:" + str(val))
+            r.append("samplingInterval:" + str(val / 16))
         
         elif cmd.startswith("upgradeFirmware="):
             version = str(cmd.replace("upgradeFirmware=", "", 1))
@@ -302,13 +308,6 @@ buf = bytearray()
 
 # Discard any characters already present in the device
 termios.tcflush(device, termios.TCIOFLUSH)
-#while True:
-#    inputready, outputready, exceptready = select.select([device], [], [], 1)
-#    for fd in inputready:
-#        fd.read(1)
-#    if len(inputready) == 0:
-#        break;
-#print("Done gobbling")
 
 running = True
 while running:
@@ -391,8 +390,14 @@ while running:
                     fd.write(response)
                     
                     if config.has_option("aurorawatchrealtime", "filename"):
-                        writeAuroraWatchRealTimeData(timestamp, float("NaN"),
-                                                     float("NaN"), float("NaN"))
+                        data = { }
+                        for tag in ["magDataX", "magDataY", "magDataZ"]:
+                            if tag in messageTags:
+                                comp = struct.unpack(AWPacket.tagFormat[tag], 
+                                                     str(messageTags[tag][0]))
+                                data[tag] = comp[1];
+                                writeAuroraWatchRealTimeData(timestamp, data)
+
                         
         elif fd == controlSocket:
             if controlSocketConn is not None:

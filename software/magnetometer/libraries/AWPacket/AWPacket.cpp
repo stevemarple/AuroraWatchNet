@@ -19,12 +19,12 @@ const uint16_t AWPacket::tagLengths[17] = {
   3, // 3 = sensorTemperature
   3, // 4 = mcuTemperature
   3, // 5 = batteryVoltage
-  5, // 6 = timeAdjustment
+  7, // 6 = timeAdjustment
   2, // 7 = rebootFlags
-  5, // 8 = samplingInterval (5 bytes????????)
+  3, // 8 = samplingInterval
   1, // 9 = paddingByte
   0, // 10 = padding (variable length)
-  5, // 11 = currentUnixTime
+  7, // 11 = currentUnixTime
   1, // 12 = reboot (command)
   (sizeOfTag + firmwareNameLength), // 13 = current firmware
   (sizeOfTag + firmwareNameLength +
@@ -166,7 +166,10 @@ Stream& AWPacket::printPacket(const uint8_t* buffer, uint16_t bufferLength,
   s.print("Flags: "); s.println(buffer[flagsOffset], DEC);
   s.print("Packet length: "); s.println(getPacketLength(buffer));
   s.print("Site ID: "); s.println(getSiteId(buffer));
-  s.print("Timestamp: "); s.println(getTimestamp(buffer));
+  uint32_t t_s;
+  uint16_t t_32768th;
+  getTimestamp(buffer, t_s, t_32768th);
+  s.print("Timestamp: "); s.print(t_s); s.print(',');s.println(t_32768th);
 
   
   if (parsePacket(buffer, bufferLength, &s, printTag, printUnknownTag) == false)
@@ -192,7 +195,8 @@ Stream& AWPacket::printPacket(const uint8_t* buffer, uint16_t bufferLength,
 
 AWPacket::AWPacket(void) : version(1), flags(0),
 			   siteId(defaultSiteId),
-			   timestamp(0), 
+			   timestamp_s(0),
+			   timestamp_32768th(0), 
 			   sequenceId(defaultSequenceId),
 			   retries(0), keyLen(0), key(NULL)
 {
@@ -204,7 +208,8 @@ AWPacket::AWPacket(void) : version(1), flags(0),
 AWPacket::AWPacket(const uint8_t *buffer, uint8_t bufferLength)
   : version(1), flags(0),
     siteId(defaultSiteId),
-    timestamp(0), 
+    timestamp_s(0),
+    timestamp_32768th(0),
     sequenceId(defaultSequenceId),
     retries(0), keyLen(0), key(NULL)
 {
@@ -220,7 +225,7 @@ AWPacket::AWPacket(const uint8_t *buffer, uint8_t bufferLength)
 
   version = buffer[versionOffset];
   siteId = getSiteId(buffer);
-  timestamp = getTimestamp(buffer);
+  getTimestamp(buffer, timestamp_s, timestamp_32768th);
 
   flags = 0;
   if (isSignedPacket(buffer)) {
@@ -249,7 +254,7 @@ bool AWPacket::putHeader(uint8_t* buffer, size_t bufferLength) const
   //p += sizeof(siteId);
   //avrToNetwork(p, &timestamp, sizeof(timestamp));
   //p += sizeof(timestamp);
-  setTimestamp(buffer, timestamp);
+  setTimestamp(buffer, timestamp_s, timestamp_32768th);
   return true;
 }
 
@@ -325,6 +330,22 @@ bool AWPacket::putGetFirmwarePage(uint8_t* buffer, size_t bufferLength,
   p += AWPacket::firmwareNameLength;
   avrToNetwork(p, &pageNumber, sizeof(pageNumber));
   setPacketLength(buffer, len + tagLengths[tagGetFirmwarePage]);
+  return true;
+}
+
+
+bool AWPacket::putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
+				 int32_t seconds, int16_t fraction) const
+{
+  uint16_t len = getPacketLength(buffer);
+  if (len + tagLengths[tagTimeAdjustment] > bufferLength)
+    return false;
+  uint8_t *p = buffer + len;
+  *p++ = tagTimeAdjustment;
+  avrToNetwork(p, &seconds, sizeof(seconds));
+  p += sizeof(seconds);
+  avrToNetwork(p, &fraction, sizeof(fraction));
+  setPacketLength(buffer, len + tagLengths[tagTimeAdjustment]);
   return true;
 }
 

@@ -13,6 +13,7 @@
 #include <AWPacket.h>
 #include <FLC100_shield.h>
 #include <RTCx.h>
+#include <CounterRTC.h>
 #include <AsyncDelay.h>
 #include <MCP342x.h>
 #include <MultiReadCircBuffer.h>
@@ -29,12 +30,13 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "test-0.01b";
+  "test-0.07b";
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
 Stream& console = Serial;
 Stream& xrf = Serial1;
+uint8_t verbosity = 1;
 
 FLC100 flc100;
 CommandHandler commandHandler;
@@ -49,15 +51,23 @@ CommsHandler commsHandler(xrf, commsStackBuffer, commsStackBufferLen);
 const uint16_t responseBufferLen = 400;
 uint8_t responseBuffer[responseBufferLen];
 
-RTCx::time_t timeAdjustment = 0;
+// Maximum allowable time error
+const CounterRTC::Time maxTimeError(1, 0);
+
+// Most recent time adjustment. Sent on all outgoing packets until a
+// message acknowledgement is received, at which point it is set to
+// zero.
+CounterRTC::Time timeAdjustment(0, 0);
 
 //AsyncDelay xrfResponseTimeout;
 // uint32_t xrfResponseTimeout_ms = 1000;
 
-// Don't sleep in samplingInterval_ms is less than this value
+// Don't sleep if samplingInterval is less than this value
 uint16_t counter2Frequency = 0;
-const uint16_t minSleepInterval_ms = 3000; 
-uint32_t samplingInterval_ms = 8000;
+// const uint16_t minSleepInterval = 4; 
+//uint32_t samplingInterval = 8;
+CounterRTC::Time minSleepInterval(2, 0);
+CounterRTC::Time samplingInterval(8, 0);
 bool samplingIntervalChanged = true;
 //bool useSleepMode = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
@@ -75,6 +85,7 @@ MultiReadCircBuffer sdCircularBuffer(sdBuffer, sizeof(sdBuffer),
 // After boot keep sending boot flags and firmware version until a
 // response is received.
 bool firstMessage = true;
+bool sendFirmwareVersion = false;
 
 // Name of firmware to upgrade to. Ensure room for trailing null to
 // allow use of strcmp(). If empty string then not upgrading firmware.
@@ -92,6 +103,9 @@ const uint8_t sdFilenameLen = 29; // Remember to include space for '\0'
 char sdFilename[sdFilenameLen] = "OLD_FILE"; 
 File sdFile;
 
+volatile bool startSampling = false;
+volatile bool callbackWasLate = true;
+
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
 uint8_t mcusrCopy __attribute__ ((section (".noinit")));
@@ -105,13 +119,48 @@ void get_mcusr(void)
   wdt_disable();
 }
 
-
-volatile bool startSampling = false;
-ISR(TIMER2_COMPA_vect)
+void startSamplingCallback(uint8_t alarmNum, bool late, const void *context)
 {
+  // Indicate that main loop should commence sampling
   startSampling = true;
+  callbackWasLate = late;
 }
 
+void setAlarm(void)
+{
+  // Request the next alarm
+  CounterRTC::Time t;
+    
+  if (callbackWasLate)
+    // Set next alarm relative to current time.
+    cRTC.getTime(t);
+  else 
+    // Set next alarm relative to the scheduled time.
+    cRTC.getAlarm(0, t, NULL);
+
+  t += samplingInterval;
+  
+  
+  // --------------------
+  if (callbackWasLate) {
+    CounterRTC::Time now;
+    cRTC.getTime(now);
+    console << "startSamplingCallback()  LATE ====\n";
+    extern CounterRTC::Time alarmBlockTime[CounterRTC::numAlarms];
+    extern uint8_t alarmCounter[CounterRTC::numAlarms];
+    console << "alarm block: " <<  alarmBlockTime[0].getSeconds()
+	    << ' ' << alarmBlockTime[0].getFraction()
+	    << ' ' << _DEC(alarmCounter[0])
+	    << endl
+	    << "now: " << now.getSeconds() << ' ' << now.getFraction() << endl;
+  }
+  else
+    console << "startSamplingCallback()\n";
+  console << "alarmTime: " << t.getSeconds() << ' ' << t.getFraction() << endl;
+  // --------------------
+  
+  cRTC.setAlarm(0, t, startSamplingCallback);
+}
 
 Stream& printBinaryBuffer(Stream &s, const void* buffer, int len)
 {
@@ -144,9 +193,56 @@ void doSleep(uint8_t mode)
   noInterrupts();
   set_sleep_mode(mode); // Set the mode
   sleep_enable();       // Make sleeping possible
-  TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
+  // TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
   interrupts();         // Make sure wake up is possible!
-  sleep_cpu();          // Now go to sleep
+
+  while (ASSR & _BV(TCR2AUB))
+    ; // Wait for any pending updates to have latched
+  volatile uint8_t tccr2aCopy = TCCR2A;
+
+  while (!startSampling) {
+    // TODO: restrict how many times loop can run
+    
+    /*
+     * Now sleep, but see caveat from the data sheet:
+     *
+     * If Timer/Counter2 is used to wake the device up from
+     * Power-save or ADC Noise Reduction mode, precautions must be
+     * taken if the user wants to re-enter one of these modes: The
+     * interrupt logic needs one TOSC1 cycle to be reset. If the
+     * time between wake-up and reentering sleep mode is less than
+     * one TOSC1 cycle, the interrupt will not occur, and the
+     * device will fail to wake up. If the user is in doubt
+     * whether the time before re-entering Power-save or ADC Noise
+     * Reduction mode is sufficient, the following algorithm can
+     * be used to ensure that one TOSC1 cycle has elapsed:
+     *
+     * - a. Write a value to TCCR2x, TCNT2, or OCR2x.
+     * - b. Wait until the corresponding Update Busy Flag in ASSR
+     *      returns to zero.
+     * - c. Enter Power-save or ADC Noise Reduction mode.
+     */
+
+    noInterrupts();
+    TIFR2 |= (_BV(OCF2A) | _BV(OCF2B) | _BV(TOV2)); 
+    interrupts();
+    
+    while (ASSR & _BV(TCR2AUB))
+      ;
+    TCCR2A = tccr2aCopy;
+    //TCCR2A = 0;
+    // Memory barrier to ensure the write to OCR2B isn't optimized away
+    __asm volatile( "" ::: "memory" );
+    
+    //OCR2B = ocr2bCopy; // Write
+
+    while((ASSR & (1 << TCR2AUB)) != 0)
+      ; // Wait for changes to latch
+     //while (ASSR & _BV(OCR2BUB))
+     // ; // Wait for one TOSC1 cycle to complete
+    __asm volatile( "" ::: "memory" );
+    sleep_cpu();          // Now go to sleep
+  }
 
   // Now awake again
   sleep_disable();      // Make sure sleep can't happen until we are ready
@@ -160,36 +256,21 @@ void doSleep(uint8_t mode)
   TWCR |= _BV(TWEN); 
 }
 
-// Configure counter/timer2 in asynchronous mode, counting the rising
-// edge of signals on TOSC1. This always triggers on the rising edge;
-// if connecting SQW from a DS1307 then this means the ticks occur
-// halfway through the second at 1Hz.
-void setupTimer2(void)
+void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    startSampling = false;
-    ASSR = (1 << EXCLK); // Must be done before asynchronous operation enabled
-    ASSR |= (1 << AS2);
-    TCCR2A = 0;
-    TCCR2B = 0;
-    TCNT2 = 0; // Clear any count
-  
-    const uint16_t prescaler = 1024;
-    uint32_t ticksPerSecond = counter2Frequency / prescaler;
-    uint16_t maxSleep = 256 / ticksPerSecond;
-    uint32_t mySleep = ((samplingInterval_ms + 500) / 1000);
-    if (mySleep > maxSleep)
-      mySleep = maxSleep;
-  
-    OCR2A = (mySleep * ticksPerSecond) - 1;
-    OCR2B = 255;
-    TCCR2A |= _BV(WGM21); // CTC mode
-    TCCR2B |= (_BV(CS22) | _BV(CS21) | _BV(CS20));  // Divide by 1024
+  // Cancel any previous time adjustment. (If there was one the
+  // server is aware since we have received a response packet.)
+  timeAdjustment = CounterRTC::Time(0, 0);
 
-    while((ASSR & ((1 << TCN2UB) | (1 << OCR2AUB) | (1 << OCR2BUB) | (1 << TCR2AUB) | (1 << TCR2BUB))) != 0)
-      ; // Wait for changes to latch
-  
-    TIMSK2 |= (1 << OCIE2A);
+  // DEBUG: message received, turn off LED
+  digitalWrite(LED_BUILTIN, LOW);
+  AWPacket::parsePacket(responseBuffer, responseBufferLen,
+			&console,
+			processResponseTags, AWPacket::printUnknownTag);
+  if (verbosity) {
+    console << "====\nResponse:\n";
+    AWPacket::printPacket(responseBuffer, responseBufferLen, console);
+    console << "====\n";
   }
 }
 
@@ -199,17 +280,51 @@ void setupTimer2(void)
 
 uint8_t spmBuffer[SPM_PAGESIZE];
 // Process the response sent back from the server. Context must be a stream
-bool processResponse(uint8_t tag, const uint8_t *data, uint16_t dataLen,
-		     void *context)
+bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
+			 void *context)
 {
-  Stream *s = (Stream*)context; 
-  uint32_t u32;
+  Stream *s = (Stream*)context;
   switch (tag) {
+  case AWPacket::tagCurrentUnixTime:
+    {
+      uint32_t secs;
+      uint16_t frac;
+      CounterRTC::Time ourTime;
+      cRTC.getTime(ourTime);
+
+      AWPacket::networkToAvr(&secs, data, sizeof(secs));
+      AWPacket::networkToAvr(&frac, data + sizeof(secs), sizeof(frac));
+      CounterRTC::Time serverTime(secs, frac);
+      
+      CounterRTC::Time timeError = ourTime - serverTime;
+      if (abs_(timeError) > maxTimeError) {
+      	cRTC.setTime(serverTime);
+      	console << "Time set\n";
+      	timeAdjustment = -timeError;
+      }
+      if (verbosity > 1) {
+	console << "Server time: " << secs << ' ' << frac
+		<< "\nOur time: "  << ourTime.getSeconds() << ' '
+		<< ourTime.getFraction()
+		<< "\ntimeError (our-server): " << timeError.getSeconds() << ' '
+		<< timeError.getFraction() << endl;
+      }
+    }
+    break;
+    
   case AWPacket::tagSamplingInterval:
-    AWPacket::networkToAvr(&u32, data, sizeof(u32));
-    samplingInterval_ms = u32 * 1000;
-    samplingIntervalChanged = true;
-    (*s) << "SAMPLING INTERVAL CHANGED! " << samplingInterval_ms << endl;
+    {
+      uint16_t u16;
+      AWPacket::networkToAvr(&u16, data, sizeof(u16));
+      samplingInterval = 
+	CounterRTC::Time((u16 & 0xFFF0) >> 4,
+			 (u16 & 0x000F) <<
+			 (CounterRTC::fractionsPerSecondLog2 - 4));
+      samplingIntervalChanged = true;
+      (*s) << "SAMPLING INTERVAL CHANGED! "
+	   << samplingInterval.getSeconds() << ',' 
+	   << samplingInterval.getFraction() << endl;
+    }
     break;
 
   case AWPacket::tagReboot:
@@ -219,15 +334,22 @@ bool processResponse(uint8_t tag, const uint8_t *data, uint16_t dataLen,
     break;
 
   case AWPacket::tagUpgradeFirmware:
-    console << "received upgrade firmware tag: " << upgradeFirmwareVersion << endl;
     if (upgradeFirmwareVersion[0] == '\0') {
       // Not currently upgrading, honour request
       memcpy(upgradeFirmwareVersion, data, AWPacket::firmwareNameLength);
       upgradeFirmwareVersion[sizeof(upgradeFirmwareVersion)-1] = '\0';
+      console << "Received upgrade firmware tag: "
+	      << upgradeFirmwareVersion << endl;
       if (strncmp(upgradeFirmwareVersion, firmwareVersion,
 		  AWPacket::firmwareNameLength) == 0) {
+	// Same as current so clear upgradeFirmwareVersion.
+	upgradeFirmwareVersion[0] = '\0';
 	console << "Already have firmware version " << firmwareVersion << endl;
-	break;
+
+	// TODO: Send firmwareVersion so that server knows to cancel
+	// the request.
+	sendFirmwareVersion = true;
+       	break;
       }
       console << "Upgrade firmware to " << upgradeFirmwareVersion << endl;
 
@@ -340,14 +462,14 @@ void setup(void)
 	  << "Extended fuse: " << _HEX(extendedFuse) << endl;
 
   // Is the internal RC oscillator in use? Programmed fuses read low
-  bool isRcOsc = ((lowFuse & ~(FUSE_CKSEL3 & FUSE_CKSEL2 &
-			       FUSE_CKSEL1 & FUSE_CKSEL0)) ==
-		   (FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0));
+  uint8_t ckselMask = (uint8_t)~(FUSE_CKSEL3 & FUSE_CKSEL2 &
+				 FUSE_CKSEL1 & FUSE_CKSEL0);
+  bool isRcOsc = ((lowFuse & ckselMask) ==
+		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
   console << "Uses RC oscillator: " << isRcOsc << endl;
-  console << "CKSEL: " << _HEX(lowFuse & ~(FUSE_CKSEL3 & FUSE_CKSEL2 &
-					   FUSE_CKSEL1 & FUSE_CKSEL0)) << endl;
+  console << "CKSEL: " << _HEX(lowFuse & ckselMask) << endl;
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
-  useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
+  //useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
   
   // Ensure all SPI devices are inactive
   pinMode(4, OUTPUT);     // SD card if ethernet shield in use
@@ -405,17 +527,22 @@ void setup(void)
   for (int i = 0; i < FLC100::numAxes; ++i)
     console << "ADC[" << i << "]: Ox" << _HEX(adcAddressList[i])
 	    << ", channel: " << (adcChannelList[i]) << endl;
+  console.flush();
   
   //pinMode(XRF_RESET, OUTPUT);
   //pinMode(XRF_SLEEP, OUTPUT);
 
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
+  console << "Autoprobing to find RTC\n";
+  console.flush();
+  
   if (rtc.autoprobe(rtcAddressList, sizeof(rtcAddressList)))
     console << "Found RTC at address 0x" << _HEX(rtc.getAddress()) << endl;
   else
     console << "No RTC found" << endl;
-
+  console.flush();
+  
   // Enable the battery backup. This happens by default on the DS1307
   // but needs to be enabled on the MCP7941x.
   rtc.enableBatteryBackup();
@@ -423,80 +550,72 @@ void setup(void)
   // Ensure the oscillator is running.
   rtc.startClock();
 
-  if (rtc.getDevice() == RTCx::MCP7941x)
+  if (rtc.getDevice() == RTCx::MCP7941x) {
     console << "MCP7941x calibration: " << _DEC(rtc.getCalibration()) << endl;
-
+    console.flush();
+  }
+  
   // Ensure square-wave output is enabled.
   rtc.setSQW(RTCx::freq4096Hz);
-  counter2Frequency = 4096;
+  pinMode(15, INPUT);
 
+  // Warn, if it stops at this point it means the jumper isn't fitted.
+  // TODO: test if jumper for RTC output is fitted.
+  console << "Configuring MCU RTC\n";
+  console.flush();
+  
+#if 0
+  // Input: 4096Hz, prescaler is divide by 1, clock tick is 4096Hz
+  cRTC.begin(4096, true, _BV(CS20));
+  counter2Frequency = 4096;
+#else
+  // Input: 4096Hz, prescaler is divide by 256, clock tick is 16Hz
+  cRTC.begin(16, true, (_BV(CS22) | _BV(CS21))); 
+  counter2Frequency = 16;
+#endif
+
+  
+  // Set counter RTC time from the hardware RTC
+  struct RTCx::tm tm;
+  if (rtc.readClock(&tm)) {
+    CounterRTC::Time t;
+    t.setSeconds(RTCx::mktime(tm));
+    cRTC.setTime(t);
+  }
+  else
+    console << "Could not get time from real RTC\n";
+  
   commsHandler.setup(xrfSleepPin, xrfOnPin, xrfResetPin);
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
 
-  
-  // Configure timer/counter 2
-  pinMode(15, INPUT);
-  setupTimer2();
-  // flc100.start();
-  
-  //useSleepMode = (samplingInterval_ms >= minSleepInterval_ms);
-  //useSleepMode = false;
-  //if (!useSleepMode)
-  // sampleDelay.start(samplingInterval_ms, AsyncDelay::MILLIS);
+  console.flush();
+  setAlarm();
 }
 
 
 bool resultsProcessed = false;
 void loop(void)
 {
-  if (startSampling) {
-    if (samplingIntervalChanged) {
-      setupTimer2();
-      samplingIntervalChanged = false;
-    }
+  if (startSampling && !flc100.isSampling()) {
     flc100.start();
+
+    // Set startSampling=false BEFORE setting the alarm. If the
+    // computed alarm time is in the past then the callback will be
+    // run immediately and will ensure startSampling is made true. If
+    // the alarm is set before setting startSampling=false then an
+    // alarm could be lost and sampling would stop.  time with
     startSampling = false;
+    setAlarm();
+    
     resultsProcessed = false;
     console << "Sampling started\n";
   }
   
   flc100.process();
-  if (commsHandler.process(responseBuffer, responseBufferLen)) {
-    console << "====\nResponse:\n";
-    AWPacket::printPacket(responseBuffer, responseBufferLen, console);
-    console << "====\n";
-    digitalWrite(LED_BUILTIN, LOW);
-    AWPacket::parsePacket(responseBuffer, responseBufferLen,
-			  &console,
-			  processResponse, AWPacket::printUnknownTag);
-    
-    // TODO: Act on the response. Set the time if necessary. Refactor
-    // time checking/setting code from commsHandler to have common
-    // set/check function.
-
-    // Cancel any previous time adjustment. (If there was one the
-    // server is aware since we have received a response packet.)
-    timeAdjustment = 0;
-    RTCx::time_t cut;
-    RTCx::time_t timeError;
-    const RTCx::time_t maxTimeError = 2;
-    if (AWPacket::getCurrentUnixTime(responseBuffer, cut) &&
-	CommandHandler::checkTime(cut, timeError) &&
-	labs(timeError) > maxTimeError &&
-	// TODO: adjust time rather than set absolutely?
-	CommandHandler::setTime(cut)) {
-      console << "Time set to unix time: " << cut << endl;
-      timeAdjustment = -timeError;
-    }
-
-  }
+  if (commsHandler.process(responseBuffer, responseBufferLen))
+    processResponse(responseBuffer, responseBufferLen);
+  
   commandHandler.process(console, xrf);
-
-  /*
-  console << "commsHandler.process(): "
-	  << CommsHandler::errorMessages[commsHandler.getError()]
-	  << endl;
-  */
 
   // console << "I2C state: " << (flc100.getI2CState()) << endl;
   if (flc100.isFinished()) {
@@ -563,7 +682,11 @@ void loop(void)
       
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
-      packet.setTimestamp(flc100.getTimestamp());
+      packet.setFlagBit(AWPacket::flagsSampleTimingError, callbackWasLate);
+      //packet.setTimestamp(flc100.getTimestamp());
+      CounterRTC::Time now;
+      cRTC.getTime(now);
+      packet.setTimestamp(now.getSeconds(), now.getFraction());
       
       packet.putHeader(buffer, sizeof(buffer));
       // printBinaryBuffer(console, buffer, 20);
@@ -584,9 +707,13 @@ void loop(void)
       packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagBatteryVoltage,
 			   flc100.getBatteryVoltage());
-      packet.putDataUint32(buffer, sizeof(buffer),
+      // Upper 3 nibbles is seconds, lowest nibble is 16ths of second
+      packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagSamplingInterval,
-			   (samplingInterval_ms + 500) / 1000);
+			   (uint16_t(samplingInterval.getSeconds() << 4) |
+			    samplingInterval.getFraction() >>
+			    (CounterRTC::fractionsPerSecondLog2 - 4)));
+      // samplingInterval);
       if (firstMessage) {
 	// Cancelled when first response is received
 	packet.putDataUint8(buffer, sizeof(buffer),
@@ -594,18 +721,15 @@ void loop(void)
 	packet.putString(buffer, sizeof(buffer),
 			 AWPacket::tagCurrentFirmware, firmwareVersion);
       }
-      if (timeAdjustment)
-	packet.putDataInt32(buffer, sizeof(buffer),
-			    AWPacket::tagTimeAdjustment, timeAdjustment);
-      /*
-      if (upgradeFirmwareVersion[0] != '\0') {
-	// Upgrading firmware
-	packet.putGetFirmwarePage(buffer, sizeof(buffer),
-				  upgradeFirmwareVersion,
-				  upgradeFirmwareGetBlockNumber);
-      }
-      */
-      
+      else if (sendFirmwareVersion)
+	packet.putString(buffer, sizeof(buffer),
+			 AWPacket::tagCurrentFirmware, firmwareVersion);
+      if (timeAdjustment > CounterRTC::Time())
+	// TODO: check against overflow in int32_t, int16_t
+	packet.putTimeAdjustment(buffer, sizeof(buffer),
+				 timeAdjustment.getSeconds(),
+				 timeAdjustment.getFraction());
+
       console << "Unpadded length: " << AWPacket::getPacketLength(buffer) << endl;
       if (useSd && AWPacket::getPacketLength(buffer) <= sdPacketSize) {
 	// Add the latest packet to the SD card circular buffer, add
@@ -617,7 +741,8 @@ void loop(void)
 	console << "SD packet size: " << sdPacketSize << endl;
 	// printBinaryBuffer(console, buffer, sdPacketSize);
 	console << endl;
-	AWPacket::printPacket(buffer, bufferLength, console);
+	if (verbosity)
+	  AWPacket::printPacket(buffer, bufferLength, console);
 	// 'Remove' padding by reverting to the original packet length
 	AWPacket::setPacketLength(buffer, originalLength);
       }
@@ -626,32 +751,15 @@ void loop(void)
       packet.putSignature(buffer, sizeof(buffer)); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+      // DEBUG: message queued, turn on LED
       digitalWrite(LED_BUILTIN, HIGH);
-      
-      // printBinaryBuffer(console, buffer, AWPacket::getPacketLength(buffer)).println();
-      AWPacket::printPacket(buffer, bufferLength, console);
-      console << "addMessage(): "
-	      << CommsHandler::errorMessages[commsHandler.getError()]
-	      << endl;
-      
 
-	
-      // xrfResponseTimeout.start(xrfResponseTimeout_ms, AsyncDelay::MILLIS);
-
-      
-      
+      if (verbosity)
+	AWPacket::printPacket(buffer, bufferLength, console);
+    
       console << "# -----------" << endl;
     }
     
-    /*
-    console << "T " << millis() << endl
-<< "ss " << startSampling << endl
-      //<< "bs " << commsHandler.getBytesSent() << endl
-	    << "st " << _DEC(commsHandler.getState()) << endl;
-      // << "fin " << commsHandler.isFinished() << endl;
-      */	    
-
-
     if (startSampling == false &&
 	*upgradeFirmwareVersion != '\0' &&
 	upgradeFirmwareGetBlockNumber < upgradeFirmwareNumBlocks &&
@@ -661,7 +769,7 @@ void loop(void)
       // acknowledgements pending and standard sampling isn't
       // occuring at this time. Once a message has been queued for
       // transmission commsHandler.isFinished() != TRUE until the
-      // acknowledgement has bene received.
+      // acknowledgement has been received.
 
       // Increment the sequence number since the timestamp inside
       // flc100 will not change until the next sampling action.
@@ -673,7 +781,10 @@ void loop(void)
 
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
-      packet.setTimestamp(flc100.getTimestamp());
+      // packet.setTimestamp(flc100.getTimestamp());
+      CounterRTC::Time now;
+      cRTC.getTime(now);
+      packet.setTimestamp(now.getSeconds(), now.getFraction());
       
       packet.putHeader(buffer, sizeof(buffer));
       packet.putGetFirmwarePage(buffer, sizeof(buffer),
@@ -684,6 +795,7 @@ void loop(void)
       packet.putSignature(buffer, sizeof(buffer)); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+      // DEBUG: message queued, turn on LED
       digitalWrite(LED_BUILTIN, HIGH);
       
     }
@@ -693,38 +805,28 @@ void loop(void)
     // if (!xrf.available() && xrfResponseTimeout.isExpired() &&
     // startSampling == false) {
     if (startSampling == false &&
-	commsHandler.isFinished() && commsHandler.xrfPowerOff()) {
+	commsHandler.isFinished() &&
+	samplingInterval >= minSleepInterval &&
+	commsHandler.xrfPowerOff()) {
 
-
+      struct RTCx::tm tm;
+      rtc.readClock(tm);
+      RTCx::time_t hwcTime = RTCx::mktime(tm);
+      CounterRTC::Time now;
+      cRTC.getTime(now);
+      // Setting the RTC is likely to slightly upset the timing as it
+      // stops the hardware clock briefly. Only set
       
-      /*
-       * Now sleep, but see caveat from the data sheet:
-       *
-       * If Timer/Counter2 is used to wake the device up from
-       * Power-save or ADC Noise Reduction mode, precautions must be
-       * taken if the user wants to re-enter one of these modes: The
-       * interrupt logic needs one TOSC1 cycle to be reset. If the
-       * time between wake-up and reentering sleep mode is less than
-       * one TOSC1 cycle, the interrupt will not occur, and the
-       * device will fail to wake up. If the user is in doubt
-       * whether the time before re-entering Power-save or ADC Noise
-       * Reduction mode is sufficient, the following algorithm can
-       * be used to ensure that one TOSC1 cycle has elapsed:
-       *
-       * - a. Write a value to TCCR2x, TCNT2, or OCR2x.
-       * - b. Wait until the corresponding Update Busy Flag in ASSR
-       *      returns to zero.
-       * - c. Enter Power-save or ADC Noise Reduction mode.
-       */
+      if (labs(hwcTime-now.getSeconds()) > 2*maxTimeError.getSeconds()+1) {
+      	RTCx::time_t t = now.getSeconds();
+      	RTCx::gmtime_r(&t, &tm);
+      	rtc.setClock(tm);
+	console << "Set HW clock\n";
+      }
 
-      // TODO: consider putting the write into doSleep so that it
-      // occurs immediately after waking. Leave the waiting for
-      // OCR2BUB to clear here. This might reduce the time awake time.	
-      OCR2B = 255;
-      while (ASSR & _BV(OCR2BUB))
-	;
-      //doSleep(SLEEP_MODE_PWR_SAVE);
-      //console << "SLEEP!\n";
+      console.flush();
+      doSleep(SLEEP_MODE_PWR_SAVE);
+      console << "SLEEP!\n";
     }
   }
   

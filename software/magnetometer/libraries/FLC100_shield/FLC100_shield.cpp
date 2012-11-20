@@ -80,14 +80,10 @@ void FLC100::I2C::process(void)
     break;
 
   case readingTime:
-    // TO DO: optimise when the clock is read. For greatest accuracy
-    // it should be close to when the ADCs are instructed to sample
-    // the magnetometers. For lowest power usage it should be before
-    // the power is applied to the remote board.
     {
-      struct RTCx::tm tm;
-      rtc.readClock(&tm);
-      timestamp = RTCx::mktime(tm);
+      CounterRTC::Time now;
+      cRTC.getTime(now);
+      timestamp = now.getSeconds();
     }
     state = convertingTemp;
     break;
@@ -237,7 +233,7 @@ void FLC100::I2C::process(void)
     break;
     
   case poweringDown:
-    // digitalWrite(powerPin, LOW);
+    digitalWrite(powerPin, LOW);
     state = finished;
     break;
 
