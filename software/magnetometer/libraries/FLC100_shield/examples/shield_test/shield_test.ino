@@ -1,7 +1,8 @@
 #include <AsyncDelay.h>
 #include <Wire.h>
-#include <RTC.h>
+#include <RTCx.h>
 #include <MCP342x.h>
+#include <CounterRTC.h>
 #include <FLC100_shield.h>
 
 
@@ -14,17 +15,25 @@ const uint8_t adcAddressList[] = {0x69, 0x6A, 0x6B,
 bool haveMCP342x = false;
 
 uint8_t xrfSleepState = 0;
-uint8_t xrfResetState = 0;
+uint8_t xrfResetState = 1;
 uint8_t adcPowerState = 1;
 
 void setup(void)
 {
   Serial.begin(9600);
+  Serial1.begin(9600);
   Wire.begin();
-  pinMode(XRF_RESET, OUTPUT);
-  pinMode(XRF_SLEEP, OUTPUT);
-  pinMode(FLC100_POWER, OUTPUT);
 
+  pinMode(XRF_RESET, OUTPUT);
+  digitalWrite(XRF_RESET, xrfResetState);
+
+  pinMode(XRF_SLEEP, OUTPUT);
+  digitalWrite(XRF_SLEEP, xrfSleepState);
+
+  pinMode(FLC100_POWER, OUTPUT);
+  digitalWrite(FLC100_POWER, adcPowerState);
+  
+  pinMode(22, INPUT); // XRF On indicator
   // Turn on 5V supply so that the ADC can be probed
   adcPowerState = 1;
   digitalWrite(FLC100_POWER, adcPowerState);
@@ -63,7 +72,7 @@ void loop(void)
 	  digitalWrite(XRF_SLEEP, xrfSleepState);
 	}
 	else if (strcmp_P(buffer, PSTR("xrfreset")) == 0) {
-	  xrfSleepState = !xrfResetState;
+	  xrfResetState = !xrfResetState;
 	  digitalWrite(XRF_RESET, xrfResetState);
 	}
 	else if (strcmp_P(buffer, PSTR("gain1")) == 0) {
@@ -78,6 +87,13 @@ void loop(void)
 	else if (strcmp_P(buffer, PSTR("gain8")) == 0) {
 	  gain = adc.gain8;
 	}
+	else if (strcmp_P(buffer, PSTR("+++")) == 0) {
+	  Serial1.print("+++");
+	}
+	else if (strncmp_P(buffer, PSTR("AT"), 2) == 0) {
+	  Serial1.print(buffer);
+	  Serial1.print("\r");
+	}
 	else {
 	  Serial.print(buffer);
 	  Serial.println(": ERROR");
@@ -90,6 +106,9 @@ void loop(void)
       buffer[bufPos++] = c; 
   }
 
+  while (Serial1.available())
+    Serial.print((char)Serial1.read());
+  
   if (millis() - last > 2000) {
     last = millis();
     Serial.println("--------------");
@@ -102,6 +121,8 @@ void loop(void)
     Serial.println(xrfSleepState ? '1' : '0');
     Serial.print("XRF reset: ");
     Serial.println(xrfResetState ? '1' : '0');
+    Serial.print("XRF is on: ");
+    Serial.println(digitalRead(22) ? '1' : '0');
 
     Serial.print("Vin: ");
     Serial.print((3.3 * analogRead(BATTERY_ADC)) / 1024);
@@ -118,7 +139,7 @@ void loop(void)
     }
 
   }
-
+  
   
 }
 
