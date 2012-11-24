@@ -581,14 +581,19 @@ void setup(void)
     CounterRTC::Time t;
     t.setSeconds(RTCx::mktime(tm));
     cRTC.setTime(t);
+    console << "Set MCU RTC from hardware RTC\n";
   }
   else
     console << "Could not get time from real RTC\n";
-  
+  console.flush();
+
+  console << "Setting up XRF...\n";
+  console.flush();
   commsHandler.setup(xrfSleepPin, xrfOnPin, xrfResetPin);
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
-
+  console << "... done\n";
   console.flush();
+    
   setAlarm();
 }
 

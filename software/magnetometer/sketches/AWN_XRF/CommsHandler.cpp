@@ -6,10 +6,11 @@ extern "C" {
 }
 
 
-
+#include <Streaming.h>
 #include <AWPacket.h>
 #include "CommsHandler.h"
 
+extern Stream& console;
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
 static const char* strResponseTimeout = "reponse timeout";
@@ -48,10 +49,13 @@ bool CommsHandler::xrfPowerOff(void)
 
 bool CommsHandler::xrfReset(void)
 {
+  if (xrfResetPin == 255)
+    return true; // Reset pin not set, report reset done
+  
   if (xrfResetting && resetTimer.isExpired()) {
     // Timer expired, make reset pin inactive and check that XRF
     // indicates it is ready.
-    digitalWrite(xrfResetting, HIGH);
+    digitalWrite(xrfResetPin, HIGH);
     if (digitalRead(xrfOnPin) == HIGH) {
       xrfResetting = false;
       return true;
@@ -70,30 +74,51 @@ bool CommsHandler::xrfReset(void)
 
 void CommsHandler::setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin)
 {
+  AsyncDelay timeout;
   xrfSleepPin = sleepPin;
   xrfOnPin = onPin;
   xrfResetPin = resetPin;
   
   if (xrfSleepPin != 255) {
     pinMode(xrfSleepPin, OUTPUT);
-    digitalWrite(xrfSleepPin, HIGH); // active low, in sleep mode 2
+    //digitalWrite(xrfSleepPin, HIGH); // active low, in sleep mode 2
+    digitalWrite(xrfSleepPin, LOW); // low = on, in sleep mode 2
   }
-  if (xrfOnPin != 255) 
-    pinMode(xrfOnPin, INPUT);
 
   if (xrfResetPin != 255) {
-    pinMode(xrfSleepPin, OUTPUT);
-    digitalWrite(xrfSleepPin, HIGH); // active low
+    pinMode(xrfResetPin, OUTPUT);
+    digitalWrite(xrfResetPin, HIGH); // active low
+
+    timeout.start(3000, AsyncDelay::MILLIS);
+    while (1) {
+      if (xrfReset())
+	break;
+      if (timeout.isExpired()) {
+	console << "Timeout waiting for XRF to reset\n";
+	break;
+      }
+    }
+    // do {
+    //   ;
+    // } while (xrfReset() != true);
   }
 
-  do {
-    ;
-  } while (xrfReset() != true);
-
-  do {
-    ;
-  } while (xrfPowerOn() != true);
-
+  if (xrfOnPin != 255) { 
+    pinMode(xrfOnPin, INPUT);
+    timeout.start(3000, AsyncDelay::MILLIS);
+    while (1) {
+      if (xrfPowerOn() == true)
+	break;
+      if (timeout.isExpired()) {
+	console << "Timeout waiting for XRF to power on\n";
+	break;
+      }
+    }
+    // do {
+    //   ;
+    // } while (xrfPowerOn() != true);
+  }
+  
   while (xrf.available())
     xrf.read();
   
