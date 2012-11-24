@@ -246,6 +246,19 @@ def packetReqGetFirmwarePage(data):
     args.append(pageNumber)
     args.extend(list(fwPage))
     requestedTags["firmwarePage"] = struct.pack(AWPacket.tagFormat["firmwarePage"], *args) 
+
+
+def getTermiosBaudRate(baud):
+    rates = {"9600": termios.B9600,
+             "19200": termios.B19200,
+             "38400": termios.B38400,
+             "57600": termios.B57600,
+             "115200": termios.B115200}
+    
+    if baud in rates:
+        return rates[baud]
+    else:
+        return None
     
 # ==========================================================================
 
@@ -270,11 +283,9 @@ device = open(config.get("serial", "port"), "a+b", 0)
 tty.setraw(device, termios.TCIOFLUSH)
 
 termAttr = termios.tcgetattr(device)
-termAttr[4] = termAttr[5] = termios.B57600
+termAttr[4] = termAttr[5] = getTermiosBaudRate(config.get("serial", 
+                                                          "baudrate"))
 termios.tcsetattr(device, termios.TCSANOW, termAttr)
-
-# tty.CBAUD = tty.B57600
-# tty.CBAUD = tty.B115200
 
 if config.has_option("controlsocket", "filename"):
     if os.path.exists(config.get("controlsocket", "filename")):
@@ -396,7 +407,7 @@ while running:
                                 comp = struct.unpack(AWPacket.tagFormat[tag], 
                                                      str(messageTags[tag][0]))
                                 data[tag] = comp[1];
-                                writeAuroraWatchRealTimeData(timestamp, data)
+                        writeAuroraWatchRealTimeData(timestamp, data)
 
                         
         elif fd == controlSocket:
