@@ -216,8 +216,10 @@ def handlePacketRequests(messageTags):
         if "getFirmwarePage" in messageTags:
             # Write the page to requested tags
             packetReqGetFirmwarePage(messageTags["getFirmwarePage"][0])
-    except Exception as e:
-        None 
+#    except Exception as e:
+#       None 
+    finally:
+        None
     
 def packetReqGetFirmwarePage(data):
     global requestedTags
@@ -432,6 +434,11 @@ while running:
                 if s:
                     controlBuffer += s
                     handleControlMessage(controlBuffer, pendingTags)
+                else:
+                    # EOF on control socket connection
+                    controlSocketConn.shutdown(socket.SHUT_RDWR)
+                    controlSocketConn.close()
+                    controlSocketConn = None
             except Exception as e:
                 print("ERROR: " + str(e))
                 controlSocketConn = None
