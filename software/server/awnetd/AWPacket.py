@@ -44,6 +44,9 @@ hmacLength = 8
 
 
 flagsSignedMessageBit = 0
+flagsSampleTimingErrorBit = 1
+flagsResponseBit = 2
+
 sizeOfTag = 1
 sizeOfPacketLength = 2
 sizeOfFirmwarePageNumber = 2

@@ -687,7 +687,7 @@ void loop(void)
       
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
-      packet.setFlagBit(AWPacket::flagsSampleTimingError, callbackWasLate);
+      packet.setFlagBit(AWPacket::flagsSampleTimingErrorBit, callbackWasLate);
       //packet.setTimestamp(flc100.getTimestamp());
       CounterRTC::Time now;
       cRTC.getTime(now);

@@ -34,8 +34,9 @@ public:
   // SPM_PAGESIZE must be a multiple of firmwareBlockSize
   static const uint16_t firmwareBlockSize = 128;
   enum flags_t {
-    flagsSignedMessageBit = 0,
-    flagsSampleTimingError = 1,
+    flagsSignedMessageBit = 0,     // Signed message
+    flagsSampleTimingErrorBit = 1, // Sampled late
+    flagsResponseBit = 2,          // An acknowledegement message
   };
 
   enum tags_t {

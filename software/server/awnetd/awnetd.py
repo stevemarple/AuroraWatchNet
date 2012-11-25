@@ -16,6 +16,7 @@ import tty
 import hmac
 # from AWPacket import getTimestamp, getPacketLength, tagNames, tagLengths
 import AWPacket
+from AWPacket import flagsResponseBit
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -371,7 +372,8 @@ while running:
                     timestamp = AWPacket.getTimestamp(message)
                     AWPacket.putHeader(response, 
                                        siteId=AWPacket.getSiteId(message),
-                                       timestamp=timestamp)
+                                       timestamp=timestamp,
+                                       flags=(1 << flagsResponseBit))
                     AWPacket.putCurrentUnixTime(response)
                     
                     # Handle packet requests. These tags live only for the 
