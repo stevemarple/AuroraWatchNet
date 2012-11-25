@@ -381,35 +381,42 @@ bool AWPacket::putPadding(uint8_t* buffer, size_t bufferLength,
 }
 
 
-bool AWPacket::putSignature(uint8_t* buffer, size_t bufferLength)
+bool AWPacket::putSignature(uint8_t* buffer, size_t bufferLength,
+			    uint16_t blockSize) 
 {
-  uint16_t signedLen;
+  uint16_t unsignedLen = getUnsignedPacketLength(buffer);
+  if (blockSize) {
+    uint16_t remainder = (unsignedLen + signatureBlockLength) % blockSize;
+    if (remainder) {
+      // Must add padding
+      uint16_t paddingLen = blockSize - remainder;
 
-  // Is the packet in the buffer already signed?
-  if (isSignedPacket(buffer))
-    signedLen = getPacketLength(buffer);
-  else {
-    signedLen = getPacketLength(buffer) + signatureBlockLength;
-    if (signedLen > bufferLength)
-      return false;
+      // Ensure unsigned
+      buffer[flagsOffset] &= ~(1 << flagsSignedMessageBit);
+      flags &= ~(1 << flagsSignedMessageBit);
+      setPacketLength(buffer, unsignedLen);
 
-    setPacketLength(buffer, signedLen);
+      // Add the padding
+      if (putPadding(buffer, bufferLength, paddingLen) == false)
+	return false;
+      unsignedLen += paddingLen;
+    }
   }
+  
+  uint16_t signedLen = unsignedLen + signatureBlockLength;
+  setPacketLength(buffer, signedLen);
   
   buffer[flagsOffset] |= (1 << flagsSignedMessageBit);
   flags |= (1 << flagsSignedMessageBit);
   
   
-  uint8_t *p = buffer + signedLen - signatureBlockLength;
-  
+  uint8_t *p = buffer + unsignedLen;
 
   // sequenceId = getDefaultSequenceId();
   *p++ = sequenceId;
   *p++ = retries;
 
   // Now add HMAC-MD5
-  //uint8_t hmacLength = (signatureBlockLength - sizeof(sequenceId)
-  //			- sizeof(retries));
   uint32_t mesgLenBits = (signedLen - hmacLength) * 8;
   uint8_t hmac[HMAC_MD5_BYTES];
   hmac_md5(hmac, key, ((uint16_t)keyLen) * 8, buffer, mesgLenBits);

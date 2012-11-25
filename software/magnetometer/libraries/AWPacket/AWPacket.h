@@ -138,8 +138,11 @@ public:
 			 int32_t seconds, int16_t fraction) const;
   bool putPadding(uint8_t* buffer, size_t bufferLength,
 		  uint16_t paddingLength) const;
-  bool putSignature(uint8_t* buffer, size_t bufferLength);
-  
+  bool putSignature(uint8_t* buffer, size_t bufferLength,
+		    uint16_t blockSize = 0);
+
+  bool padToBlockSize(uint8_t* buffer, size_t bufferLength, uint16_t blockSize);
+
 private:
   // In normal operation the timestamp should be sufficient to prevent
   // replay attacks. However, if the time has been adjusted backwards

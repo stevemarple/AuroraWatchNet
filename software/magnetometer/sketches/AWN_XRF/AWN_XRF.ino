@@ -45,6 +45,7 @@ const uint8_t xrfSleepPin = 7;
 const uint8_t xrfOnPin = 22;
 const uint8_t xrfResetPin = 5;
 
+const uint16_t commsBlockSize = 12; // Packets should be multiple of 12 long
 const uint16_t commsStackBufferLen = 1024;
 uint8_t commsStackBuffer[commsStackBufferLen];
 CommsHandler commsHandler(xrf, commsStackBuffer, commsStackBufferLen);
@@ -752,8 +753,10 @@ void loop(void)
 	AWPacket::setPacketLength(buffer, originalLength);
       }
 
+      // TODO: Add padding      
+      
       // Add the signature and send by XRF
-      packet.putSignature(buffer, sizeof(buffer)); 
+      packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
@@ -797,7 +800,7 @@ void loop(void)
 				upgradeFirmwareGetBlockNumber);
       
        // Add the signature and send by XRF
-      packet.putSignature(buffer, sizeof(buffer)); 
+      packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
