@@ -108,11 +108,11 @@ void FLC100::I2C::process(void)
       err = adc[0].read(adcResult, status);
       if (!err && status.isReady()) {
 	/* Have valid data. Convert to hundredths of degrees C using
-	 * only intger arithmetic.
+	 * only integer arithmetic.
 	 * From MCP342x data sheet:
 	 * Vdiff = outputCount * 2.048V / ((maxCount+1) * gain)
 	 * where Vdiff is in volts
-	 * maxCount+1 is (1 << (resolution/2)) and multiply by gain is a
+	 * maxCount+1 is (1 << resolution)/2 and multiply by gain is a
 	 * shift of log2(gain)
 	 *
 	 * Working in millivolts this can be given as
