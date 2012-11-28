@@ -44,6 +44,7 @@ def readConfig(configFile):
     # config.set("serial", "port", "/tmp/data")
     config.set("serial", "baudrate", "9600")
     config.set("serial", "blocksize", "12")
+    config.set("serial", "setup", "")
     
 #    config.add_section("magnetometer")
 #    config.set("magnetometer", "datatransferdelay", "2")
@@ -63,9 +64,35 @@ def readConfig(configFile):
     else:
         siteIds = []
 
-    
-    print("## Serial port: " + config.get('serial', 'port'))
 
+def getFileforTime(timestamp, fileObj, fstr, buffering=-1):
+    seconds = timestamp[0] + timestamp[1]/32768.0
+    tmpName = time.strftime(fstr, time.gmtime(seconds))
+    if fileObj is not None and tmpName != fileObj.name:
+        # Filename has changed
+        fileObj.close()
+        fileObj = None
+        
+    if fileObj is None:
+        # File wasn't open or filename changed
+        p = os.path.dirname(tmpName)
+        if not os.path.isdir(p):
+            os.makedirs(p)
+
+        fileObj = open(tmpName, "a+", buffering)
+    
+    return fileObj
+
+awpacketFile = None
+def writeAWPacketToFile(timestamp, message, fstr):
+    global awpacketFile        
+    try:
+        awpacketFile = getFileforTime(timestamp, awpacketFile, fstr)
+        awpacketFile.write(message);
+        awpacketFile.flush()
+    except Exception as e:
+        print("Could not save AWPacket: " + str(e))
+    
 # AuroraWatch realtime file
 realtimeFile = None
 def writeAuroraWatchRealTimeData(timestamp, data):
@@ -269,6 +296,15 @@ def getTermiosBaudRate(baud):
 optParser = OptionParser()
 optParser.add_option("-c", "--config-file", dest="configFile", 
                      help="Configuration file")
+optParser.add_option("--acknowledge", action="store_true",
+                     dest="acknowledge", default=True,
+                     help="Transmit acknowledgement");
+optParser.add_option("--no-acknowledge", action="store_false",
+                     dest="acknowledge",
+                     help="Don't transmit acknowledgement")
+optParser.add_option("--device", metavar="FILE", help="Device file")
+optParser.add_option("-v", "--verbose", dest="verbosity", action="count", 
+                     default=0, help="Increase verbosity")
 
 (options, args) = optParser.parse_args()
 
@@ -282,46 +318,84 @@ else:
 print("Done")
 commsBlockSize = int(config.get("serial", "blocksize"))
 
-device = open(config.get("serial", "port"), "a+b", 0)
-tty.setraw(device, termios.TCIOFLUSH)
-
-termAttr = termios.tcgetattr(device)
-termAttr[4] = termAttr[5] = getTermiosBaudRate(config.get("serial", 
-                                                          "baudrate"))
-termios.tcsetattr(device, termios.TCSANOW, termAttr)
-
-if config.has_option("controlsocket", "filename"):
-    if os.path.exists(config.get("controlsocket", "filename")):
-        os.remove(config.get("controlsocket", "filename"))
-    controlSocket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    # controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    controlSocket.bind(config.get("controlsocket", "filename"))
-    # controlSocket.setblocking(False)
-    controlSocket.listen(1)
+if options.device:
+    deviceFilename = options.device
 else:
-    controlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    deviceFilename = config.get("serial", "port")
+
+if deviceFilename == "-":
+    device = os.sys.stdin
+else:
+    device = open(deviceFilename, "a+b", 0)
+
+if deviceFilename == "-":
+    controlSocket = None
     
-    # ord('A'_ = 65, ord('W') = 87 
-    controlSocket.bind(("", 6587))
-    controlSocket.setblocking(False)
-    controlSocket.listen(0)
-    
+elif device.isatty():
+    if options.verbosity:
+        print("Reading from " + deviceFilename)
+    tty.setraw(device, termios.TCIOFLUSH)
+    termAttr = termios.tcgetattr(device)
+    termAttr[4] = termAttr[5] = getTermiosBaudRate(config.get("serial", 
+                                                          "baudrate"))
+    termios.tcsetattr(device, termios.TCSANOW, termAttr)
+
+    # Discard any characters already present in the device
+    termios.tcflush(device, termios.TCIOFLUSH)
+
+
+    deviceSetup = config.get("serial", "setup").replace(";", "\r")
+    if len(deviceSetup):
+        sys.stdout.write("Setup device... ")
+        device.flush()
+        time.sleep(1)
+        device.write("+++")
+        device.flush()
+        time.sleep(1.2)
+        device.write(deviceSetup)
+        device.write("\rATDN\r")
+        device.flush()
+        print("done")
+
+    if config.has_option("controlsocket", "filename"):
+        if os.path.exists(config.get("controlsocket", "filename")):
+            os.remove(config.get("controlsocket", "filename"))
+        controlSocket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        controlSocket.bind(config.get("controlsocket", "filename"))
+        # controlSocket.setblocking(False)
+        controlSocket.listen(1)
+    else:
+        controlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
+        # ord('A'_ = 65, ord('W') = 87 
+        controlSocket.bind(("", 6587))
+        controlSocket.setblocking(False)
+        controlSocket.listen(0)
+else:
+    # Plain files should be opened read-only
+    device.close()
+    device = open(deviceFilename, "r", 0)
+    controlSocket = None
+        
 controlSocketConn = None
 controlBuffer = None
 
 # Pending tags are persistent and are removed when acknowledged
 pendingTags = {}
 
-selectList = [device, controlSocket]
+# selectList = [device, controlSocket]
+selectList = [device]
+if controlSocket is not None:
+    selectList.append(controlSocket)
+    
 hmacKey = "".join(map(chr, [255, 255, 255, 255, 255, 255, 255, 255, 
                             255, 255, 255, 255, 255, 255, 255, 255]))
 
 buf = bytearray()
 
 
-# Discard any characters already present in the device
-termios.tcflush(device, termios.TCIOFLUSH)
 
 running = True
 while running:
@@ -357,19 +431,19 @@ while running:
             buf.append(s)
             message = AWPacket.validatePacket(buf, hmacKey)
             if message is not None:
-                print("=============")
-                print("Valid message: ")
-                # AWPacket.printBuffer(message)
-                AWPacket.printPacket(message)
+                if options.verbosity:
+                    print("=============")
+                    if device.isatty():
+                        print("Valid message received " + str(time.time()))
+                    AWPacket.printPacket(message)
                 
-                if fd.isatty():
-                    # Not a file, so send a acknowledgement
-                    messageTags = AWPacket.parsePacket(message)
-                    AWPacket.tidyPendingTags(pendingTags, messageTags)
-                        
-                    print("Response: ------")
+                timestamp = AWPacket.getTimestamp(message)
+                messageTags = AWPacket.parsePacket(message)
+                AWPacket.tidyPendingTags(pendingTags, messageTags)
+                
+                if fd.isatty() and options.acknowledge:
+                    # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
-                    timestamp = AWPacket.getTimestamp(message)
                     AWPacket.putHeader(response, 
                                        siteId=AWPacket.getSiteId(message),
                                        timestamp=timestamp,
@@ -401,17 +475,27 @@ while running:
                     
                     # Trim spare bytes from end of buffer
                     del response[AWPacket.getPacketLength(response):]
-                    AWPacket.printPacket(response)
                     fd.write(response)
+
+                    if options.verbosity:   
+                        print("Response: ------")
+                    AWPacket.printPacket(response)
                     
-                    if config.has_option("aurorawatchrealtime", "filename"):
-                        data = { }
-                        for tag in ["magDataX", "magDataY", "magDataZ"]:
-                            if tag in messageTags:
-                                comp = struct.unpack(AWPacket.tagFormat[tag], 
-                                                     str(messageTags[tag][0]))
-                                data[tag] = comp[1];
-                        writeAuroraWatchRealTimeData(timestamp, data)
+                if config.has_option("awpacket", "filename"):
+                    writeAWPacketToFile(timestamp, message, 
+                                        config.get("awpacket", "filename"))
+                
+                if config.has_option("aurorawatchrealtime", "filename"):
+                    data = { }
+                    for tag in ["magDataX", "magDataY", "magDataZ"]:
+                        if tag in messageTags:
+                            comp = struct.unpack(AWPacket.tagFormat[tag], 
+                                                 str(messageTags[tag][0]))
+                            data[tag] = comp[1];
+                    writeAuroraWatchRealTimeData(timestamp, data)
+            else:
+                response = None
+
 
                         
         elif fd == controlSocket:

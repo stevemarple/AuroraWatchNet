@@ -118,7 +118,12 @@ tagLengths = {"magDataX": 6,
                                sizeOfFirmwarePageNumber + firmwareBlockSize),
               } 
 
-tagFormat = {"magDataX": "!cl",
+tagFormat = {"magDataX": "!Bl",
+             "magDataY": "!Bl",
+             "magDataXZ": "!Bl",
+             "sensorTemperature": "!h",
+             "MCUTemperature": "!h",
+             "batteryVoltage": "!H",
              "samplingInterval": "!H",
              "currentUnixTime": "!LH",
              "currentFirmware": ("!" + str(firmwareVersionMaxLength) + "c"),
@@ -250,8 +255,7 @@ def putCurrentUnixTime(buf):
     now = time.time()
     seconds = long(now);
     frac = int(round((now % 1) * 32768.0))
-    
-    timestamp = long(round(time.time()))
+
     buf[i] = tags["currentUnixTime"]
     i += 1
     for n in range(tagLen-2, -1, -1):
@@ -325,11 +329,16 @@ def parsePacket(buf):
         else:
             dataLen = tagLen - 1
         data = buf[i:(i+dataLen)]
+        
+        
 #        if tagName in tagFormat:
-#            print(tagName)
-#            print(repr(data))
-#            print(tagFormat[tagName])
 #            data = struct.unpack(tagFormat[tagName], str(data))
+#            print(tagName)
+#            print(tagFormat[tagName])
+#            print(repr(data))
+#            print(repr(list(data)))
+            
+        
         if tagName not in r:
             r[tagName] = []
         r[tagName].append(data)
@@ -396,8 +405,16 @@ def printTags(buf):
             i += 2
         else:
             dataLen = tagLen - 1    
+            
+        if tagName in tagFormat:
+            dataRepr = repr(list(struct.unpack(tagFormat[tagName],
+                                               str(buf[i:(i+dataLen)]))))
+        else:
+            dataRepr = ""
+            
         print(tagName + " (#" + str(tag) + "): 0x  " 
-              + " ".join(map(myHex ,buf[i:(i+dataLen)])))
+              + " ".join(map(myHex, buf[i:(i+dataLen)])) 
+              + "   " + dataRepr)
         i += dataLen
         
 def printSignature(buf):
