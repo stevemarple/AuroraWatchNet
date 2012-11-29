@@ -1,6 +1,8 @@
+#include <avr/eeprom.h>
 #include "AWPacket.h"
-
 #include "Arduino.h"
+
+#include <AwEeprom.h>
 
 extern "C" {
 #include "hmac-md5.h"
@@ -12,7 +14,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[17] = {
+const uint16_t AWPacket::tagLengths[19] = {
   6, // 0 = X
   6, // 1 = Y
   6, // 2 = Z
@@ -33,6 +35,8 @@ const uint16_t AWPacket::tagLengths[17] = {
    sizeOfFirmwarePageNumber), // 15 = get firmware page
   (sizeOfTag + firmwareNameLength +
    sizeOfFirmwarePageNumber + firmwareBlockSize), // 16 = firmware page
+  5, // 17 = readEeprom
+  0, // 18 = eepromContents (variable length)
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
@@ -349,6 +353,28 @@ bool AWPacket::putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
   return true;
 }
 
+bool AWPacket::putEepromContents(uint8_t* buffer, size_t bufferLength,
+				 uint16_t address, uint16_t length) const
+{
+  uint16_t len = getPacketLength(buffer);
+  if (len + sizeOfTag + sizeof(address) + length > bufferLength)
+    return false;
+
+  uint8_t *p = buffer + len;
+  *p++ = tagEepromContents;
+  avrToNetwork(p, &address, sizeof(address));
+  p += sizeof(address);
+  for (uint16_t i = length; i; --i)
+    if (address < EEPROM_HMAC_KEY ||
+	address >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
+      *p++ = eeprom_read_byte((const uint8_t*)address++);
+    else {
+      // Do NOT send the key. Send unprogrammed EEPROM values instead.
+      *p++ = 0xFF;
+      ++address;
+    }
+  return true;
+}
 
 bool AWPacket::putPadding(uint8_t* buffer, size_t bufferLength,
 			  uint16_t paddingLength) const

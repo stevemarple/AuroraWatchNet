@@ -22,9 +22,9 @@
 #include <SD.h>
 
 #include <CircularStack.h>
+#include <AwEeprom.h>
 #include "CommandHandler.h"
 #include "CommsHandler.h"
-#include "AwEeprom.h"
 
 #include "xbootapi.h"
 #include "disable_jtag.h"
@@ -97,7 +97,11 @@ uint16_t upgradeFirmwareCRC;
 
 // Counter for the page number to be requested next time
 uint16_t upgradeFirmwareGetBlockNumber;
-			    
+
+// Send EEPROM values
+uint16_t eepromContentsAddress = 0;
+uint16_t eepromContentsLength = 0;
+
 // /data/YYYY/MM/DD/YYYYMMDD.HH
 // 123456789012345678901234567890
 const uint8_t sdFilenameLen = 29; // Remember to include space for '\0'
@@ -141,7 +145,7 @@ void setAlarm(void)
 
   t += samplingInterval;
   
-  
+  /*
   // --------------------
   if (callbackWasLate) {
     CounterRTC::Time now;
@@ -159,7 +163,7 @@ void setAlarm(void)
     console << "startSamplingCallback()\n";
   console << "alarmTime: " << t.getSeconds() << ' ' << t.getFraction() << endl;
   // --------------------
-  
+  */
   cRTC.setAlarm(0, t, startSamplingCallback);
 }
 
@@ -431,6 +435,28 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
       }
       ++upgradeFirmwareGetBlockNumber;
 
+    }
+    break;
+
+  case AWPacket::tagEepromContents:
+    {
+      uint16_t eepromAddress;
+      AWPacket::networkToAvr(&eepromAddress, data, sizeof(eepromAddress));
+      data += sizeof(eepromAddress);
+      dataLen -= sizeof(eepromAddress);
+
+      // Remember values to report back to server
+      eepromContentsAddress = eepromAddress;
+      eepromContentsLength = dataLen;
+      
+      while (dataLen--) {
+	if (eepromAddress < EEPROM_HMAC_KEY ||
+	    eepromAddress >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
+	  // Data not encrypted, OTA key updates prohibited.
+	  eeprom_update_byte((uint8_t*)eepromAddress, *data);
+	++eepromAddress;
+	++data;
+      }
     }
     break;
   }
@@ -753,8 +779,12 @@ void loop(void)
 	AWPacket::setPacketLength(buffer, originalLength);
       }
 
-      // TODO: Add padding      
-      
+      if (eepromContentsLength) {
+	packet.putEepromContents(buffer, sizeof(buffer),
+				 eepromContentsAddress, eepromContentsLength);
+	eepromContentsLength = 0;
+      }
+			       
       // Add the signature and send by XRF
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
@@ -816,7 +846,7 @@ void loop(void)
 	commsHandler.isFinished() &&
 	samplingInterval >= minSleepInterval &&
 	commsHandler.xrfPowerOff()) {
-
+      
       struct RTCx::tm tm;
       rtc.readClock(tm);
       RTCx::time_t hwcTime = RTCx::mktime(tm);

@@ -1,3 +1,4 @@
+#include <avr/eeprom.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -8,6 +9,7 @@ extern "C" {
 
 #include <Streaming.h>
 #include <AWPacket.h>
+#include <AwEeprom.h>
 #include "CommsHandler.h"
 
 extern Stream& console;
@@ -126,10 +128,15 @@ void CommsHandler::setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin)
   xrf.print("+++");
   //xrf.flush();
   delay(1050);
-  xrf.print("ATSM 2\r"); // Sleep mode
-  xrf.print("ATSM\r"); // Sleep mode
-  xrf.print("ATAC\r");   // Apply changes
-  xrf.print("ATDN\r");   // Done
+  // xrf << "ATRE\r";
+  xrf << "ATSM 2\r"; // Sleep mode
+  uint8_t channelNum = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_CHANNEL);
+  if (channelNum != 0xFF) {
+    xrf << "ATCN " << int(channelNum) << '\r';
+    console << "Channel number: " << channelNum << endl;
+  }
+  xrf << "ATAC\r"    // Apply changes
+      << "ATDN\r";   // Done
   delay(300);
   while (xrf.available()) {
     xrf.read(); //Serial.print(xrf.read());

@@ -24,7 +24,7 @@ public:
   static const uint8_t numAxes = 3;
   static const uint8_t magicLength = 2;
   static const char magic[magicLength];
-  static const uint16_t tagLengths[17];
+  static const uint16_t tagLengths[19];
 
   static const uint8_t sizeOfTag = 1;
   static const uint8_t sizeOfPacketLength = 2;
@@ -57,6 +57,8 @@ public:
     tagUpgradeFirmware = 14,
     tagGetFirmwarePage = 15,
     tagFirmwarePage = 16,
+    tagReadEeprom = 17,
+    tagEepromContents = 18
   };
   
   static void avrToNetwork(void* dest, const void* src, uint8_t len);
@@ -136,6 +138,8 @@ public:
 			  const char* version, uint16_t pageNumber) const;
   bool putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
 			 int32_t seconds, int16_t fraction) const;
+  bool putEepromContents(uint8_t* buffer, size_t bufferLength,
+			 uint16_t address, uint16_t length) const;
   bool putPadding(uint8_t* buffer, size_t bufferLength,
 		  uint16_t paddingLength) const;
   bool putSignature(uint8_t* buffer, size_t bufferLength,
@@ -147,10 +151,9 @@ private:
   // In normal operation the timestamp should be sufficient to prevent
   // replay attacks. However, if the time has been adjusted backwards
   // there is a possibility that an attacker could shortly afterwards
-  // replay the same message which led to the time being
-  // adjusted. When data is sent the same data values would be
-  // required for the reply to be correctly replayed; the sequenceId
-  // removes the reliance on data values changing.
+  // replay the same acknowledgement which led to the time being
+  // adjusted. A change in the sequenceId prevents the acknowledgement
+  // from being replayed.
   static uint8_t defaultSequenceId;
   static uint16_t defaultSiteId;
   uint8_t version;

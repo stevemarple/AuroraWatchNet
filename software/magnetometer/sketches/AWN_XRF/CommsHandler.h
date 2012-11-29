@@ -64,8 +64,8 @@ private:
   static const uint16_t messageBufferLen = 260;
   static const int powerUpDelay_ms = 250;
   static const int resetDelay_us = 250;
-  static const int responseTimeout_ms = 1000;
-
+  static const int responseTimeout_ms = 1500;
+  
   uint8_t xrfSleepPin;
   uint8_t xrfOnPin;
   uint8_t xrfResetPin;

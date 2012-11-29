@@ -8,7 +8,7 @@
 #include <Streaming.h>
 #include <RTCx.h>
 #include <AWPacket.h>
-#include "AwEeprom.h"
+#include <AwEeprom.h>
 #include "CommandHandler.h"
 
 extern uint8_t sdSelect;
