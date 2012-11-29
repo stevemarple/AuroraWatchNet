@@ -488,7 +488,11 @@ def validatePacket(buf, hmacKey):
                 print("#########################")
                 print("Packet failed HMAC-MD5, computed as " +
                       " ".join(map(myHex, map(ord, hmacBytes))))
-                printPacket(buf)
+                try:
+                    # Be wary of printing invalid packets!
+                    printPacket(buf)
+                finally:
+                    None
                 print("#########################")
             
         # All tests done
