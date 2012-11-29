@@ -289,7 +289,32 @@ def getTermiosBaudRate(baud):
         return rates[baud]
     else:
         return None
-    
+
+def readlineWithTimeout(fileObj, timeout=None):
+    """Read size bytes from the file. If a timeout is set it may
+    return less characters as requested. With no timeout it will block
+    until the requested number of bytes is read."""
+    r = ''
+    while True:
+        start = time.time()
+        ready,_,_ = select.select([fileObj],[],[], timeout)
+        if ready:
+            buf = fileObj.read(1)
+            if buf == '\r' or buf == '\n':
+                break # done
+            r += buf
+        if timeout is not None:
+            # subtract elapsed time so far
+            timeout -= (time.time() - start)
+            if timeout <= 0:
+                break
+    return r
+
+def debugPrint(level, mesg):
+    global options
+    if options.verbosity >= level:
+        print(mesg)
+        
 # ==========================================================================
 
 # Parse command line options
@@ -344,18 +369,28 @@ elif device.isatty():
     termios.tcflush(device, termios.TCIOFLUSH)
 
 
-    deviceSetup = config.get("serial", "setup").replace(";", "\r")
-    if len(deviceSetup):
-        sys.stdout.write("Setup device... ")
+    deviceSetupCmds = config.get("serial", "setup").split(';')
+    if len(deviceSetupCmds):
+        debugPrint(2, "Setup device... ")
         device.flush()
         time.sleep(1)
         device.write("+++")
         device.flush()
         time.sleep(1.2)
-        device.write(deviceSetup)
-        device.write("\rATDN\r")
+        termios.tcflush(device, termios.TCIFLUSH)
+        
+        # print(readlineWithTimeout(device, 1))
+        for cmd in deviceSetupCmds:
+            device.write(cmd)
+            device.write("\r")
+            debugPrint(3, cmd)
+            debugPrint(3, readlineWithTimeout(device, 1))
+        
+        device.write("ATDN\r")
         device.flush()
-        print("done")
+        debugPrint(3, "ATDN")
+        debugPrint(3, readlineWithTimeout(device, 1))
+        debugPrint(2, "... done")
 
     if config.has_option("controlsocket", "filename"):
         if os.path.exists(config.get("controlsocket", "filename")):
