@@ -459,7 +459,19 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
       }
     }
     break;
-  }
+  
+  case AWPacket::tagNumSamples:
+    {
+      uint8_t numSamples, control;
+      AWPacket::networkToAvr(&numSamples, data, sizeof(numSamples));
+      data += sizeof(numSamples);
+      if (numSamples) {
+	AWPacket::networkToAvr(&control, data, sizeof(control));
+	flc100.setNumSamples(numSamples, control & 1, control & 2);
+      }
+    }
+    
+  } // end of switch
 
   firstMessage = false;
 
@@ -611,7 +623,7 @@ void setup(void)
     console << "Set MCU RTC from hardware RTC\n";
   }
   else
-    console << "Could not get time from real RTC\n";
+    console << "Could not get time from hardware RTC\n";
   console.flush();
 
   console << "Setting up XRF...\n";
@@ -745,7 +757,16 @@ void loop(void)
 			   (uint16_t(samplingInterval.getSeconds() << 4) |
 			    samplingInterval.getFraction() >>
 			    (CounterRTC::fractionsPerSecondLog2 - 4)));
-      // samplingInterval);
+      uint8_t numSamples;
+      bool median;
+      bool trimmed;
+      flc100.getNumSamples(numSamples, median, trimmed);
+      packet.putDataUint16(buffer, sizeof(buffer),
+			   AWPacket::tagNumSamples, 
+			   (uint16_t(numSamples) << 8) | 
+			   (uint16_t(trimmed) << 1) | 
+			   median);
+
       if (firstMessage) {
 	// Cancelled when first response is received
 	packet.putDataUint8(buffer, sizeof(buffer),

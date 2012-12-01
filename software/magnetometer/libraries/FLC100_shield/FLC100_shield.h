@@ -86,6 +86,15 @@ public:
     return i2cHandler.getState();
   }
 
+  inline void getNumSamples(uint8_t &numSamples, bool &median, 
+			    bool &trimmed) const {
+    i2cHandler.getNumSamples(numSamples, median, trimmed);
+  }
+
+  inline void setNumSamples(uint8_t numSamples, bool median, bool trimmed) {
+    i2cHandler.setNumSamples(numSamples, median, trimmed);
+  }
+
 private:
   
   // State machine for reading the magnetometer(s) and mag temperature
@@ -140,7 +149,21 @@ private:
     inline const int getState(void) const {
       return state;
     }
-    
+
+    inline void getNumSamples(uint8_t &numSamples, bool &median, 
+			      bool &trimmed) const {
+      numSamples = this->numSamples;
+      median = this->median;
+      trimmed = this->trimmed;
+    }
+
+    inline void setNumSamples(uint8_t numSamples, bool median, bool trimmed) {
+      if (numSamples)
+	this->numSamples = numSamples;
+      this->median = median;
+      this->trimmed = trimmed;
+    }
+   
   private:
     enum state_t {
       off,
@@ -175,6 +198,10 @@ private:
     int16_t sensorTemperature; // hundredths of degrees Celsius
     int32_t magData[numAxes];
     uint8_t magResGain[numAxes];
+
+    uint8_t numSamples;
+    bool median;
+    bool trimmed;
   };
   
   // State machine for reading MCU temperature and battery voltage

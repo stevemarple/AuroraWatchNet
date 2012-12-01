@@ -10,7 +10,8 @@ FLC100::FLC100(void)
   ;
 }
 
-FLC100::I2C::I2C(void) : state(off), axis(0)
+FLC100::I2C::I2C(void) : state(off), axis(0), numSamples(1), median(false), 
+			 trimmed(false)
 {
 
 }
