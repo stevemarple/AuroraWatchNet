@@ -65,7 +65,8 @@ void FLC100::I2C::process(void)
 {
   static uint8_t magNum; // sub-state number
   static uint8_t tmp = 0;
-    
+  static uint8_t sampleNum = 0;
+
   switch (state) {
   case off:
     break;
@@ -76,10 +77,12 @@ void FLC100::I2C::process(void)
       sensorTemperature = INT_MIN; // Clear previous reading
       for (uint8_t i = 0; i < numAxes; ++i)
 	magData[i] = LONG_MIN;
+      for (uint8_t i = 0; i < numAxes * maxSamples; ++i)
+	magDataSamples[i] = LONG_MIN;
       state = readingTime;
     }
     break;
-
+    
   case readingTime:
     {
       CounterRTC::Time now;
@@ -150,7 +153,8 @@ void FLC100::I2C::process(void)
     if (magNum >= numAxes) {
       state = convertingMags;
       magNum = 0;
-      tmp = 0; 
+      tmp = 0;
+      sampleNum = 0;
       break;
     }
 
@@ -206,8 +210,31 @@ void FLC100::I2C::process(void)
     break;
     
   case readingMags:
-    if (magNum >= numAxes) {
+    if (sampleNum >= numSamples) {
+      // Calculate final result
+      for (uint8_t i = 0; i < numAxes; ++i) {
+	long tmp = 0;
+	uint8_t count = 0;
+	for (uint8_t j = 0; j < numSamples; ++j) {
+	  uint16_t index = (j * numAxes) + i;
+	  if (magDataSamples[index] != LONG_MIN) {
+	    ++count;
+	    tmp += magDataSamples[index];
+	  }
+	  magData[i] = tmp / count;
+	}
+      }
+      
       state = poweringDown;
+      break;
+    }
+    
+    if (magNum >= numAxes) {
+      // state = poweringDown;
+      ++sampleNum;
+      state = convertingMags;
+      magNum = 0;
+      tmp = 0; 
       break;
     }
 
@@ -224,7 +251,8 @@ void FLC100::I2C::process(void)
       err = adc[magNum].read(adcResult, status);
       if (!err && status.isReady()) {
 	// Have valid data
-	magData[magNum] = adcResult;
+	// magData[magNum] = adcResult;
+	magDataSamples[(sampleNum * numAxes) + magNum] = adcResult;
 	++magNum;
       }
       else if (timeout.isExpired()) {

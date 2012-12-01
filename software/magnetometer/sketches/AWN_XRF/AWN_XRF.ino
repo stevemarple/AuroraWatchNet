@@ -817,6 +817,14 @@ void loop(void)
 	AWPacket::printPacket(buffer, bufferLength, console);
     
       console << "# -----------" << endl;
+      const int32_t* allSamples = flc100.getMagDataSamples();
+      for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
+	console << char('X' + i) << ':';
+	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
+	  console << ' ' << (allSamples[(j * FLC100::numAxes) + i]);
+	console << '\n';
+      }
+      console << "# -----------" << endl;
     }
     
     if (startSampling == false &&

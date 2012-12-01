@@ -22,7 +22,8 @@ class FLC100;
 class FLC100 {
 public:
   static const uint8_t numAxes = 3;
-    static const unsigned long powerUpDelay_ms = 1000;
+  static const unsigned long powerUpDelay_ms = 1000;
+  static const uint8_t maxSamples = 16;
   
   FLC100(void);
   inline bool initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
@@ -71,6 +72,9 @@ public:
   }
   inline const int32_t* getMagData(void) const {
     return i2cHandler.getMagData();
+  }
+  inline const int32_t* getMagDataSamples(void) const {
+    return i2cHandler.getMagDataSamples();
   }
   inline const uint8_t* getMagResGain(void) const {
     return i2cHandler.getMagResGain();
@@ -142,6 +146,11 @@ private:
       return magData;
     }
 
+    inline const int32_t* getMagDataSamples(void) const {
+      // return (const int32_t**)magDataSamples;
+      return magDataSamples;
+    }
+
     inline const uint8_t* getMagResGain(void) const {
       return magResGain;
     }
@@ -158,12 +167,13 @@ private:
     }
 
     inline void setNumSamples(uint8_t numSamples, bool median, bool trimmed) {
-      if (numSamples)
+      if (numSamples > 0 && numSamples <= maxSamples) {
 	this->numSamples = numSamples;
-      this->median = median;
-      this->trimmed = trimmed;
+	this->median = median;
+	this->trimmed = trimmed;
+      }
     }
-   
+
   private:
     enum state_t {
       off,
@@ -196,7 +206,8 @@ private:
     //RTCx::time_t timestamp;
     CounterRTC::time_t timestamp;
     int16_t sensorTemperature; // hundredths of degrees Celsius
-    int32_t magData[numAxes];
+    int32_t magData[numAxes];  // averaged from a number of samples
+    int32_t magDataSamples[numAxes * maxSamples]; // individual results
     uint8_t magResGain[numAxes];
 
     uint8_t numSamples;
