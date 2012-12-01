@@ -24,7 +24,7 @@ public:
   static const uint8_t numAxes = 3;
   static const uint8_t magicLength = 2;
   static const char magic[magicLength];
-  static const uint16_t tagLengths[19];
+  static const uint16_t tagLengths[20];
 
   static const uint8_t sizeOfTag = 1;
   static const uint8_t sizeOfPacketLength = 2;
@@ -58,8 +58,12 @@ public:
     tagGetFirmwarePage = 15,
     tagFirmwarePage = 16,
     tagReadEeprom = 17,
-    tagEepromContents = 18
+    tagEepromContents = 18,
+    tagNumSamples = 19,
   };
+  
+  static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
+  static const uint8_t numSamplesTrimmed = 0x02; // min and max discarded
   
   static void avrToNetwork(void* dest, const void* src, uint8_t len);
   static inline void networkToAvr(void* dest, const void* src, uint8_t len);

@@ -14,7 +14,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[19] = {
+const uint16_t AWPacket::tagLengths[20] = {
   6, // 0 = X
   6, // 1 = Y
   6, // 2 = Z
@@ -37,6 +37,7 @@ const uint16_t AWPacket::tagLengths[19] = {
    sizeOfFirmwarePageNumber + firmwareBlockSize), // 16 = firmware page
   5, // 17 = readEeprom
   0, // 18 = eepromContents (variable length)
+  3, // 19 = numSamples (numSamples, bit field)
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
