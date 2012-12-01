@@ -168,6 +168,13 @@ def handleControlMessage(buf, pendingTags):
             pendingTags["reboot"] = [];
             r.append("reboot:TRUE")
             
+        elif cmd.startswith("numSamples="):
+            numCtrl = map(int, 
+                          str(cmd.replace("numSamples=", "", 1)).split(','))
+            pendingTags["numSamples"] = struct.pack(AWPacket.tagFormat["numSamples"], 
+                                                    numCtrl[0], numCtrl[1])
+            r.append("numSamples:" + str(numCtrl[0]) + ',' + str(numCtrl[1]))
+
     print("\n".join(r))
     #print(repr(pendingTags))
     

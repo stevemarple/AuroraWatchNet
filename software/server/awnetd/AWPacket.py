@@ -74,6 +74,9 @@ tags = {"magDataX": 1,
         "upgradeFirmware": 14,
         "getFirmwarePage": 15,
         "firmwarePage": 16,
+        "readEeprom": 17,
+        "eepromContents": 18,
+        "numSamples": 19,
         }
 
 tagNames = ["magDataX", 
@@ -93,6 +96,9 @@ tagNames = ["magDataX",
             "upgradeFirmware",
             "getFirmwarePage",
             "firmwarePage",
+            "readEeprom",
+            "eepromContents",
+            "numSamples",
         ]
 
 # Zero means variable length
@@ -116,6 +122,9 @@ tagLengths = {"magDataX": 6,
                                   sizeOfFirmwarePageNumber),
               "firmwarePage": (sizeOfTag + firmwareVersionMaxLength + 
                                sizeOfFirmwarePageNumber + firmwareBlockSize),
+              "readEeprom": 5,
+              "eepromContents": 0,
+              "numSamples": 3,
               } 
 
 tagFormat = {"magDataX": "!Bl",
@@ -131,6 +140,8 @@ tagFormat = {"magDataX": "!Bl",
              "getFirmwarePage": ("!" + str(firmwareVersionMaxLength) + "cH"),
              "firmwarePage": ("!" + str(firmwareVersionMaxLength) + "cH" + 
                               str(firmwareBlockSize) + "c"), 
+             "readEeprom": "!HH",
+             "numSamples": "!BB",
              }
 
 
