@@ -75,10 +75,11 @@ void FLC100::I2C::process(void)
     if (delay.isExpired()) {
       timestamp = 0;
       sensorTemperature = INT_MIN; // Clear previous reading
-      for (uint8_t i = 0; i < numAxes; ++i)
+      for (uint8_t i = 0; i < numAxes; ++i) {
 	magData[i] = LONG_MIN;
-      for (uint8_t i = 0; i < numAxes * maxSamples; ++i)
-	magDataSamples[i] = LONG_MIN;
+	for (uint8_t j = 0; j < maxSamples; ++j)
+	  magDataSamples[i][j] = LONG_MIN;
+      }
       state = readingTime;
     }
     break;
@@ -216,10 +217,9 @@ void FLC100::I2C::process(void)
 	long tmp = 0;
 	uint8_t count = 0;
 	for (uint8_t j = 0; j < numSamples; ++j) {
-	  uint16_t index = (j * numAxes) + i;
-	  if (magDataSamples[index] != LONG_MIN) {
+	  if (magDataSamples[i][j] != LONG_MIN) {
 	    ++count;
-	    tmp += magDataSamples[index];
+	    tmp += magDataSamples[i][j];
 	  }
 	  magData[i] = tmp / count;
 	}
@@ -251,8 +251,7 @@ void FLC100::I2C::process(void)
       err = adc[magNum].read(adcResult, status);
       if (!err && status.isReady()) {
 	// Have valid data
-	// magData[magNum] = adcResult;
-	magDataSamples[(sampleNum * numAxes) + magNum] = adcResult;
+	magDataSamples[magNum][sampleNum] = adcResult;
 	++magNum;
       }
       else if (timeout.isExpired()) {

@@ -73,8 +73,8 @@ public:
   inline const int32_t* getMagData(void) const {
     return i2cHandler.getMagData();
   }
-  inline const int32_t* getMagDataSamples(void) const {
-    return i2cHandler.getMagDataSamples();
+  inline int32_t getMagDataSamples(uint8_t mag, uint8_t sampleNum) const {
+    return i2cHandler.getMagDataSamples(mag, sampleNum);
   }
   inline const uint8_t* getMagResGain(void) const {
     return i2cHandler.getMagResGain();
@@ -146,9 +146,8 @@ private:
       return magData;
     }
 
-    inline const int32_t* getMagDataSamples(void) const {
-      // return (const int32_t**)magDataSamples;
-      return magDataSamples;
+    inline int32_t getMagDataSamples(uint8_t mag, uint8_t sampleNum) const {
+      return magDataSamples[mag][sampleNum];
     }
 
     inline const uint8_t* getMagResGain(void) const {
@@ -207,7 +206,7 @@ private:
     CounterRTC::time_t timestamp;
     int16_t sensorTemperature; // hundredths of degrees Celsius
     int32_t magData[numAxes];  // averaged from a number of samples
-    int32_t magDataSamples[numAxes * maxSamples]; // individual results
+    int32_t magDataSamples[numAxes][maxSamples]; // individual results
     uint8_t magResGain[numAxes];
 
     uint8_t numSamples;

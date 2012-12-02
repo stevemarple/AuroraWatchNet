@@ -277,6 +277,15 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
     console << "====\n";
   }
+  if (verbosity > 1) {
+    for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
+      console << char('X' + i) << ':';
+      for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
+	console << ' ' << flc100.getMagDataSamples(i, j);
+      console << '\n';
+    }
+    console << "# -----------" << endl;
+  }
 }
 
 
@@ -816,14 +825,6 @@ void loop(void)
       if (verbosity)
 	AWPacket::printPacket(buffer, bufferLength, console);
     
-      console << "# -----------" << endl;
-      const int32_t* allSamples = flc100.getMagDataSamples();
-      for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
-	console << char('X' + i) << ':';
-	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
-	  console << ' ' << (allSamples[(j * FLC100::numAxes) + i]);
-	console << '\n';
-      }
       console << "# -----------" << endl;
     }
     
