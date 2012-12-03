@@ -30,7 +30,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "test-0.07b";
+  "test-0.08a";
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
