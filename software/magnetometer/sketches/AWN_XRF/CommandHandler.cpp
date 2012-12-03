@@ -63,6 +63,19 @@ bool startsWith_P(const char *match, const char *str, char **ep)
 // }
 
 
+Stream& printEepromContents(Stream &s, uint16_t address, uint16_t size)
+{
+  s << "EEPROM values:\n";
+  while (address >= 0 && address <= E2END && size--) {
+    s << "0x" << _HEX(address) << ": 0x";
+    if (address >= EEPROM_HMAC_KEY &&
+	address < EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE) 
+      s << "??\n"; // Don't print key!
+    else
+      s << _HEX(eeprom_read_byte((uint8_t*)address)) << endl;
+    ++address;
+  }
+}
 
 void CommandHandler::process(Stream &console, Stream &xrf)
 {
@@ -96,6 +109,44 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 		    << ' ';
 	  console << endl;
 	}
+      }
+      else if (startsWith_P(PSTR("eepromRead="), buffer, &ep)) {
+	char *ep2;
+	long address = strtol(ep, &ep2, 0);
+	long size;
+	if (address >= 0 && address <= E2END && ep2 != ep && *ep2 == ',' &&
+	    (ep = ++ep2, size = strtol(ep, &ep2, 0)) > 0 &&
+	    (address + size) <= E2END && ep2 != ep && *ep2 =='\0') {
+	  printEepromContents(console, (uint16_t)address, (uint16_t)size);
+	}
+	else
+	  console << "ERROR: bad values for eepromRead\n";
+      }
+      else if (startsWith_P(PSTR("eepromWrite="), buffer, &ep)) {
+	char *ep2;
+	long address = strtol(ep, &ep2, 0);
+	uint16_t size = 0;
+	if (ep2 != ep && *ep2 == ',') {
+	  while(address >= 0 && address <= E2END) {
+	    ep = ++ep2;
+	    long val = strtol(ep, &ep2, 0);
+	    if (val >= 0 && val <= 255 && ep2 != ep &&
+		(*ep2 == ',' || *ep2 == '\0')) {
+	      //if (address < EEPROM_HMAC_KEY ||
+	      //address >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
+	      // // Do not allow key to be updated
+	      eeprom_update_byte((uint8_t*)address, val);
+	      ++size;
+	      ++address;
+	    }
+	    else
+	      break;
+	  }
+	  printEepromContents(console, (uint16_t)(address-size),
+			      (uint16_t)size);
+	}
+	else
+	  console << "ERROR: bad values for eepromWrite\n";
       }
       else if (startsWith_P(PSTR("REBOOT=true"), buffer, &ep)) {
 	console << "Rebooting ..." << endl;
