@@ -77,6 +77,10 @@ tags = {"magDataX": 1,
         "readEeprom": 17,
         "eepromContents": 18,
         "numSamples": 19,
+        "allSamples": 20,
+        "magDataAllX": 21,
+        "magDataAllY": 22,
+        "magDataAllZ": 23,
         }
 
 tagNames = ["magDataX", 
@@ -99,6 +103,10 @@ tagNames = ["magDataX",
             "readEeprom",
             "eepromContents",
             "numSamples",
+            "allSamples",
+            "magDataAllX",
+            "magDataAllY",
+            "magDataAllZ",
         ]
 
 # Zero means variable length
@@ -125,11 +133,15 @@ tagLengths = {"magDataX": 6,
               "readEeprom": 5,
               "eepromContents": 0,
               "numSamples": 3,
+              "allSamples": 2,
+              "magDataAllX": 0,
+              "magDataAllY": 0,
+              "magDataAllZ": 0,
               } 
 
 tagFormat = {"magDataX": "!Bl",
              "magDataY": "!Bl",
-             "magDataXZ": "!Bl",
+             "magDataZ": "!Bl",
              "sensorTemperature": "!h",
              "MCUTemperature": "!h",
              "batteryVoltage": "!H",
@@ -142,9 +154,25 @@ tagFormat = {"magDataX": "!Bl",
                               str(firmwareBlockSize) + "c"), 
              "readEeprom": "!HH",
              "numSamples": "!BB",
+             "allSamples": "!?",
              }
 
+def formatTagArrayOfLongs(tag, dataLen, payload):
+    # return " ".join(map(str, list(struct.unpack("!" + str(dataLen/4) + "l", str(payload)))))
+    return repr(list(struct.unpack("!" + str(dataLen/4) + "l", str(payload))))
+    
+def formatPadding(tag, dataLen, payload):
+    return str([0] * dataLen)
+    
+tagFormatFunc = {"paddingByte": formatPadding,
+                 "padding": formatPadding,
+                 "magDataAllX": formatTagArrayOfLongs,
+                 "magDataAllY": formatTagArrayOfLongs,
+                 "magDataAllZ": formatTagArrayOfLongs,
+                 }
 
+
+    
 def getHeaderField(buf, offset, size):
     if len(buf) < offset + size:
         return None
@@ -370,7 +398,14 @@ def tidyPendingTags(pendingTags, messageTags):
                 # Current firmware version matches so cancel
                 print("Firmware already at version " + upgradeFirmware)
                 delList.append(tag)
-
+        
+        elif tag == "allSamples" and bool(ord(pendingTags[tag][0])) == \
+            any(t in messageTags for t in ["magDataAllX", 
+                                           "magDataAllY", "magDataAllZ"]):
+            # pendingTags[allSamples][0] must match whether magDataAll{X,Y,Z}
+            # exists in messageTags
+            delList.append(tag)
+            
         elif tag in messageTags and pendingTags[tag] in messageTags[tag]:
             # This tag appears in messageTags, and one of the values matches
             # pendingTags[tag]
@@ -419,15 +454,18 @@ def printTags(buf):
           
         if tagName == "firmwarePage":
             dataRepr = ""
+        elif tagName in tagFormatFunc:
+            dataRepr = tagFormatFunc[tagName](tagName, dataLen, buf[i:(i+dataLen)])
         elif tagName in tagFormat:
             dataRepr = repr(list(struct.unpack(tagFormat[tagName],
                                                str(buf[i:(i+dataLen)]))))
         else:
-            dataRepr = ""
+            dataRepr = "0x  " + " ".join(map(myHex, buf[i:(i+dataLen)]))
             
-        print(tagName + " (#" + str(tag) + "): 0x  " 
-              + " ".join(map(myHex, buf[i:(i+dataLen)])) 
-              + "   " + dataRepr)
+        #print(tagName + " (#" + str(tag) + "): 0x  " 
+        #      + " ".join(map(myHex, buf[i:(i+dataLen)])) 
+        #      + "   " + dataRepr)
+        print(tagName + " (#" + str(tag) + "):  " + dataRepr)
         i += dataLen
         
 def printSignature(buf):

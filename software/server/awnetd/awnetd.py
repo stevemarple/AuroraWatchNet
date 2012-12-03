@@ -174,7 +174,15 @@ def handleControlMessage(buf, pendingTags):
             pendingTags["numSamples"] = struct.pack(AWPacket.tagFormat["numSamples"], 
                                                     numCtrl[0], numCtrl[1])
             r.append("numSamples:" + str(numCtrl[0]) + ',' + str(numCtrl[1]))
-
+        
+        elif cmd.startswith("allSamples="):
+            flag = (int(cmd.replace("allSamples=", "", 1)) != 0)
+            pendingTags["allSamples"] = struct.pack(AWPacket.tagFormat["allSamples"],
+                                                    flag)
+            r.append("allSamples:" + str(flag))
+        else:
+            r.append("ERROR: do not understand '" + cmd + "'")
+            
     print("\n".join(r))
     #print(repr(pendingTags))
     
