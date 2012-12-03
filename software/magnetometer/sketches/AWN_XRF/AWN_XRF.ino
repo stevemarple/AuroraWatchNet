@@ -75,6 +75,9 @@ uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
   255, 255, 255, 255, 255, 255, 255, 255, 
   255, 255, 255, 255, 255, 255, 255, 255};
 
+// Flag indicating if all data samples should be sent, or just the aggregate
+bool allSamples = false;
+
 // SD card data
 bool useSd = false;
 const int sdBufferLength = 1024;   // Size of buffer
@@ -479,6 +482,15 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
 	flc100.setNumSamples(numSamples, control & 1, control & 2);
       }
     }
+    break;
+    
+  case AWPacket::tagAllSamples:
+    {
+      uint8_t all;
+      AWPacket::networkToAvr(&all, data, sizeof(all));
+      allSamples = (all != 0);
+    }
+    break;
     
   } // end of switch
 
@@ -745,12 +757,24 @@ void loop(void)
       // printBinaryBuffer(console, buffer, 20);
       // console << endl;
       console << "Header length: " << AWPacket::getPacketLength(buffer) << endl;
+
+      uint8_t numSamples;
+      bool median;
+      bool trimmed;
+      flc100.getNumSamples(numSamples, median, trimmed);
+
       for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	if (flc100.getAdcPresent(i))
+	if (flc100.getAdcPresent(i)) {
 	  packet.putMagData(buffer, sizeof(buffer),
 			    AWPacket::tagMagDataX + i,
 			    flc100.getMagResGain()[i],
 			    flc100.getMagData()[i]);
+	  if (allSamples)
+	    packet.putDataArray(buffer, sizeof(buffer),
+				AWPacket::tagMagDataAllX + i,
+				4, numSamples, flc100.getMagDataSamples(i));
+	}
+      
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagSensorTemperature,
 			  flc100.getSensorTemperature());
@@ -766,10 +790,6 @@ void loop(void)
 			   (uint16_t(samplingInterval.getSeconds() << 4) |
 			    samplingInterval.getFraction() >>
 			    (CounterRTC::fractionsPerSecondLog2 - 4)));
-      uint8_t numSamples;
-      bool median;
-      bool trimmed;
-      flc100.getNumSamples(numSamples, median, trimmed);
       packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagNumSamples, 
 			   (uint16_t(numSamples) << 8) | 

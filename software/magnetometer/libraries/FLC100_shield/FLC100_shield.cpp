@@ -3,15 +3,15 @@
 
 #include <Arduino.h>
 #include <FLC100_shield.h>
-
+#include "median.h"
 
 FLC100::FLC100(void)
 {
   ;
 }
 
-FLC100::I2C::I2C(void) : state(off), axis(0), numSamples(1), median(false), 
-			 trimmed(false)
+FLC100::I2C::I2C(void) : state(off), axis(0), numSamples(1), useMedian(false), 
+			 trimSamples(false)
 {
 
 }
@@ -276,6 +276,44 @@ void FLC100::I2C::finish(void)
 {
   state = finished;
   digitalWrite(powerPin, LOW);
+}
+
+
+void FLC100::I2C::aggregate(void)
+{
+  for (uint8_t i = 0; i < numAxes; ++i) {
+    if (useMedian)
+      magData[i] = median(magDataSamples[i], numSamples);
+    else {
+      // Mean. Ignore any values which are LONG_MIN since they
+      // represent sampling errors.
+      long tmp = 0;
+      long smallest, largest;
+      uint8_t count = 0;
+      for (uint8_t j = 0; j < numSamples; ++j) {
+	if (magDataSamples[i][j] != LONG_MIN) {
+	  // Sample is valid
+	  if (count) {
+	    if (magDataSamples[i][j] < smallest)
+	      smallest = magDataSamples[i][j];
+	    if (magDataSamples[i][j] > largest)
+	      largest = magDataSamples[i][j];
+	  }
+	  else 
+	    largest = smallest = magDataSamples[i][j];
+	  ++count;
+	  tmp += magDataSamples[i][j];
+	}
+	if (trimSamples && count >= 3) {
+	  // Remove largest and smallest values
+	  tmp = tmp - largest - smallest;
+	  count -= 2;
+	}
+	magData[i] = tmp / count;
+      }
+    }
+  }
+ 
 }
 
 

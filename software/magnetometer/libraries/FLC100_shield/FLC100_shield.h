@@ -76,6 +76,9 @@ public:
   inline int32_t getMagDataSamples(uint8_t mag, uint8_t sampleNum) const {
     return i2cHandler.getMagDataSamples(mag, sampleNum);
   }
+  inline const int32_t* getMagDataSamples(uint8_t mag) const {
+    return i2cHandler.getMagDataSamples(mag);
+  }
   inline const uint8_t* getMagResGain(void) const {
     return i2cHandler.getMagResGain();
   }
@@ -90,13 +93,13 @@ public:
     return i2cHandler.getState();
   }
 
-  inline void getNumSamples(uint8_t &numSamples, bool &median, 
-			    bool &trimmed) const {
-    i2cHandler.getNumSamples(numSamples, median, trimmed);
+  inline void getNumSamples(uint8_t &numSamples, bool &useMedian, 
+			    bool &trimSamples) const {
+    i2cHandler.getNumSamples(numSamples, useMedian, trimSamples);
   }
 
-  inline void setNumSamples(uint8_t numSamples, bool median, bool trimmed) {
-    i2cHandler.setNumSamples(numSamples, median, trimmed);
+  inline void setNumSamples(uint8_t numSamples, bool useMedian, bool trimSamples) {
+    i2cHandler.setNumSamples(numSamples, useMedian, trimSamples);
   }
 
 private:
@@ -150,6 +153,10 @@ private:
       return magDataSamples[mag][sampleNum];
     }
 
+    inline const int32_t* getMagDataSamples(uint8_t mag) const {
+      return magDataSamples[mag];
+    }
+
     inline const uint8_t* getMagResGain(void) const {
       return magResGain;
     }
@@ -158,18 +165,18 @@ private:
       return state;
     }
 
-    inline void getNumSamples(uint8_t &numSamples, bool &median, 
-			      bool &trimmed) const {
+    inline void getNumSamples(uint8_t &numSamples, bool &useMedian, 
+			      bool &trimSamples) const {
       numSamples = this->numSamples;
-      median = this->median;
-      trimmed = this->trimmed;
+      useMedian = this->useMedian;
+      trimSamples = this->trimSamples;
     }
 
-    inline void setNumSamples(uint8_t numSamples, bool median, bool trimmed) {
+    inline void setNumSamples(uint8_t numSamples, bool useMedian, bool trimSamples) {
       if (numSamples > 0 && numSamples <= maxSamples) {
 	this->numSamples = numSamples;
-	this->median = median;
-	this->trimmed = trimmed;
+	this->useMedian = useMedian;
+	this->trimSamples = trimSamples;
       }
     }
 
@@ -210,8 +217,10 @@ private:
     uint8_t magResGain[numAxes];
 
     uint8_t numSamples;
-    bool median;
-    bool trimmed;
+    bool useMedian;
+    bool trimSamples;
+
+    void aggregate(void);
   };
   
   // State machine for reading MCU temperature and battery voltage
