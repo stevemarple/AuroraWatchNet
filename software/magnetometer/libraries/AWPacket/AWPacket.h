@@ -24,7 +24,7 @@ public:
   static const uint8_t numAxes = 3;
   static const uint8_t magicLength = 2;
   static const char magic[magicLength];
-  static const uint16_t tagLengths[20];
+  static const uint16_t tagLengths[24];
 
   static const uint8_t sizeOfTag = 1;
   static const uint8_t sizeOfPacketLength = 2;
@@ -60,6 +60,10 @@ public:
     tagReadEeprom = 17,
     tagEepromContents = 18,
     tagNumSamples = 19,
+    tagAllSamples = 20,
+    tagMagDataAllX = 21,
+    tagMagDataAllY = 22,
+    tagMagDataAllZ = 23,
   };
   
   static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
@@ -144,6 +148,9 @@ public:
 			 int32_t seconds, int16_t fraction) const;
   bool putEepromContents(uint8_t* buffer, size_t bufferLength,
 			 uint16_t address, uint16_t length) const;
+  bool putDataArray(uint8_t* buffer, size_t bufferLength,
+		    uint8_t tag, uint8_t elemSize, uint8_t numElems,
+		    const void* data) const;
   bool putPadding(uint8_t* buffer, size_t bufferLength,
 		  uint16_t paddingLength) const;
   bool putSignature(uint8_t* buffer, size_t bufferLength,

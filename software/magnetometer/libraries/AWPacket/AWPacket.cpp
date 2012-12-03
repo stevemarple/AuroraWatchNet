@@ -14,7 +14,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[20] = {
+const uint16_t AWPacket::tagLengths[24] = {
   6, // 0 = X
   6, // 1 = Y
   6, // 2 = Z
@@ -38,6 +38,10 @@ const uint16_t AWPacket::tagLengths[20] = {
   5, // 17 = readEeprom
   0, // 18 = eepromContents (variable length)
   3, // 19 = numSamples (numSamples, bit field)
+  2, // 20 = allSamples (bool)
+  0, // 21 = magDataAllX
+  0, // 22 = magDataAllY
+  0, // 23 = magDataAllZ
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
@@ -375,6 +379,32 @@ bool AWPacket::putEepromContents(uint8_t* buffer, size_t bufferLength,
       ++address;
     }
   return true;
+}
+
+
+bool AWPacket::putDataArray(uint8_t* buffer, size_t bufferLength,
+			    uint8_t tag, uint8_t elemSize, uint8_t numElems,
+			    const void* data) const
+{
+  uint16_t payloadLength = elemSize * numElems;
+  uint16_t tagLen = payloadLength + sizeOfTag + sizeOfPacketLength; 
+  uint16_t len = getPacketLength(buffer);
+  if (len + tagLen > bufferLength)
+    return false;
+  
+  setPacketLength(buffer, len + tagLen);
+  uint8_t *p = buffer + len;
+  *p++ = tag;
+  avrToNetwork(p, &payloadLength, sizeof(payloadLength));
+  p += sizeof(payloadLength);
+
+  const uint8_t *dp = (const uint8_t*)data;
+  for (uint8_t i = 0; i < numElems; ++i) {
+    avrToNetwork(p, dp, elemSize);
+    p += elemSize;
+    dp += elemSize;
+  }
+  
 }
 
 bool AWPacket::putPadding(uint8_t* buffer, size_t bufferLength,
