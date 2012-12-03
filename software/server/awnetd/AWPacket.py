@@ -416,8 +416,10 @@ def printTags(buf):
             i += 2
         else:
             dataLen = tagLen - 1    
-            
-        if tagName in tagFormat:
+          
+        if tagName == "firmwarePage":
+            dataRepr = ""
+        elif tagName in tagFormat:
             dataRepr = repr(list(struct.unpack(tagFormat[tagName],
                                                str(buf[i:(i+dataLen)]))))
         else:
