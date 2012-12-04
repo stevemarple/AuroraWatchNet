@@ -1,9 +1,13 @@
 #include <limits.h>
+#include <avr/eeprom.h>
 #include <avr/power.h>
 
 #include <Arduino.h>
+#include <AwEeprom.h>
 #include <FLC100_shield.h>
 #include "median.h"
+
+unsigned long FLC100::powerUpDelay_ms = FLC100::defaultPowerUpDelay_ms;
 
 FLC100::FLC100(void)
 {
@@ -23,9 +27,15 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   powerPin = pp;
   pinMode(powerPin, OUTPUT);
 
-  // Turn on 5V supply so that the ADC can be probed.
+  uint8_t pud_10ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_10MS);
+  if (pud_10ms != 0xFF)
+    powerUpDelay_ms = 10 * pud_10ms;
+  
+  // Turn on 5V supply so that the ADC can be probed. Ensure some
+  // delay if set to zero (always on mode)
   digitalWrite(powerPin, HIGH);
-  delay.start(powerUpDelay_ms, AsyncDelay::MILLIS);
+  delay.start((powerUpDelay_ms ? powerUpDelay_ms : defaultPowerUpDelay_ms),
+	      AsyncDelay::MILLIS);
   
   for (uint8_t i = 0; i < numAxes; ++i) {
     addresses[i] = adcAddressList[i];
@@ -261,7 +271,8 @@ void FLC100::I2C::process(void)
     break;
     
   case poweringDown:
-    digitalWrite(powerPin, LOW);
+    if (powerUpDelay_ms)
+      digitalWrite(powerPin, LOW);
     state = finished;
     break;
 
@@ -275,7 +286,8 @@ void FLC100::I2C::process(void)
 void FLC100::I2C::finish(void)
 {
   state = finished;
-  digitalWrite(powerPin, LOW);
+  if (powerUpDelay_ms)
+    digitalWrite(powerPin, LOW);
 }
 
 
