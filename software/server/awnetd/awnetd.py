@@ -214,8 +214,7 @@ def handleControlMessage(buf, pendingTags):
                                                     flag)
             r.append("allSamples:" + str(flag))
         else:
-            r.append("ERROR: do not understand '" + cmd + "'")
-            
+            r.append("ERROR: do not understand '" + str(cmd) + "'")
     print("\n".join(r))
     #print(repr(pendingTags))
     
