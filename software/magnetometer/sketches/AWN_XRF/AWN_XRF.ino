@@ -270,6 +270,9 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   // server is aware since we have received a response packet.)
   timeAdjustment = CounterRTC::Time(0, 0);
 
+  // Cancel sending firmware version
+  sendFirmwareVersion = false;
+  
   // Cancel previous request for EEPROM contents
   eepromContentsLength = 0;
   
