@@ -30,7 +30,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "test-0.09a";
+  "test-0.10a";
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
@@ -270,6 +270,9 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   // server is aware since we have received a response packet.)
   timeAdjustment = CounterRTC::Time(0, 0);
 
+  // Cancel previous request for EEPROM contents
+  eepromContentsLength = 0;
+  
   // DEBUG: message received, turn off LED
   digitalWrite(LED_BUILTIN, LOW);
   AWPacket::parsePacket(responseBuffer, responseBufferLen,
@@ -450,6 +453,15 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
     }
     break;
 
+  case AWPacket::tagReadEeprom:
+    // Save values to report back in tagEepromContents
+    AWPacket::networkToAvr(&eepromContentsAddress, data,
+			   sizeof(eepromContentsAddress));
+    AWPacket::networkToAvr(&eepromContentsLength,
+			   data + sizeof(eepromContentsAddress),
+			   sizeof(eepromContentsLength));
+    break;
+    
   case AWPacket::tagEepromContents:
     {
       uint16_t eepromAddress;
@@ -647,6 +659,7 @@ void setup(void)
     console << "Could not get time from hardware RTC\n";
   console.flush();
 
+  console << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl;
   console << "Setting up XRF...\n";
   console.flush();
   commsHandler.setup(xrfSleepPin, xrfOnPin, xrfResetPin);
@@ -811,7 +824,7 @@ void loop(void)
 	packet.putTimeAdjustment(buffer, sizeof(buffer),
 				 timeAdjustment.getSeconds(),
 				 timeAdjustment.getFraction());
-
+      
       console << "Unpadded length: " << AWPacket::getPacketLength(buffer) << endl;
       if (useSd && AWPacket::getPacketLength(buffer) <= sdPacketSize) {
 	// Add the latest packet to the SD card circular buffer, add
@@ -830,9 +843,9 @@ void loop(void)
       }
 
       if (eepromContentsLength) {
+	console << "EEPROM contents length: " << eepromContentsLength << endl;
 	packet.putEepromContents(buffer, sizeof(buffer),
 				 eepromContentsAddress, eepromContentsLength);
-	eepromContentsLength = 0;
       }
 			       
       // Add the signature and send by XRF

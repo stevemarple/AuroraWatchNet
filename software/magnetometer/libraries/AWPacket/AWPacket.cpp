@@ -361,12 +361,19 @@ bool AWPacket::putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
 bool AWPacket::putEepromContents(uint8_t* buffer, size_t bufferLength,
 				 uint16_t address, uint16_t length) const
 {
-  uint16_t len = getPacketLength(buffer);
-  if (len + sizeOfTag + sizeof(address) + length > bufferLength)
+  uint16_t packetLen = getPacketLength(buffer);
+  uint16_t payloadLen = sizeof(address) + length;
+  uint16_t newPacketLen = packetLen + sizeOfTag + sizeOfPacketLength
+    + payloadLen;
+  
+  if (newPacketLen > bufferLength)
     return false;
+  setPacketLength(buffer, newPacketLen);
 
-  uint8_t *p = buffer + len;
+  uint8_t *p = buffer + packetLen;
   *p++ = tagEepromContents;
+  avrToNetwork(p, &payloadLen, sizeof(payloadLen));
+  p += sizeof(payloadLen);
   avrToNetwork(p, &address, sizeof(address));
   p += sizeof(address);
   for (uint16_t i = length; i; --i)

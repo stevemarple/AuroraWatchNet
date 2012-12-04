@@ -406,6 +406,13 @@ def tidyPendingTags(pendingTags, messageTags):
             # exists in messageTags
             delList.append(tag)
             
+        elif tag in ["readEeprom", "eepromContents"] and \
+                "eepromContents" in messageTags:
+            # TODO: check correct data has been received. NB: if key was sent 
+            # it won't be confirmed!
+            delList.append(tag)
+            
+            
         elif tag in messageTags and pendingTags[tag] in messageTags[tag]:
             # This tag appears in messageTags, and one of the values matches
             # pendingTags[tag]

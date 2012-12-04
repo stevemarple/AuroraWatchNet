@@ -167,7 +167,40 @@ def handleControlMessage(buf, pendingTags):
         elif cmd == "reboot=TRUE":
             pendingTags["reboot"] = [];
             r.append("reboot:TRUE")
-            
+        
+        elif cmd.startswith("eepromRead="):
+            if "eepromContents" in pendingTags:
+                # The EEPROM write and EEPROM read both result in the same 
+                # tag being returned; allow only one at once.
+                r.append("ERROR: EEPROM write pending, cannot read")
+            else:
+                edata = str(cmd.replace("eepromRead=", "", 1)).split(',')
+                address = int(edata[0], 0)
+                sz = int(edata[1], 0)
+                if sz < 1:
+                    r.append("ERROR: bad value for size")
+                else:
+                    pendingTags["readEeprom"] = struct.pack(AWPacket.tagFormat["readEeprom"],
+                                                            address, sz)
+                    r.append("eepromRead:" + str(address) + ',' + str(sz))
+        
+        elif cmd.startswith("eepromWrite="):
+            if "eepromRead" in pendingTags:
+                # The EEPROM write and EEPROM read both result in the same 
+                # tag being returned; allow only one at once.
+                r.append("ERROR: EEPROM read pending, cannot write")
+            else:
+                edata = [ int(x, 0) for x in 
+                         str(cmd.replace("eepromWrite=", "", 1)).split(',') ]
+                if len(edata) > 1:
+                    pendingTags["eepromContents"] = \
+                        struct.pack("!H" + str(len(edata)-1) + "B",
+                                    *edata)
+                                    #edata[0], len(edata)-1, *edata[1:])
+                    r.append("eepromWrite:" + ",".join(map(str, edata)))                  
+                else:
+                    r.append("ERROR: no data to send")
+        
         elif cmd.startswith("numSamples="):
             numCtrl = map(int, 
                           str(cmd.replace("numSamples=", "", 1)).split(','))
