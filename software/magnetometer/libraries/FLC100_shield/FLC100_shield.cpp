@@ -27,9 +27,9 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   powerPin = pp;
   pinMode(powerPin, OUTPUT);
 
-  uint8_t pud_10ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_10MS);
-  if (pud_10ms != 0xFF)
-    powerUpDelay_ms = 10 * pud_10ms;
+  uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
+  if (pud_50ms != 0xFF)
+    powerUpDelay_ms = 50 * pud_50ms;
   
   // Turn on 5V supply so that the ADC can be probed. Ensure some
   // delay if set to zero (always on mode)
