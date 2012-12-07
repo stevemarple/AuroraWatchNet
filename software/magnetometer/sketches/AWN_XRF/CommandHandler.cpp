@@ -171,7 +171,7 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 	  char *ep2;
 	  long s = strtol(ep, &ep2, 0);
 	  if (s >= 0 && s <= 255 && ep2 != ep && *ep2 == '\0')
-	    eeprom_write_byte((uint8_t*)EEPROM_SD_SELECT, s);
+	    eeprom_update_byte((uint8_t*)EEPROM_SD_SELECT, s);
 	}
 	console << "sdSelect:"
 		<< eeprom_read_byte((const uint8_t*)EEPROM_SD_SELECT) << endl;
@@ -196,7 +196,7 @@ void CommandHandler::process(Stream &console, Stream &xrf)
 	  char *ep2;
 	  long s = strtol(ep, &ep2, 0);
 	  if (s >= 0 && s <= 65535 && ep2 != ep && *ep2 == '\0') {
-	    eeprom_write_word((uint16_t*)EEPROM_SITE_ID, s);
+	    eeprom_update_word((uint16_t*)EEPROM_SITE_ID, s);
 	    AWPacket::setDefaultSiteId(s);
 	  }
 	  
