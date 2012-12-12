@@ -27,6 +27,9 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   powerPin = pp;
   pinMode(powerPin, OUTPUT);
 
+  pinMode(FLC100_DUMP_CHARGE_PIN, OUTPUT);
+  digitalWrite(FLC100_DUMP_CHARGE_PIN, HIGH);
+  
   uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
   if (pud_50ms != 0xFF)
     powerUpDelay_ms = 50 * pud_50ms;
@@ -44,7 +47,7 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   
   
 
-    // Reset all MCP342x devices
+  // Reset all MCP342x devices
   MCP342x::generalCallReset();
 
   bool r = true;
@@ -53,7 +56,9 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
     adc[i] = MCP342x(adcAddressList[i]);
     addresses[i] = adcAddressList[i];
     channels[i] = adcChannelList[i];
+    // TODO: Enable resolution and gain to be adjusted
     adcConfig[i] = MCP342x::Config(adcChannelList[i], false, 18, 1);
+    magResGain[i] = ((18 - 12) << 1) | (0);
     if (adc[i].autoprobe(&adcAddressList[i], 1)) 
       adcPresent[i] = true;
     else {
@@ -90,6 +95,10 @@ void FLC100::I2C::process(void)
 	for (uint8_t j = 0; j < maxSamples; ++j)
 	  magDataSamples[i][j] = LONG_MIN;
       }
+      digitalWrite(FLC100_DUMP_CHARGE_PIN, LOW);
+
+      // Ensure ADC has latched its address correctly
+      MCP342x::generalCallReset();
       state = readingTime;
     }
     break;
@@ -223,24 +232,13 @@ void FLC100::I2C::process(void)
   case readingMags:
     if (sampleNum >= numSamples) {
       // Calculate final result
-      for (uint8_t i = 0; i < numAxes; ++i) {
-	long tmp = 0;
-	uint8_t count = 0;
-	for (uint8_t j = 0; j < numSamples; ++j) {
-	  if (magDataSamples[i][j] != LONG_MIN) {
-	    ++count;
-	    tmp += magDataSamples[i][j];
-	  }
-	  magData[i] = tmp / count;
-	}
-      }
+      aggregate();
       
       state = poweringDown;
       break;
     }
     
     if (magNum >= numAxes) {
-      // state = poweringDown;
       ++sampleNum;
       state = convertingMags;
       magNum = 0;
@@ -261,6 +259,7 @@ void FLC100::I2C::process(void)
       err = adc[magNum].read(adcResult, status);
       if (!err && status.isReady()) {
 	// Have valid data
+	MCP342x::normalise(adcResult, status);
 	magDataSamples[magNum][sampleNum] = adcResult;
 	++magNum;
       }
@@ -273,6 +272,7 @@ void FLC100::I2C::process(void)
   case poweringDown:
     if (powerUpDelay_ms)
       digitalWrite(powerPin, LOW);
+    digitalWrite(FLC100_DUMP_CHARGE_PIN, HIGH);
     state = finished;
     break;
 
@@ -288,14 +288,18 @@ void FLC100::I2C::finish(void)
   state = finished;
   if (powerUpDelay_ms)
     digitalWrite(powerPin, LOW);
+  digitalWrite(FLC100_DUMP_CHARGE_PIN, HIGH);
 }
 
 
 void FLC100::I2C::aggregate(void)
 {
   for (uint8_t i = 0; i < numAxes; ++i) {
+    if (!adcPresent[i])
+      continue;
+
     if (useMedian)
-      magData[i] = median(magDataSamples[i], numSamples);
+      magData[i] = median<long>(magDataSamples[i], numSamples);
     else {
       // Mean. Ignore any values which are LONG_MIN since they
       // represent sampling errors.
