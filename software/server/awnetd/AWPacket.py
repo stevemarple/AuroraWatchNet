@@ -587,4 +587,10 @@ def getImageFilename(version, crcFile=False):
         filename += ".bin"
     return filename
     
-    
+def adcCountsToTesla(val, magTeslaPerVolt=50e-6):
+    # Data is normalised too allow for maximum resolution of 18 bits and
+    # 8x gain. Thus largest possible normalised magnitude is 2^17 * 8.
+    # Largest magnitude of ADC output is from +/- 2.048V   
+
+    scaleFactor = 2.048 * magTeslaPerVolt / (pow(2,17) * 8)
+    return val * scaleFactor
