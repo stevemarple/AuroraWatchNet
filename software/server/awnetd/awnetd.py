@@ -14,9 +14,7 @@ import time
 import tty
 
 import hmac
-# from AWPacket import getTimestamp, getPacketLength, tagNames, tagLengths
 import AWPacket
-from AWPacket import flagsResponseBit
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -126,11 +124,76 @@ def writeAuroraWatchRealTimeData(timestamp, data):
         realtimeFile.write("{:05d}".format(seconds % 86400))
         for tag in ["magDataX", "magDataY", "magDataZ"]:
             if tag in data:
-                realtimeFile.write(" {:.1f}".format(data[tag]))
+                realtimeFile.write(" {:.1f}".format(1e9 * AWPacket.adcCountsToTesla(data[tag])))
             else:
                 realtimeFile.write(" nan")
         realtimeFile.write("\n")
 
+# File object to which AuroraWatchNet text data format files are written    
+awnetTextFile = None
+def writeAuroraWatchNetTextData(timestamp, messageTags):
+    if not config.has_option("awnettextdata", "filename"):
+        return
+    
+    global awnetTextFile
+    unixTime = timestamp[0] + timestamp[1]/32768.0
+    
+    tmpName = time.strftime(config.get("awnettextdata", "filename"),
+                            time.gmtime(unixTime))
+    if awnetTextFile is not None and tmpName != awnetTextFile.name:
+        # Filename has changed
+        awnetTextFile.close()
+        awnetTextFile = None
+            
+    if awnetTextFile is None:
+        # File wasn't open or filename changed
+        p = os.path.dirname(tmpName)
+        if not os.path.isdir(p):
+            try:
+                os.makedirs(p)
+            except Exception as e:
+                print("Could not make directory " + p + str(e))
+                return
+        
+        try:
+            awnetTextFile = open(tmpName, "a+", 1)
+        except Exception as e:
+            print("Exception was " + str(e))
+            awnetTextFile = None
+    
+    if awnetTextFile is not None:
+        # data = [unixTime]
+        data = [ ]
+        for tag in ["magDataX", "magDataY", "magDataZ"]:
+            if tag in messageTags:
+                comp = struct.unpack(AWPacket.tagFormat[tag], 
+                                     str(messageTags[tag][0]))
+                data.append(1e9 * AWPacket.adcCountsToTesla(comp[1] + 0.0))
+            else:
+                data.append(float('NaN'));
+        
+        for tag in ["sensorTemperature", "MCUTemperature"]:
+            if tag in messageTags:
+                data.append(struct.unpack(AWPacket.tagFormat[tag], 
+                                     str(messageTags[tag][0]))[0] / 100.0)
+            else:
+                data.append(float('NaN'))
+
+        if "batteryVoltage" in messageTags:
+            data.append(struct.unpack(AWPacket.tagFormat["batteryVoltage"], 
+                                 str(messageTags["batteryVoltage"][0]))[0] 
+                        / 1000.0)
+        else:
+            data.append(float('NaN'))
+        
+        awnetTextFile.write(str(timestamp[0]))
+        # strip zero before decimal point 
+        awnetTextFile.write(str(timestamp[1]/32768.0).lstrip('0'))
+        awnetTextFile.write('\t')
+        awnetTextFile.write('\t'.join(map(str, data)))
+        awnetTextFile.write('\n')
+
+    
     
 # Process any CR or LF terminated messages which are in the buffer    
 def handleControlMessage(buf, pendingTags):
@@ -472,8 +535,14 @@ selectList = [device]
 if controlSocket is not None:
     selectList.append(controlSocket)
     
-hmacKey = "".join(map(chr, [255, 255, 255, 255, 255, 255, 255, 255, 
-                            255, 255, 255, 255, 255, 255, 255, 255]))
+if not config.has_option("magnetometer", "key"):
+    print("Config file missing key from magnetometer section")
+    exit(1)
+
+hmacKey = config.get("magnetometer", "key").decode("hex")
+if len(hmacKey) != 16:
+    print("key must be 32 characters long")
+    exit(1)
 
 buf = bytearray()
 
@@ -529,7 +598,7 @@ while running:
                     AWPacket.putHeader(response, 
                                        siteId=AWPacket.getSiteId(message),
                                        timestamp=timestamp,
-                                       flags=(1 << flagsResponseBit))
+                                       flags=(1 << AWPacket.flagsResponseBit))
                     AWPacket.putCurrentUnixTime(response)
                     
                     # Handle packet requests. These tags live only for the 
@@ -575,6 +644,9 @@ while running:
                                                  str(messageTags[tag][0]))
                             data[tag] = comp[1];
                     writeAuroraWatchRealTimeData(timestamp, data)
+                    
+                writeAuroraWatchNetTextData(timestamp, messageTags)
+                        
             else:
                 response = None
 
