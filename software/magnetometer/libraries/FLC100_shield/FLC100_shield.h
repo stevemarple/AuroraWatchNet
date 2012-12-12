@@ -16,6 +16,9 @@
 #define MCU_TEMPERATURE_ADC 7
 #define MCU_TEMPERATURE_PWR A6
 
+// FET switch to ensure FLC100 really does go off
+#define FLC100_DUMP_CHARGE_PIN 10
+
 class FLC100;
 
 
@@ -166,18 +169,18 @@ private:
       return state;
     }
 
-    inline void getNumSamples(uint8_t &numSamples, bool &useMedian, 
-			      bool &trimSamples) const {
-      numSamples = this->numSamples;
-      useMedian = this->useMedian;
-      trimSamples = this->trimSamples;
+    inline void getNumSamples(uint8_t &numSamp, bool &useMed, 
+			      bool &trimSamp) const {
+      numSamp = numSamples;
+      useMed = useMedian;
+      trimSamp = trimSamples;
     }
 
-    inline void setNumSamples(uint8_t numSamples, bool useMedian, bool trimSamples) {
-      if (numSamples > 0 && numSamples <= maxSamples) {
-	this->numSamples = numSamples;
-	this->useMedian = useMedian;
-	this->trimSamples = trimSamples;
+    inline void setNumSamples(uint8_t numSamp, bool useMed, bool trimSamp) {
+      if (numSamp > 0 && numSamp <= maxSamples) {
+	numSamples = numSamp;
+	useMedian = useMed;
+	trimSamples = trimSamp;
       }
     }
 
