@@ -30,7 +30,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "test-0.11a";
+  "test-0.15a";
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
@@ -568,7 +568,16 @@ void setup(void)
       console << "SD disabled on #" << sdSelect << endl;
     }
   }
-  
+
+
+  // Copy key from EEPROM
+  console << "HMAC key:";
+  for (uint8_t i = 0; i < EEPROM_HMAC_KEY_SIZE; ++i) {
+    hmacKey[i] = eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i));
+    console << ' ' << _HEX(hmacKey[i]);
+  }
+  console.println();
+    
   // Turn on 5V supply
   pinMode(FLC100_POWER, OUTPUT);
   digitalWrite(FLC100_POWER, HIGH);
