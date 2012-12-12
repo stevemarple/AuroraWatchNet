@@ -68,7 +68,7 @@ Stream& printEepromContents(Stream &s, uint16_t address, uint16_t size)
   s << "EEPROM values:\n";
   while (address >= 0 && address <= E2END && size--) {
     s << "0x" << _HEX(address) << ": 0x";
-    if (address >= EEPROM_HMAC_KEY &&
+    if (0 && address >= EEPROM_HMAC_KEY &&
 	address < EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE) 
       s << "??\n"; // Don't print key!
     else
