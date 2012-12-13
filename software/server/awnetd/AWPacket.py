@@ -549,7 +549,7 @@ def validatePacket(buf, hmacKey):
                 try:
                     # Be wary of printing invalid packets!
                     printPacket(buf)
-                finally:
+                except:
                     None
                 print("#########################")
             
