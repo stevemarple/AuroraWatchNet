@@ -1,21 +1,21 @@
 [submodule "software/magnetometer/libraries/CounterRTC"]
 	path = software/magnetometer/libraries/CounterRTC
-	url = git@github.com:stevemarple/CounterRTC.git
+	url = git://github.com/stevemarple/CounterRTC.git
 [submodule "software/magnetometer/libraries/RTCx"]
 	path = software/magnetometer/libraries/RTCx
-	url = git@github.com:stevemarple/RTCx.git
+	url = git://github.com/stevemarple/RTCx.git
 [submodule "software/magnetometer/libraries/CircularStack"]
 	path = software/magnetometer/libraries/CircularStack
-	url = git@github.com:stevemarple/CircularStack.git
+	url = git://github.com/stevemarple/CircularStack.git
 [submodule "software/magnetometer/libraries/MCP342x"]
 	path = software/magnetometer/libraries/MCP342x
-	url = git@github.com:stevemarple/MCP342x.git
+	url = git://github.com/stevemarple/MCP342x.git
 [submodule "software/magnetometer/libraries/AsyncDelay"]
 	path = software/magnetometer/libraries/AsyncDelay
-	url = git@github.com:stevemarple/AsyncDelay.git
+	url = git://github.com/stevemarple/AsyncDelay.git
 [submodule "software/magnetometer/libraries/MultiReadCircBuffer"]
 	path = software/magnetometer/libraries/MultiReadCircBuffer
-	url = git@github.com:stevemarple/MultiReadCircBuffer.git
+	url = git://github.com/stevemarple/MultiReadCircBuffer.git
 [submodule "software/magnetometer/libraries/Streaming"]
 	path = software/magnetometer/libraries/Streaming
-	url = git@github.com:stevemarple/Streaming.git
+	url = git://github.com/stevemarple/Streaming.git
