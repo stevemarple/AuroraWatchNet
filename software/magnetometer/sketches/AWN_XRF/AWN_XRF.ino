@@ -30,7 +30,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "test-0.15a";
+  "test-0.16a";
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
@@ -68,7 +68,7 @@ uint16_t counter2Frequency = 0;
 // const uint16_t minSleepInterval = 4; 
 //uint32_t samplingInterval = 8;
 CounterRTC::Time minSleepInterval(2, 0);
-CounterRTC::Time samplingInterval(8, 0);
+CounterRTC::Time samplingInterval(30, 0);
 bool samplingIntervalChanged = true;
 //bool useSleepMode = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
