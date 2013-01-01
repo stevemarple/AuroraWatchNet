@@ -28,4 +28,19 @@ to operate in one of several modes.
   driving I2C signals over the required distance; the concern appears
   unfounded.
 
+## Pin mapping
+
+0: XRF RX (via jumper)  
+1: XRF TX (via jumper)  
+2: XRF RX (via jumper)  
+3: XRF TX (via jumper)  
+5: XRF /reset (via jumper)  
+7: XRF sleep (via jumper)  
+9: MAX619 shutdown  
+A2: Vin (via jumper)  
+A6: LM61 power  
+A7: LM61 output  
+SDA/SCL: MCP3424  
+
+
 
