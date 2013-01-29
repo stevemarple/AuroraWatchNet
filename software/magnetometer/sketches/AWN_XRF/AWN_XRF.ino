@@ -867,8 +867,8 @@ void loop(void)
       // DEBUG: message queued, turn on LED
       digitalWrite(LED_BUILTIN, HIGH);
 
-      if (verbosity)
-	AWPacket::printPacket(buffer, bufferLength, console);
+      //if (verbosity)
+      //AWPacket::printPacket(buffer, bufferLength, console);
     
       console << "# -----------" << endl;
     }

@@ -13,6 +13,8 @@ extern "C" {
 #include "CommsHandler.h"
 
 extern Stream& console;
+extern uint8_t verbosity;
+
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
 static const char* strResponseTimeout = "reponse timeout";
@@ -128,7 +130,7 @@ void CommsHandler::setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin)
   xrf.print("+++");
   //xrf.flush();
   delay(1050);
-  // xrf << "ATRE\r";
+  xrf << "ATRE\r";
   xrf << "ATSM 2\r"; // Sleep mode
   uint8_t channelNum = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_CHANNEL);
   if (channelNum != 0xFF) {
@@ -191,10 +193,12 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
     // HardwareSerial.write() waits until the buffer has room but
     // in future it might return immediately with a return value of
     // zero.
-    if (xrf.write(messageBuffer[bytesSent])) {
-      // Serial.print(messageBuffer[bytesSent], HEX);
+    if (bytesSent == 0 && verbosity)
+      AWPacket::printPacket(messageBuffer, messageLen, console);
+    
+    if (xrf.write(messageBuffer[bytesSent]))
       ++bytesSent;
-    }
+    
     if (bytesSent == messageLen) {
       responseLen = 0;
       responseTimeout.start(responseTimeout_ms, AsyncDelay::MILLIS);
