@@ -19,3 +19,12 @@
 [submodule "software/magnetometer/libraries/Streaming"]
 	path = software/magnetometer/libraries/Streaming
 	url = git://github.com/stevemarple/Streaming.git
+[submodule "software/magnetometer/libraries/RF12"]
+	path = software/magnetometer/libraries/RF12
+	url = git://github.com/stevemarple/RF12.git
+[submodule "software/magnetometer/libraries/RF12_Stream"]
+	path = software/magnetometer/libraries/RF12_Stream
+	url = git://github.com/stevemarple/RF12_Stream.git
+[submodule "software/magnetometer/libraries/CircBuffer"]
+	path = software/magnetometer/libraries/CircBuffer
+	url = git://github.com/stevemarple/CircBuffer.git
