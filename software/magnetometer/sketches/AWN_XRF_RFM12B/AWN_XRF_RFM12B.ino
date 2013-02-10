@@ -214,11 +214,6 @@ void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 void doSleep(uint8_t mode)
 {
   disable_jtag();
-  noInterrupts();
-  set_sleep_mode(mode); // Set the mode
-  sleep_enable();       // Make sleeping possible
-  // TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
-  interrupts();         // Make sure wake up is possible!
 
   while (ASSR & _BV(TCR2AUB))
     ; // Wait for any pending updates to have latched
@@ -265,11 +260,21 @@ void doSleep(uint8_t mode)
      //while (ASSR & _BV(OCR2BUB))
      // ; // Wait for one TOSC1 cycle to complete
     __asm volatile( "" ::: "memory" );
+
+    cli();
+    set_sleep_mode(mode); // Set the mode
+    sleep_enable();       // Make sleeping possible
+    sleep_bod_disable();  // Disable brown-out detection for sleeping
+    // TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
+    sei();                // Make sure wake up is possible!
     sleep_cpu();          // Now go to sleep
+    // Asleep ....
+    
+    // Now awake again
+    sleep_disable();      // Make sure sleep can't happen until we are ready
+    sei();
   }
 
-  // Now awake again
-  sleep_disable();      // Make sure sleep can't happen until we are ready
 
   /*
    * Fix a suspected bug in the two-wire hardware which stops it
