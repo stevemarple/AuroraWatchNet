@@ -57,7 +57,7 @@ FLC100 flc100;
 CommandHandler commandHandler;
 
 const uint8_t xrfSleepPin = 7;
-const uint8_t xrfOnPin = 22;
+const uint8_t xrfOnPin = 23;
 const uint8_t xrfResetPin = 5;
 
 const uint16_t commsBlockSize = 12; // Packets should be multiple of 12 long
