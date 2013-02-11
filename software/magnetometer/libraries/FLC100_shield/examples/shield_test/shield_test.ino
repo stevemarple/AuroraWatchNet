@@ -3,6 +3,7 @@
 #include <RTCx.h>
 #include <MCP342x.h>
 #include <CounterRTC.h>
+#include <AwEeprom.h>
 #include <FLC100_shield.h>
 
 
