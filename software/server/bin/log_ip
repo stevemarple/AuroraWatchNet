@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# chkconfig: 12345 97 03
+# description: log_ip will log the IP address to a webserver
+
+# Add the following lines to crontab
+# @reboot log_ip reboot > /dev/null 2>&1
+# @hourly log_ip > /dev/null 2>&1
+
+
+# See how we were called.
+
+hostname=`hostname`
+ip=`hostname -I|tr -d ' '`
+
+action="$1"
+
+URL="http://spears.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}"
+if [ -n "$action" ]; then
+    URL="${URL}&action=${action}"
+    if [ "$action" = "reboot" ]; then
+        # Wait for network to be set
+        sleep 60
+    fi
+fi
+wget -q "$URL" -O /dev/null 
+
+exit $?
