@@ -429,7 +429,8 @@ def debugPrint(level, mesg):
 
 # Parse command line options
 optParser = OptionParser()
-optParser.add_option("-c", "--config-file", dest="configFile", 
+optParser.add_option("-c", "--config-file", dest="configFile",
+                     default="/etc/awnet.ini",
                      help="Configuration file")
 optParser.add_option("--acknowledge", action="store_true",
                      dest="acknowledge", default=True,
@@ -515,7 +516,7 @@ elif device.isatty():
         controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         # ord('A'_ = 65, ord('W') = 87 
-        controlSocket.bind(("", 6587))
+        controlSocket.bind(("localhost", 6587))
         controlSocket.setblocking(False)
         controlSocket.listen(0)
 else:
