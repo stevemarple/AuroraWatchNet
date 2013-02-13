@@ -145,8 +145,8 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
   delay(1050);
   stream << "ATRE\r";
   stream << "ATSM 2\r"; // Sleep mode
-  // TODO: use dedicated EEPROM address for XRF
-  uint8_t channelNum = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_CHANNEL);
+  uint8_t channelNum
+    = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_XRF_CHANNEL);
   if (channelNum != 0xFF) {
     stream << "ATCN " << int(channelNum) << '\r';
     console << "Channel number: " << channelNum << endl;

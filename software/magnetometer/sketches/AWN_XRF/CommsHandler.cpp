@@ -132,7 +132,7 @@ void CommsHandler::setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin)
   delay(1050);
   xrf << "ATRE\r";
   xrf << "ATSM 2\r"; // Sleep mode
-  uint8_t channelNum = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_CHANNEL);
+  uint8_t channelNum = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_XRF_CHANNEL);
   if (channelNum != 0xFF) {
     xrf << "ATCN " << int(channelNum) << '\r';
     console << "Channel number: " << channelNum << endl;

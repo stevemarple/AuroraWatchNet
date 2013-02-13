@@ -695,7 +695,20 @@ void setup(void)
     console << "Could not get time from hardware RTC\n";
   console.flush();
 
-  console << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl;
+  // Set samplingInterval
+  uint16_t samplingInterval_16th_s
+    = eeprom_read_word((const uint16_t*)EEPROM_SAMPLING_INTERVAL_16TH_S);
+
+  if (samplingInterval_16th_s && samplingInterval_16th_s != 0xFFFF) {
+    samplingInterval
+      = CounterRTC::Time((samplingInterval_16th_s & 0xFFF) >> 4,
+			 (samplingInterval_16th_s & 0x000F) <<
+			 (CounterRTC::fractionsPerSecondLog2 - 4));
+  }
+  console << "Sampling Interval: "
+	  << samplingInterval.getSeconds() << ',' 
+	  << samplingInterval.getFraction() << endl
+	  << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl;
   // console << "Setting up XRF...\n";
   console.flush();
 
