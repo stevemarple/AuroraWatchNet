@@ -1,6 +1,16 @@
 #!/bin/sh
 
+### BEGIN INIT INFO
+# Provides:          awnetd
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       AuroraWatchNet data collection
+### END INIT INFO
+
+
 USER="pi"
+DESC="AuroraWatchNet data collection"
+
 
 get_pid() {
     su -c "screen -list" - $USER | grep awnetd | cut -d. -f1
@@ -11,45 +21,47 @@ start_stop_server() {
     pid=`get_pid`
     case "$1" in
         start)
-	    if [ -n "$pid" ]; then
-		echo "awnetd is already running"
-	    else
+	    echo -n "Starting $DESC: awnetd"
+	    if [ -z "$pid" ]; then
 		su -c "screen -d -m -S awnetd ~pi/bin/awnetd.py -v -v -v -v" - $USER
-		echo "awnetd started"
 	    fi
+	    echo "."
             ;;
 
         stop)
+	    echo -n "Stopping $DESC: awnetd"
 	    if [ -n "$pid" ]; then
 		kill $pid
-		echo "awnetd stopped"
-	    else
-		echo "awnetd was not running"
 	    fi
+	    echo "."
             ;;
 
-        restart)
+        restart|force-reload)
             start_stop_server stop
             start_stop_server start
             ;;
 
-        status)
+	# status are zap are found in Gentoo runscripts but are useful
+	# so included here.
+	status)
+	    echo -n "Status for $DESC: "
 	    if [ -n "$pid" ]; then
-		echo "awnetd is running ($pid)"
+		echo -n "running (PID = $pid)"
 	    else
-		echo "awnetd is stopped"
+		echo -n "stopped"
 	    fi
+	    echo "."
             ;;
 
         zap)
+	    echo -n "Zapping $DESC: awnetd"
 	    if [ -n "$pid" ]; then
-		echo "Stopping awnetd"
 		kill -9 $pid
 		su -c "screen -wipe" - $USER > /dev/null 2>&1
-	    else
-		echo "awnetd was not running"
 	    fi
+	    echo "."
 	    ;;
+
         *)
 	    echo "Unknown action: $1"
 	    return 1
@@ -58,6 +70,9 @@ start_stop_server() {
 }
 
 action="$1"
+
+# DISPLAY is not needed and if set can cuase su to emit unwanted warnings.
+unset DISPLAY
 
 if [ -z "$action" ]; then
     echo "$0 start|stop|restart|status"
