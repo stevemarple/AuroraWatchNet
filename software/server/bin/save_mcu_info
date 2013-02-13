@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Exit on any error
+set -e
+set -x
+
+NAME=$1
+if [ -z "$NAME" ]; then
+   echo "Error!"
+   echo $0 name
+   exit 1
+fi
+
+if [ `uname -m` = "armv6l" ]; then
+    # Assume Raspberry Pi and GPIO programmer
+    PART=atmega1284p
+    PORT=gpio
+    PROG=gpio1
+else
+    # Assume Dragon in JTAG mode
+    PART=atmega1284p
+    PORT=usb
+    PROG=dragon_jtag
+fi
+
+
+avrdude -P $PORT -c $PROG -p $PART \
+    -U sig:r:$NAME.sig:h \
+    -U lfuse:r:$NAME.lfuse:h \
+    -U hfuse:r:$NAME.hfuse:h \
+    -U efuse:r:$NAME.efuse:h \
+    -U flash:r:$NAME.flash.hex:i \
+    -U eeprom:r:$NAME.eeprom.hex:i 
+
+tar cvfpz $NAME.tar.gz $NAME.sig $NAME.lfuse $NAME.hfuse $NAME.efuse \
+    $NAME.flash.hex $NAME.eeprom.hex
