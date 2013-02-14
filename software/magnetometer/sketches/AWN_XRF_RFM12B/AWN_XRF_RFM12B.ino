@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.02a";
+  "xrf_rf12-0.03a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -127,7 +127,7 @@ const uint8_t sdFilenameLen = 29; // Remember to include space for '\0'
 char sdFilename[sdFilenameLen] = "OLD_FILE"; 
 File sdFile;
 
-volatile bool startSampling = false;
+volatile bool startSampling = true;
 volatile bool callbackWasLate = true;
 
 // Code to ensure watchdog is disabled after reboot code. Also takes a
