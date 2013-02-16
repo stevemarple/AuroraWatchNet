@@ -40,14 +40,12 @@ size_t RFM12B_Radio::write(uint8_t c)
 
 bool RFM12B_Radio::powerOn(void)
 {
-  rf12_sleep(RF12_WAKEUP);
-  return true;
+  return stream.powerOff();
 }
 
 bool RFM12B_Radio::powerOff(void)
 {
-  rf12_sleep(RF12_SLEEP);
-  return true;
+  return stream.powerOff();
 }
 
 bool RFM12B_Radio::reset(void)
