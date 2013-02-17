@@ -36,13 +36,14 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.03a";
+  "xrf_rf12-0.04a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
+uint8_t ledPin = LED_BUILTIN;
+
 Stream& console = Serial;
-//Stream& xrf = Serial1;
 XRF_Radio xrf(Serial1);
 uint8_t rfm12b_rxBuffer[256];
 uint8_t rfm12b_txBuffer[256];
@@ -264,6 +265,7 @@ void doSleep(uint8_t mode)
     cli();
     set_sleep_mode(mode); // Set the mode
     sleep_enable();       // Make sleeping possible
+    wdt_disable();
     sleep_bod_disable();  // Disable brown-out detection for sleeping
     // TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
     sei();                // Make sure wake up is possible!
@@ -273,6 +275,7 @@ void doSleep(uint8_t mode)
     // Now awake again
     sleep_disable();      // Make sure sleep can't happen until we are ready
     sei();
+    wdt_enable(WDTO_8S);
   }
 
 
@@ -298,7 +301,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   eepromContentsLength = 0;
   
   // DEBUG: message received, turn off LED
-  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(ledPin, LOW);
   AWPacket::parsePacket(responseBuffer, responseBufferLen,
 			&console,
 			processResponseTags, AWPacket::printUnknownTag);
@@ -372,7 +375,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
     break;
 
   case AWPacket::tagReboot:
-    wdt_enable(WDTO_8S);
+    wdt_enable(WDTO_1S);
     while (1)
       ;
     break;
@@ -537,12 +540,11 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
 
 void setup(void)
 {
-  wdt_disable();
+  // wdt_disable();
+  wdt_enable(WDTO_8S);
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6B};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  
   MCUSR = 0; // Clear flags
   Serial.begin(9600);
   Serial1.begin(9600);
@@ -715,6 +717,8 @@ void setup(void)
   // Try using RFM12B
   // TODO: Fix pin mapping
   if (rfm12b.begin(14, 6, 2, 1, RF12_433MHZ)) {
+    disable_jtag();
+    ledPin = 17; // JTAG TDO
     console << "Found RFM12B\n";
     rfm12b << "Found RFM12B\n";
     for (uint8_t i = 0; i < 4; ++i) {
@@ -728,6 +732,9 @@ void setup(void)
     xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
     commsHandler.setCommsInterface(&xrf);
   }
+
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
   
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
 
@@ -742,6 +749,8 @@ void setup(void)
 bool resultsProcessed = false;
 void loop(void)
 {
+  wdt_reset();
+  
   if (startSampling && !flc100.isSampling()) {
     flc100.start();
 
@@ -921,7 +930,7 @@ void loop(void)
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
-      digitalWrite(LED_BUILTIN, HIGH);
+      digitalWrite(ledPin, HIGH);
 
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
@@ -965,7 +974,7 @@ void loop(void)
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
-      digitalWrite(LED_BUILTIN, HIGH);
+      digitalWrite(ledPin, HIGH);
       
     }
     
