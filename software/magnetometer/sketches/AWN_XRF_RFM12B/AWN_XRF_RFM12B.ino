@@ -44,8 +44,8 @@ uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 Stream& console = Serial;
 //Stream& xrf = Serial1;
 XRF_Radio xrf(Serial1);
-uint8_t rfm12b_rxBuffer[60];
-uint8_t rfm12b_txBuffer[60];
+uint8_t rfm12b_rxBuffer[256];
+uint8_t rfm12b_txBuffer[256];
 RF12_Stream rf12_stream(rfm12b_rxBuffer, sizeof(rfm12b_rxBuffer),
 			rfm12b_txBuffer, sizeof(rfm12b_txBuffer));
 RFM12B_Radio rfm12b(rf12_stream);
