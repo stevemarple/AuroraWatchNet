@@ -28,3 +28,6 @@
 [submodule "software/magnetometer/libraries/CircBuffer"]
 	path = software/magnetometer/libraries/CircBuffer
 	url = git://github.com/stevemarple/CircBuffer.git
+[submodule "hardware/RPi_RFM12B_ISP"]
+	path = hardware/RPi_RFM12B_ISP
+	url = git://github.com/stevemarple/RPi_RFM12B_ISP.git
