@@ -50,7 +50,6 @@ uint8_t rfm12b_txBuffer[256];
 RF12_Stream rf12_stream(rfm12b_rxBuffer, sizeof(rfm12b_rxBuffer),
 			rfm12b_txBuffer, sizeof(rfm12b_txBuffer));
 RFM12B_Radio rfm12b(rf12_stream);
-//CommsInterface& radio = xrf;
 
 uint8_t verbosity = 1;
 
@@ -61,7 +60,9 @@ const uint8_t xrfSleepPin = 7;
 const uint8_t xrfOnPin = 23;
 const uint8_t xrfResetPin = 5;
 
-const uint16_t commsBlockSize = 12; // Packets should be multiple of 12 long
+// Set if packets should be multiple of some particular length
+uint16_t commsBlockSize = 0; 
+
 const uint16_t commsStackBufferLen = 1024;
 uint8_t commsStackBuffer[commsStackBufferLen];
 CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
@@ -742,6 +743,7 @@ void setup(void)
     commsHandler.setCommsInterface(&rfm12b);
   }
   else {
+    commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
     xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
     commsHandler.setCommsInterface(&xrf);
   }
