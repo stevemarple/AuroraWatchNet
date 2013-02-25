@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.04a";
+  "xrf_rf12-0.05a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -96,12 +96,13 @@ uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
 bool allSamples = false;
 
 // SD card data
+const int sdSectorSize = 512;
 bool useSd = false;
 const int sdBufferLength = 1024;   // Size of buffer
 uint8_t sdBuffer[sdBufferLength];  // Space for buffer
-const uint8_t sdPacketSize = 32;   // Size of packet for SD card
-
-CircBuffer sdCircularBuffer(sdBuffer, sizeof(sdBuffer), sdPacketSize);
+// const uint8_t sdPacketSize = 64;   // Size of packet for SD card
+// CircBuffer sdCircularBuffer(sdBuffer, sizeof(sdBuffer), sdPacketSize);
+CircBuffer sdCircularBuffer(sdBuffer, sizeof(sdBuffer));
 
 // After boot keep sending boot flags and firmware version until a
 // response is received.
@@ -518,7 +519,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
       data += sizeof(numSamples);
       if (numSamples) {
 	AWPacket::networkToAvr(&control, data, sizeof(control));
-	flc100.setNumSamples(numSamples, control & 1, control & 2);
+	flc100.setNumSamples(numSamples,
+			     control & EEPROM_AGGREGATE_USE_MEDIAN,
+			     control & EEPROM_AGGREGATE_TRIM_SAMPLES);
       }
     }
     break;
@@ -564,10 +567,12 @@ void setup(void)
 				 FUSE_CKSEL1 & FUSE_CKSEL0);
   bool isRcOsc = ((lowFuse & ckselMask) ==
 		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
-  console << "Uses RC oscillator: " << isRcOsc << endl;
-  console << "CKSEL: " << _HEX(lowFuse & ckselMask) << endl;
+  console << "Uses RC oscillator: " << isRcOsc
+	  << "\nCKSEL: " << _HEX(lowFuse & ckselMask)
+	  << "\nMCUSR: " << _HEX(mcusrCopy) << endl; 
+    
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
-  //useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
+  useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
   
   // Ensure all SPI devices are inactive
   pinMode(4, OUTPUT);     // SD card if ethernet shield in use
@@ -578,9 +583,9 @@ void setup(void)
   pinMode(14, OUTPUT);    // RFM12B (if fitted)
   digitalWrite(14, HIGH);
   
-  console << "MCUSR: " << _HEX(mcusrCopy) << endl; 
   if (sdSelect < NUM_DIGITAL_PINS) {
     pinMode(sdSelect, OUTPUT); // Onboard SD card
+    digitalWrite(sdSelect, HIGH);
     if (useSd) {
       if (!SD.begin(sdSelect)) {
 	console << "Cannot initialise SD card on #" << sdSelect << endl;
@@ -631,16 +636,26 @@ void setup(void)
   // Get key
   eeprom_read_block(hmacKey, (uint8_t*)EEPROM_HMAC_KEY, EEPROM_HMAC_KEY_SIZE);
   AWPacket::setDefaultSiteId(eeprom_read_word((const uint16_t*)EEPROM_SITE_ID));
-  
+
+  uint8_t numSamples = eeprom_read_byte((uint8_t*)EEPROM_NUM_SAMPLES);
+  if (numSamples == 0 || numSamples > FLC100::maxSamples)
+    numSamples = 1;
+  uint8_t aggregate = eeprom_read_byte((uint8_t*)EEPROM_AGGREGATE);
+  if (aggregate == 255)
+    aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
+    
   flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList);
+  flc100.setNumSamples(numSamples, 
+		       aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
+		       aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
 
   for (int i = 0; i < FLC100::numAxes; ++i)
     console << "ADC[" << i << "]: Ox" << _HEX(adcAddressList[i])
 	    << ", channel: " << (adcChannelList[i]) << endl;
+  console << "numSamples: " << numSamples << endl
+	  << "aggregate: " << (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES ? "trimmed " : "")
+	  << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? "median" : "mean") << endl;
   console.flush();
-  
-  //pinMode(XRF_RESET, OUTPUT);
-  //pinMode(XRF_SLEEP, OUTPUT);
 
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
@@ -711,7 +726,6 @@ void setup(void)
 	  << samplingInterval.getSeconds() << ',' 
 	  << samplingInterval.getFraction() << endl
 	  << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl;
-  // console << "Setting up XRF...\n";
   console.flush();
 
   // Try using RFM12B
@@ -728,7 +742,6 @@ void setup(void)
     commsHandler.setCommsInterface(&rfm12b);
   }
   else {
-    //commsHandler.setXrfPins(xrfSleepPin, xrfOnPin, xrfResetPin);
     xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
     commsHandler.setCommsInterface(&xrf);
   }
@@ -797,7 +810,7 @@ void loop(void)
 
       // Buffer for storing the binary AW packet. Will also be used
       // when writing to SD card.
-      const uint16_t bufferLength = 512;
+      const uint16_t bufferLength = sdSectorSize;
       uint8_t buffer[bufferLength]; // Sector size for SD card is 512 bytes
 
 
@@ -806,15 +819,19 @@ void loop(void)
 	char newFilename[sdFilenameLen];
 	createFilename(newFilename, sizeof(newFilename), flc100.getTimestamp());
 	if ((strcmp(sdFilename, newFilename) != 0 ||
-	     sdCircularBuffer.getSize() == sizeof(sdBuffer))
+	     sdCircularBuffer.getSize() >= sdSectorSize ||
+	     sdCircularBuffer.getSizeRemaining() <= 64)
 	    && sdFile) {
-	  while (sdCircularBuffer.getSize() >= sdPacketSize) {
-	    int i = sdCircularBuffer.read(buffer, sizeof(buffer));
-	    sdFile.write(buffer, i);
+	  while (1) {
+	    int bytesRead = sdCircularBuffer.read(buffer, sizeof(buffer));
+	    if (bytesRead == 0)
+	      break;
+	    sdFile.write(buffer, bytesRead);
 	    sdFile.flush();
-	  }
-	  console << "Wrote to " << sdFilename << endl;
+	    console << "Wrote to " << bytesRead << " to " << sdFilename << endl;
+	  } 
 	}
+	
 	if (strcmp(sdFilename, newFilename) != 0) {
 	  if (sdFile) {
 	    console << "Closing " << sdFilename << endl;
@@ -902,36 +919,25 @@ void loop(void)
 				 timeAdjustment.getSeconds(),
 				 timeAdjustment.getFraction());
       
-      console << "Unpadded length: " << AWPacket::getPacketLength(buffer) << endl;
-      if (useSd && AWPacket::getPacketLength(buffer) <= sdPacketSize) {
-	// Add the latest packet to the SD card circular buffer, add
-	// padding so that final size matches sdPacketSize
-	uint16_t originalLength = AWPacket::getPacketLength(buffer);
-	packet.putPadding(buffer, sizeof(buffer),
-			  sdPacketSize - originalLength);
-	sdCircularBuffer.write(buffer, sdPacketSize);
-	console << "SD packet size: " << sdPacketSize << endl;
-	// printBinaryBuffer(console, buffer, sdPacketSize);
-	console << endl;
-	if (verbosity)
-	  AWPacket::printPacket(buffer, bufferLength, console);
-	// 'Remove' padding by reverting to the original packet length
-	AWPacket::setPacketLength(buffer, originalLength);
-      }
-
       if (eepromContentsLength) {
 	console << "EEPROM contents length: " << eepromContentsLength << endl;
 	packet.putEepromContents(buffer, sizeof(buffer),
 				 eepromContentsAddress, eepromContentsLength);
       }
 			       
-      // Add the signature and send by radio
+      // Add the signature
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
+      // Log to a file (if desired)
+      if (useSd)
+	sdCircularBuffer.write(buffer, AWPacket::getPacketLength(buffer));
+           
+      // Send by radio
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
       digitalWrite(ledPin, HIGH);
 
+      
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
     
