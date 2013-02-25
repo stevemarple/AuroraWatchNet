@@ -55,4 +55,17 @@
 #define EEPROM_SAMPLING_INTERVAL_16TH_S 0x42
 #define EEPROM_SAMPLING_INTERVAL_16TH_S_SIZE 2
 
+// Number of samples to take per sampling interval
+#define EEPROM_NUM_SAMPLES 0x44
+#define EEPROM_NUM_SAMPLES_SIZE 1
+
+// How to aggregate multiple samples
+#define EEPROM_AGGREGATE 0x45
+#define EEPROM_AGGREGATE_SIZE 1
+
+// Bit mask values
+#define EEPROM_AGGREGATE_USE_MEDIAN 1
+#define EEPROM_AGGREGATE_TRIM_SAMPLES 2
+
+
 #endif
