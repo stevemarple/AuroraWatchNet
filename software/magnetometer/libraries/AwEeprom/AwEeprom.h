@@ -67,5 +67,8 @@
 #define EEPROM_AGGREGATE_USE_MEDIAN 1
 #define EEPROM_AGGREGATE_TRIM_SAMPLES 2
 
+// Send all samples?
+#define EEPROM_ALL_SAMPLES 0x46
+#define EEPROM_ALL_SAMPLES_SIZE 1
 
 #endif
