@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.05a";
+  "xrf_rf12-0.06a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -135,16 +135,14 @@ volatile bool callbackWasLate = true;
 
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
-uint8_t mcusrCopy __attribute__ ((section (".noinit")));
-void get_mcusr(void)				\
-  __attribute__((naked))			\
-  __attribute__((section(".init3")));
+static uint8_t mcusrCopy;
 void get_mcusr(void)
 {
   mcusrCopy = MCUSR;
   MCUSR = 0;
   wdt_disable();
 }
+
 
 void startSamplingCallback(uint8_t alarmNum, bool late, const void *context)
 {
@@ -544,12 +542,11 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
 
 void setup(void)
 {
-  // wdt_disable();
+  get_mcusr();
   wdt_enable(WDTO_8S);
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6B};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
 
-  MCUSR = 0; // Clear flags
   Serial.begin(9600);
   Serial1.begin(9600);
 
