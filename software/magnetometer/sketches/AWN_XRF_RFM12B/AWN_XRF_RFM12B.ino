@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.06a";
+  "xrf_rf12-0.07a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -641,7 +641,8 @@ void setup(void)
   uint8_t aggregate = eeprom_read_byte((uint8_t*)EEPROM_AGGREGATE);
   if (aggregate == 255)
     aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
-    
+  allSamples = eeprom_read_byte((uint8_t*)EEPROM_ALL_SAMPLES);
+  
   flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList);
   flc100.setNumSamples(numSamples, 
 		       aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
