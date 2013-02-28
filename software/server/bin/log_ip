@@ -13,7 +13,18 @@
 hostname=`hostname`
 ip=`hostname -I|tr -d ' '`
 
-action="$1"
+if [ "$#" = 2 ]; then
+    # Called from plugd with interface and up/down
+    if [ "$1" = "eth0" -a "$2" = "up" ]; then
+	action="${1}_${2}"
+    else
+	exit 0
+    fi
+else
+    action="$1"
+fi
+
+
 
 URL="http://spears.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}"
 if [ -n "$action" ]; then
