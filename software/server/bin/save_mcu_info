@@ -30,7 +30,9 @@ avrdude -P $PORT -c $PROG -p $PART \
     -U hfuse:r:$NAME.hfuse:h \
     -U efuse:r:$NAME.efuse:h \
     -U flash:r:$NAME.flash.hex:i \
-    -U eeprom:r:$NAME.eeprom.hex:i 
+    -U flash:r:$NAME.flash.bin:r \
+    -U eeprom:r:$NAME.eeprom.hex:i \
+    -U eeprom:r:$NAME.eeprom.bin:r
 
 tar cvfpz $NAME.tar.gz $NAME.sig $NAME.lfuse $NAME.hfuse $NAME.efuse \
-    $NAME.flash.hex $NAME.eeprom.hex
+    $NAME.flash.hex $NAME.flash.bin $NAME.eeprom.hex $NAME.eeprom.bin
