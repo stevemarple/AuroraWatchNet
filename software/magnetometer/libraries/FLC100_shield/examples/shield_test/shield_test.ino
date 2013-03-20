@@ -131,7 +131,7 @@ void loop(void)
     Serial.print("ADC power: ");
     Serial.println(adcPowerState ? '1' : '0');
     Serial.print("ADC gain: ");
-    Serial.print((1 << gain), DEC);
+    Serial.print((int(gain)), DEC);
     Serial.println('x');
     Serial.print("XRF sleep: ");
     Serial.println(xrfSleepState ? '1' : '0');
@@ -153,16 +153,24 @@ void loop(void)
 	  adc[i].convertAndRead(MCP342x::channel1, MCP342x::oneShot,
 				MCP342x::resolution18, gain,
 				300000UL, x, status);
+	  double inputVoltage = double(x) * 15.625e-6 / int(gain);
+	  const double sensitivity = 50000.0; // nT per volt
+	  double field_nT = inputVoltage * sensitivity;
+	  
 	  Serial.print("ADC 0x");
 	  Serial.print(adcAddressList[i], HEX);
 	  Serial.print(": ");
-	  Serial.println(x);
-	  total += (double(x) * double(x));
+	  Serial.print(x);
+	  Serial.print(" = ");
+	  Serial.print(field_nT);
+	  Serial.println(" nT");
+	  total += (double(field_nT) * double(field_nT));
 	}
       }
       if (found == 3) {
 	Serial.print("Total: ");
-	Serial.println(sqrt(total));
+	Serial.print(sqrt(total));
+	Serial.println(" nT");
       }
     }
     
