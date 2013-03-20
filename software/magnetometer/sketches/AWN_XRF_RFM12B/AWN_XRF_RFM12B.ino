@@ -544,7 +544,7 @@ void setup(void)
 {
   get_mcusr();
   wdt_enable(WDTO_8S);
-  uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6B};
+  uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
 
   Serial.begin(9600);
