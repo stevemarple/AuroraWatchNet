@@ -304,7 +304,7 @@ void FLC100::I2C::aggregate(void)
       // Mean. Ignore any values which are LONG_MIN since they
       // represent sampling errors.
       long tmp = 0;
-      long smallest, largest;
+      long smallest, largest; // Initialised when first valid sample found
       uint8_t count = 0;
       for (uint8_t j = 0; j < numSamples; ++j) {
 	if (magDataSamples[i][j] != LONG_MIN) {

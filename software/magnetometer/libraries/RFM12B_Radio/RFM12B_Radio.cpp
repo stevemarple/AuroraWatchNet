@@ -8,9 +8,10 @@ RFM12B_Radio::RFM12B_Radio(RF12_Stream &s) :
 }
 
 bool RFM12B_Radio::begin(uint8_t cs, uint8_t irqPin, uint8_t irqNum,
-			 uint8_t id, uint8_t band, uint8_t group)
+			 uint8_t id, uint8_t band, uint16_t channel,
+			 uint8_t group)
 {
-  return stream.begin(cs, irqPin, irqNum, id, band, group);
+  return stream.begin(cs, irqPin, irqNum, id, band, channel, group);
 }
 
 int RFM12B_Radio::available(void)

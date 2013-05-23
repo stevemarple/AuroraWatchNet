@@ -15,6 +15,7 @@ import tty
 
 import hmac
 import AWPacket
+from Pyro import config
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -193,6 +194,46 @@ def writeAuroraWatchNetTextData(timestamp, messageTags):
         awnetTextFile.write('\t'.join(map(str, data)))
         awnetTextFile.write('\n')
 
+# AuroraWatch realtime file
+cloudFile = None
+def writeCloudData(timestamp, data):
+    global cloudFile
+    global config
+    seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
+    tmpName = time.strftime(config.get("cloud", "filename"),
+                            time.gmtime(seconds))
+    if cloudFile is not None and tmpName != cloudFile.name:
+        # Filename has changed
+        cloudFile.close()
+        cloudFile = None
+            
+    if cloudFile is None:
+        # File wasn't open or filename changed
+        p = os.path.dirname(tmpName)
+        if not os.path.isdir(p):
+            try:
+                os.makedirs(p)
+            except Exception as e:
+                print("Could not make directory " + p + str(e))
+                return
+        
+        try:
+            cloudFile = open(tmpName, "a+", 1)
+        except Exception as e:
+            print("Exception was " + str(e))
+            cloudFile = None
+        
+    if cloudFile is not None:
+        tags = ["cloudTempAmbient", "cloudTempObject1"]
+        if config.getboolean("cloud", "dualSensor"):
+            tags.push("cloudTempObject2")
+        cloudFile.write("{:.4f}".format(seconds))
+        for tag in tags:
+            if tag in data:
+                cloudFile.write(" {:.2f}".format(data[tag]))
+            else:
+                cloudFile.write(" nan")
+        cloudFile.write("\n")
     
     
 # Process any CR or LF terminated messages which are in the buffer    
@@ -462,7 +503,10 @@ else:
 if deviceFilename == "-":
     device = os.sys.stdin
 else:
-    device = open(deviceFilename, "a+b", 0)
+    if options.acknowledge:
+        device = open(deviceFilename, "a+b", 0)
+    else:
+        device = open(deviceFilename, "rb", 0)
 
 if deviceFilename == "-":
     controlSocket = None
@@ -645,6 +689,14 @@ while running:
                                                  str(messageTags[tag][0]))
                             data[tag] = comp[1];
                     writeAuroraWatchRealTimeData(timestamp, data)
+                
+                if config.has_option("cloud", "filename"):
+                    data = {}
+                    for tag in ["cloudTempAmbient", "cloudTempObject1",
+                                "cloudTempObject2"]:
+                        if tag in messageTags:
+                            data[tag] = AWPacket.decodeCloudTemp(tag, str(messageTags[tag][0]))
+                    writeCloudData(timestamp, data)
                     
                 writeAuroraWatchNetTextData(timestamp, messageTags)
                         

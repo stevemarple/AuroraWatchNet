@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.07a";
+  "xrf_rf12-0.08a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -600,7 +600,7 @@ void setup(void)
 
 
   // Copy key from EEPROM
-  console << "HMAC key:";
+  console << "HMAC key: ";
   for (uint8_t i = 0; i < EEPROM_HMAC_KEY_SIZE; ++i) {
     hmacKey[i] = eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i));
     console << ' ' << _HEX(hmacKey[i]);
@@ -728,12 +728,20 @@ void setup(void)
   console.flush();
 
   // Try using RFM12B
+  uint8_t rfm12bBand
+    = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_RFM12B_BAND);
+  if (rfm12bBand == 0xff)
+    rfm12bBand = RF12_433MHZ;
+  uint16_t rfm12bChannel
+    = eeprom_read_word((const uint16_t*)EEPROM_RADIO_RFM12B_CHANNEL) & 0xfff;
+  if (rfm12bChannel == 0xfff)
+    rfm12bChannel = 1600;
   // TODO: Fix pin mapping
-  if (rfm12b.begin(14, 6, 2, 1, RF12_433MHZ)) {
+  if (rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel)) {
     disable_jtag();
     ledPin = 17; // JTAG TDO
-    console << "Found RFM12B\n";
-    rfm12b << "Found RFM12B\n";
+    console << "Using RFM12B, band: " << rfm12bBand
+    << ", channel: " << rfm12bChannel << endl;
     for (uint8_t i = 0; i < 4; ++i) {
       rfm12b.poll();
       delay(10);

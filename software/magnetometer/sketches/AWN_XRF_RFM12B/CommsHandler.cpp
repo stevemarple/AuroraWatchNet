@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <string.h>
+#include <avr/eeprom.h>
+#include <avr/wdt.h>
 
 extern "C" {
 #include "hmac-md5.h"
@@ -7,6 +9,7 @@ extern "C" {
 
 
 #include <Streaming.h>
+#include <AwEeprom.h>
 #include <AWPacket.h>
 #include "CommsHandler.h"
 
@@ -16,6 +19,11 @@ extern uint8_t verbosity;
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
 static const char* strResponseTimeout = "reponse timeout";
+
+
+static uint8_t messagesWithoutAck = 0;
+
+
 //static const char* strNotReady = "not ready";
 const char* CommsHandler::errorMessages[4] = {
   strNoError,
@@ -101,8 +109,16 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
   case stateWaitingForResponse:
     if (responseTimeout.isExpired()) {
       Serial.println("Message timeout");
-      
       errno = errorResponseTimeout;
+      
+      if (eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK) &&
+	  messagesWithoutAck >= (uint8_t)eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK)) {
+	//xboot_reset();
+	wdt_enable(WDTO_1S);
+	while (1)
+	  ;
+      }
+      
       // Put message back into queue if retries not exceeded
       AWPacket failedPacket(messageBuffer, messageLen);
       if (failedPacket.getRetries() < maxRetries) {

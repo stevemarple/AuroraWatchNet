@@ -24,7 +24,7 @@ public:
   static const uint8_t numAxes = 3;
   static const uint8_t magicLength = 2;
   static const char magic[magicLength];
-  static const uint16_t tagLengths[24];
+  static const uint16_t tagLengths[27];
 
   static const uint8_t sizeOfTag = 1;
   static const uint8_t sizeOfPacketLength = 2;
@@ -64,6 +64,9 @@ public:
     tagMagDataAllX = 21,
     tagMagDataAllY = 22,
     tagMagDataAllZ = 23,
+    tagCloudTempAmbient = 24,
+    tagCloudTempObject1 = 25,
+    tagCloudTempObject2 = 26,
   };
   
   static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean

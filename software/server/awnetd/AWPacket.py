@@ -1,3 +1,5 @@
+# -*- coding: iso-8859-15 -*-
+
 # import datetime
 from datetime import datetime
 import hashlib
@@ -81,6 +83,9 @@ tags = {"magDataX": 1,
         "magDataAllX": 21,
         "magDataAllY": 22,
         "magDataAllZ": 23,
+	"cloudTempAmbient": 24,
+	"cloudTempObject1": 25,
+	"cloudTempObject2": 26,
         }
 
 tagNames = ["magDataX", 
@@ -107,6 +112,9 @@ tagNames = ["magDataX",
             "magDataAllX",
             "magDataAllY",
             "magDataAllZ",
+            "cloudTempAmbient",
+            "cloudTempObject1",
+            "cloudTempObject2",
         ]
 
 # Zero means variable length
@@ -137,7 +145,10 @@ tagLengths = {"magDataX": 6,
               "magDataAllX": 0,
               "magDataAllY": 0,
               "magDataAllZ": 0,
-              } 
+              "cloudTempAmbient": 3,
+              "cloudTempObject1": 3,
+              "cloudTempObject2": 3,
+               } 
 
 tagFormat = {"magDataX": "!Bl",
              "magDataY": "!Bl",
@@ -155,6 +166,9 @@ tagFormat = {"magDataX": "!Bl",
              "readEeprom": "!HH",
              "numSamples": "!BB",
              "allSamples": "!?",
+             "cloudTempAmbient": "!H",
+             "cloudTempObject1": "!H",
+             "cloudTempObject2": "!H",
              }
 
 def formatTagArrayOfLongs(tag, dataLen, payload):
@@ -163,12 +177,23 @@ def formatTagArrayOfLongs(tag, dataLen, payload):
     
 def formatPadding(tag, dataLen, payload):
     return str([0] * dataLen)
+
+def decodeCloudTemp(tag, payload):
+    return (float(struct.unpack("!H", str(payload))[0]) / 100) - 273.15
+
+def formatTagCloudTemp(tag, dataLen, payload):
+    return str(decodeCloudTemp(tag, payload)) + "°C"
+    # return str((float(struct.unpack("!H", str(payload))[0]) / 100) - 273.15) + "°C"
+    
     
 tagFormatFunc = {"paddingByte": formatPadding,
                  "padding": formatPadding,
                  "magDataAllX": formatTagArrayOfLongs,
                  "magDataAllY": formatTagArrayOfLongs,
                  "magDataAllZ": formatTagArrayOfLongs,
+                 "cloudTempAmbient": formatTagCloudTemp,
+                 "cloudTempObject1": formatTagCloudTemp,
+                 "cloudTempObject2": formatTagCloudTemp,
                  }
 
 

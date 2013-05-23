@@ -92,6 +92,7 @@ bool XRF_Radio::reset(void)
 bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin)
 {
   AsyncDelay timeout;
+  bool found = true;
   sleepPin = xrfSleepPin;
   onPin = xrfOnPin;
   resetPin = xrfResetPin;
@@ -111,6 +112,7 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
       if (reset())
 	break;
       if (timeout.isExpired()) {
+	found = false;
 	console.println("Timeout waiting for XRF to reset");
 	break;
       }
@@ -127,6 +129,7 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
       if (powerOn() == true)
 	break;
       if (timeout.isExpired()) {
+	found = false;
 	console.println("Timeout waiting for XRF to power on\n");
 	break;
       }
@@ -158,7 +161,7 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
     stream.read();
   }
   
-
+  return found;
 }
 
 void XRF_Radio::poll(void)

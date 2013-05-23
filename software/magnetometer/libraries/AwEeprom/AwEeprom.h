@@ -71,4 +71,14 @@
 #define EEPROM_ALL_SAMPLES 0x46
 #define EEPROM_ALL_SAMPLES_SIZE 1
 
+// Local/remote node IDs for RFM12B Serial Stream
+#define EEPROM_RADIO_LOCAL_ID 0x47
+#define EEPROM_RADIO_LOCAL_ID_SIZE 1
+
+#define EEPROM_RADIO_REMOTE_ID 0x48
+#define EEPROM_RADIO_REMOTE_ID_SIZE 1
+
+// Maximum number of messages without an acknowledgement
+#define EEPROM_MAX_MESSAGES_NO_ACK 0x49
+#define EEPROM_MAX_MESSAGES_NO_ACK_SIZE 1
 #endif
