@@ -15,7 +15,6 @@ import tty
 
 import hmac
 import AWPacket
-from Pyro import config
 
 if sys.version_info[0] >= 3:
     import configparser
