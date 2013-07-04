@@ -225,7 +225,8 @@ def writeCloudData(timestamp, data):
     if cloudFile is not None:
         tags = ["cloudTempAmbient", "cloudTempObject1"]
         if config.getboolean("cloud", "dualSensor"):
-            tags.push("cloudTempObject2")
+            tags.append("cloudTempObject2")
+        tags.extend("ambientTemp", "relHumidity")
         cloudFile.write("{:.4f}".format(seconds))
         for tag in tags:
             if tag in data:

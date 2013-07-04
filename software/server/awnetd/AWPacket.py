@@ -86,6 +86,8 @@ tags = {"magDataX": 1,
 	"cloudTempAmbient": 24,
 	"cloudTempObject1": 25,
 	"cloudTempObject2": 26,
+        "ambientTemp": 27,
+        "relHumidity": 28,
         }
 
 tagNames = ["magDataX", 
@@ -115,6 +117,8 @@ tagNames = ["magDataX",
             "cloudTempAmbient",
             "cloudTempObject1",
             "cloudTempObject2",
+            "ambientTemp", 
+            "relHumidity",
         ]
 
 # Zero means variable length
@@ -148,6 +152,8 @@ tagLengths = {"magDataX": 6,
               "cloudTempAmbient": 3,
               "cloudTempObject1": 3,
               "cloudTempObject2": 3,
+              "ambientTemp": 3, 
+              "relHumidity": 3,
                } 
 
 tagFormat = {"magDataX": "!Bl",
@@ -169,6 +175,8 @@ tagFormat = {"magDataX": "!Bl",
              "cloudTempAmbient": "!H",
              "cloudTempObject1": "!H",
              "cloudTempObject2": "!H",
+             "ambientTemp": "!H", 
+             "relHumidity": "!H",
              }
 
 def formatTagArrayOfLongs(tag, dataLen, payload):

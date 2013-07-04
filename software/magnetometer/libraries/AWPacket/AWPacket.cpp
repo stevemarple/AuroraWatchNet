@@ -14,7 +14,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[27] = {
+const uint16_t AWPacket::tagLengths[29] = {
   6, // 0 = X
   6, // 1 = Y
   6, // 2 = Z
@@ -45,6 +45,8 @@ const uint16_t AWPacket::tagLengths[27] = {
   3, // 24 = cloudTempAmbient
   3, // 25 = cloudTempObject1
   3, // 26 = cloudTempObject2
+  3, // 27 = ambientTemp
+  3, // 28 = relHumidity
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
