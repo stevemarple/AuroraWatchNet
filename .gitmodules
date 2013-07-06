@@ -31,3 +31,6 @@
 [submodule "hardware/RPi_RFM12B_ISP"]
 	path = hardware/RPi_RFM12B_ISP
 	url = git://github.com/stevemarple/RPi_RFM12B_ISP.git
+[submodule "software/magnetometer/libraries/SoftWire"]
+	path = software/magnetometer/libraries/SoftWire
+	url = https://github.com/stevemarple/SoftWire.git
