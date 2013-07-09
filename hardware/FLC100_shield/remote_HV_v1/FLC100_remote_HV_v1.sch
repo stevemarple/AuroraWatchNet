@@ -8,20 +8,20 @@
 </settings>
 <grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
-<layer number="1" name="Top" color="4" fill="1" visible="yes" active="no"/>
-<layer number="16" name="Bottom" color="1" fill="1" visible="yes" active="no"/>
-<layer number="17" name="Pads" color="2" fill="1" visible="yes" active="no"/>
-<layer number="18" name="Vias" color="2" fill="1" visible="yes" active="no"/>
-<layer number="19" name="Unrouted" color="6" fill="1" visible="yes" active="no"/>
-<layer number="20" name="Dimension" color="15" fill="1" visible="yes" active="no"/>
-<layer number="21" name="tPlace" color="7" fill="1" visible="yes" active="no"/>
-<layer number="22" name="bPlace" color="7" fill="1" visible="yes" active="no"/>
-<layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="no"/>
-<layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="no"/>
-<layer number="25" name="tNames" color="7" fill="1" visible="yes" active="no"/>
-<layer number="26" name="bNames" color="7" fill="1" visible="yes" active="no"/>
-<layer number="27" name="tValues" color="7" fill="1" visible="yes" active="no"/>
-<layer number="28" name="bValues" color="7" fill="1" visible="yes" active="no"/>
+<layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
+<layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
+<layer number="17" name="Pads" color="2" fill="1" visible="no" active="no"/>
+<layer number="18" name="Vias" color="2" fill="1" visible="no" active="no"/>
+<layer number="19" name="Unrouted" color="6" fill="1" visible="no" active="no"/>
+<layer number="20" name="Dimension" color="15" fill="1" visible="no" active="no"/>
+<layer number="21" name="tPlace" color="7" fill="1" visible="no" active="no"/>
+<layer number="22" name="bPlace" color="7" fill="1" visible="no" active="no"/>
+<layer number="23" name="tOrigins" color="15" fill="1" visible="no" active="no"/>
+<layer number="24" name="bOrigins" color="15" fill="1" visible="no" active="no"/>
+<layer number="25" name="tNames" color="7" fill="1" visible="no" active="no"/>
+<layer number="26" name="bNames" color="7" fill="1" visible="no" active="no"/>
+<layer number="27" name="tValues" color="7" fill="1" visible="no" active="no"/>
+<layer number="28" name="bValues" color="7" fill="1" visible="no" active="no"/>
 <layer number="29" name="tStop" color="7" fill="3" visible="no" active="no"/>
 <layer number="30" name="bStop" color="7" fill="6" visible="no" active="no"/>
 <layer number="31" name="tCream" color="7" fill="4" visible="no" active="no"/>
@@ -30,8 +30,8 @@
 <layer number="34" name="bFinish" color="6" fill="6" visible="no" active="no"/>
 <layer number="35" name="tGlue" color="7" fill="4" visible="no" active="no"/>
 <layer number="36" name="bGlue" color="7" fill="5" visible="no" active="no"/>
-<layer number="37" name="tTest" color="7" fill="1" visible="yes" active="no"/>
-<layer number="38" name="bTest" color="7" fill="1" visible="yes" active="no"/>
+<layer number="37" name="tTest" color="7" fill="1" visible="no" active="no"/>
+<layer number="38" name="bTest" color="7" fill="1" visible="no" active="no"/>
 <layer number="39" name="tKeepout" color="4" fill="11" visible="no" active="no"/>
 <layer number="40" name="bKeepout" color="1" fill="11" visible="no" active="no"/>
 <layer number="41" name="tRestrict" color="4" fill="10" visible="no" active="no"/>
@@ -39,16 +39,16 @@
 <layer number="43" name="vRestrict" color="2" fill="10" visible="no" active="no"/>
 <layer number="44" name="Drills" color="7" fill="1" visible="no" active="no"/>
 <layer number="45" name="Holes" color="7" fill="1" visible="no" active="no"/>
-<layer number="46" name="Milling" color="3" fill="1" visible="yes" active="no"/>
-<layer number="47" name="Measures" color="7" fill="1" visible="yes" active="no"/>
-<layer number="48" name="Document" color="7" fill="1" visible="yes" active="no"/>
-<layer number="49" name="Reference" color="7" fill="1" visible="yes" active="no"/>
-<layer number="50" name="dxf" color="7" fill="1" visible="yes" active="no"/>
-<layer number="51" name="tDocu" color="7" fill="1" visible="yes" active="no"/>
-<layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="no"/>
-<layer number="53" name="tGND_GNDA" color="7" fill="9" visible="yes" active="no"/>
-<layer number="54" name="bGND_GNDA" color="1" fill="9" visible="yes" active="no"/>
-<layer number="56" name="wert" color="7" fill="1" visible="yes" active="no"/>
+<layer number="46" name="Milling" color="3" fill="1" visible="no" active="no"/>
+<layer number="47" name="Measures" color="7" fill="1" visible="no" active="no"/>
+<layer number="48" name="Document" color="7" fill="1" visible="no" active="no"/>
+<layer number="49" name="Reference" color="7" fill="1" visible="no" active="no"/>
+<layer number="50" name="dxf" color="7" fill="1" visible="no" active="no"/>
+<layer number="51" name="tDocu" color="7" fill="1" visible="no" active="no"/>
+<layer number="52" name="bDocu" color="7" fill="1" visible="no" active="no"/>
+<layer number="53" name="tGND_GNDA" color="7" fill="9" visible="no" active="no"/>
+<layer number="54" name="bGND_GNDA" color="1" fill="9" visible="no" active="no"/>
+<layer number="56" name="wert" color="7" fill="1" visible="no" active="no"/>
 <layer number="91" name="Nets" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="92" name="Busses" color="1" fill="1" visible="yes" active="yes"/>
 <layer number="93" name="Pins" color="2" fill="1" visible="no" active="yes"/>
@@ -3099,7 +3099,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <parts>
 <part name="FRAME1" library="SteveMarple" deviceset="FRAME-A3" device=""/>
 <part name="SENS1" library="SteveMarple" deviceset="FLC100" device="" value="FLC100"/>
-<part name="IC1" library="SteveMarple" deviceset="MCP3424-E/SL" device="SO14" value="MCP3424"/>
+<part name="IC1" library="SteveMarple" deviceset="MCP3424-E/SL" device="SO14-HAND" value="MCP3424"/>
 <part name="P+1" library="supply1" deviceset="+5V" device=""/>
 <part name="SENS2" library="SteveMarple" deviceset="LM61" device=""/>
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
@@ -3123,7 +3123,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="U$2" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="P+8" library="supply1" deviceset="+5V" device=""/>
 <part name="C2" library="SparkFun" deviceset="CAP" device="PTH" value="100n"/>
-<part name="GND10" library="supply1" deviceset="GND" device=""/>
 <part name="C3" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7"/>
 <part name="C4" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7"/>
 <part name="GND11" library="supply1" deviceset="GND" device=""/>
@@ -3140,10 +3139,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="X1" library="SteveMarple" deviceset="RJ11-6P6C" device="PTH"/>
 <part name="P+10" library="supply1" deviceset="+5V" device=""/>
 <part name="GND16" library="supply1" deviceset="GND" device=""/>
-<part name="IC3" library="SteveMarple" deviceset="LM1702" device="" value="LM1702-5V"/>
+<part name="IC2" library="SteveMarple" deviceset="LM1702" device="" value="LM1702-5V"/>
 <part name="C9" library="SparkFun" deviceset="CAP" device="PTH1" value="1u"/>
 <part name="C10" library="SparkFun" deviceset="CAP" device="PTH1" value="1u"/>
-<part name="P+9" library="supply1" deviceset="+5V" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -3158,7 +3156,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <text x="254" y="226.06" size="1.778" layer="91">One master board required for single-axis operation.</text>
 <text x="254" y="220.98" size="1.778" layer="91">Two slaves boards can be added for 3-axis operation.</text>
 <text x="254" y="215.9" size="1.778" layer="91">Slave boards can use independent ADCs if I2C addresses are different.</text>
-<text x="254" y="205.74" size="1.778" layer="91">Remote board can be used without ADC and feed analogue signal to FLC100 shield.</text>
 <text x="208.28" y="180.34" size="1.778" layer="91">Omit I2C pull-ups on slave boards</text>
 <text x="208.28" y="177.8" size="1.778" layer="91">(Or increase all to 15k - 22k).</text>
 <text x="307.34" y="40.64" size="2.54" layer="91">Mounting holes</text>
@@ -3191,10 +3188,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="H3" gate="G$1" x="340.36" y="66.04"/>
 <instance part="U$1" gate="G$1" x="314.96" y="71.12"/>
 <instance part="U$2" gate="G$1" x="317.5" y="71.12"/>
-<instance part="P+8" gate="1" x="332.74" y="154.94"/>
+<instance part="P+8" gate="1" x="309.88" y="144.78"/>
 <instance part="C2" gate="G$1" x="50.8" y="152.4"/>
-<instance part="GND10" gate="1" x="332.74" y="127"/>
-<instance part="C3" gate="G$1" x="332.74" y="139.7"/>
+<instance part="C3" gate="G$1" x="309.88" y="132.08"/>
 <instance part="C4" gate="G$1" x="251.46" y="132.08"/>
 <instance part="GND11" gate="1" x="251.46" y="119.38"/>
 <instance part="JP6" gate="G$1" x="53.34" y="129.54" rot="MR180"/>
@@ -3210,10 +3206,9 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <instance part="X1" gate="G$1" x="259.08" y="58.42"/>
 <instance part="P+10" gate="1" x="243.84" y="81.28"/>
 <instance part="GND16" gate="1" x="243.84" y="48.26"/>
-<instance part="IC3" gate="G$1" x="279.4" y="139.7"/>
+<instance part="IC2" gate="G$1" x="279.4" y="139.7"/>
 <instance part="C9" gate="G$1" x="264.16" y="129.54"/>
 <instance part="C10" gate="G$1" x="297.18" y="129.54"/>
-<instance part="P+9" gate="1" x="297.18" y="144.78"/>
 </instances>
 <busses>
 </busses>
@@ -3329,11 +3324,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="198.12" y1="185.42" x2="198.12" y2="182.88" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="P+8" gate="1" pin="+5V"/>
-<wire x1="332.74" y1="152.4" x2="332.74" y2="142.24" width="0.1524" layer="91"/>
-<pinref part="C3" gate="G$1" pin="+"/>
-</segment>
-<segment>
 <pinref part="JP1" gate="G$1" pin="4"/>
 <wire x1="63.5" y1="226.06" x2="50.8" y2="226.06" width="0.1524" layer="91"/>
 <junction x="50.8" y="226.06"/>
@@ -3352,13 +3342,17 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="243.84" y1="66.04" x2="246.38" y2="66.04" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<wire x1="297.18" y1="139.7" x2="297.18" y2="142.24" width="0.1524" layer="91"/>
 <wire x1="289.56" y1="139.7" x2="297.18" y2="139.7" width="0.1524" layer="91"/>
 <wire x1="297.18" y1="139.7" x2="297.18" y2="134.62" width="0.1524" layer="91"/>
 <pinref part="C10" gate="G$1" pin="1"/>
-<pinref part="IC3" gate="G$1" pin="VOUT"/>
-<pinref part="P+9" gate="1" pin="+5V"/>
+<pinref part="IC2" gate="G$1" pin="VOUT"/>
 <junction x="297.18" y="139.7"/>
+<pinref part="P+8" gate="1" pin="+5V"/>
+<wire x1="309.88" y1="142.24" x2="309.88" y2="139.7" width="0.1524" layer="91"/>
+<pinref part="C3" gate="G$1" pin="+"/>
+<junction x="309.88" y="139.7"/>
+<wire x1="309.88" y1="139.7" x2="309.88" y2="134.62" width="0.1524" layer="91"/>
+<wire x1="297.18" y1="139.7" x2="309.88" y2="139.7" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="1">
@@ -3405,11 +3399,8 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <pinref part="GND1" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="GND10" gate="1" pin="GND"/>
 <pinref part="C3" gate="G$1" pin="-"/>
-<wire x1="332.74" y1="129.54" x2="332.74" y2="134.62" width="0.1524" layer="91"/>
-</segment>
-<segment>
+<wire x1="309.88" y1="124.46" x2="309.88" y2="127" width="0.1524" layer="91"/>
 <pinref part="GND11" gate="1" pin="GND"/>
 <pinref part="C4" gate="G$1" pin="-"/>
 <wire x1="251.46" y1="127" x2="251.46" y2="124.46" width="0.1524" layer="91"/>
@@ -3422,10 +3413,12 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="264.16" y1="124.46" x2="264.16" y2="127" width="0.1524" layer="91"/>
 <junction x="279.4" y="124.46"/>
 <junction x="264.16" y="124.46"/>
-<pinref part="IC3" gate="G$1" pin="GND"/>
+<pinref part="IC2" gate="G$1" pin="GND"/>
 <pinref part="C10" gate="G$1" pin="2"/>
 <pinref part="C9" gate="G$1" pin="2"/>
 <wire x1="251.46" y1="124.46" x2="264.16" y2="124.46" width="0.1524" layer="91"/>
+<junction x="297.18" y="124.46"/>
+<wire x1="309.88" y1="124.46" x2="297.18" y2="124.46" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="JP1" gate="G$1" pin="2"/>
@@ -3497,14 +3490,14 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <label x="238.76" y="58.42" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
-<net name="N$11" class="0">
+<net name="ADDR0" class="0">
 <segment>
 <pinref part="JP5" gate="G$1" pin="2"/>
 <pinref part="IC1" gate="A" pin="ADR0"/>
 <wire x1="111.76" y1="139.7" x2="142.24" y2="139.7" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$12" class="0">
+<net name="ADDR1" class="0">
 <segment>
 <pinref part="JP7" gate="G$1" pin="2"/>
 <wire x1="111.76" y1="121.92" x2="121.92" y2="121.92" width="0.1524" layer="91"/>
@@ -3572,7 +3565,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <wire x1="251.46" y1="134.62" x2="251.46" y2="139.7" width="0.1524" layer="91"/>
 <junction x="251.46" y="139.7"/>
 <wire x1="246.38" y1="139.7" x2="251.46" y2="139.7" width="0.1524" layer="91"/>
-<pinref part="IC3" gate="G$1" pin="VIN"/>
+<pinref part="IC2" gate="G$1" pin="VIN"/>
 <wire x1="269.24" y1="139.7" x2="264.16" y2="139.7" width="0.1524" layer="91"/>
 <wire x1="264.16" y1="139.7" x2="251.46" y2="139.7" width="0.1524" layer="91"/>
 <junction x="264.16" y="139.7"/>
