@@ -24,7 +24,7 @@ public:
   
   void start(void); // To include power-up (later), start sampling
   void process(void); // Call often to process state machine
-  void powerOff(void); // Force completion and power-down
+  void finish(void); // Force completion and power-down
   void timeoutDetected(void);
   
 private:
@@ -33,7 +33,8 @@ private:
     poweringUp, // power applied, waiting for timeout
     converting, // Conversion started, waiting for completion
     reading, // Ready to read results
-    ready, // Results read
+    poweringDown,
+    finished, // Results read
   };
 
   enum status_t {
@@ -75,19 +76,19 @@ uint8_t HIH61xx::getStatus(void) const
 
 bool HIH61xx::isFinished(void) const
 {
-  return (_state == off || _state == ready);
+  return _state == finished;
 }
 
 
 bool HIH61xx::isSampling(void) const
 {
-  return !isFinished();
+  return !(_state == off || _state == finished);
 }
 
 
 bool HIH61xx::isPowerOff(void) const
 {
-  return _state == off;
+  return (_state == off || _state == finished);
 }
 
 

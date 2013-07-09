@@ -32,12 +32,11 @@ bool HIH61xx::initialise(uint8_t sdaPin, uint8_t sclPin, uint8_t powerPin)
 
 void HIH61xx::start(void)
 {
-  if (_state == off && _powerPin != 255) {
+  if (_powerPin != 255) {
     digitalWrite(_powerPin, HIGH);
     _delay.start(powerUpDelay_ms, AsyncDelay::MILLIS);
   }
-  else
-    _state = poweringUp;
+  _state = poweringUp;
 }
 
 void HIH61xx::process(void)
@@ -86,29 +85,31 @@ void HIH61xx::process(void)
       _relHumidity = (long(rawHumidity) * 10000L) / 16382;
       _ambientTemp = ((long(rawTemp) * 16500L) / 16382) - 4000;
     }
-    _state = ready;
+    _state = poweringDown;
     break;
 
-  case ready:
-    break; // Stay powered on until told to turn off
+  case poweringDown:
+    finish(); // Sets state to finished
+    break;
+
+  case finished:
+    // Do nothing, remain in this state
+    break;
   }
 }
 
-void HIH61xx::powerOff(void)
+void HIH61xx::finish(void)
 {
   _i2c.stop(); // Release SDA and SCL
-  if (_powerPin != 255) {
+  if (_powerPin != 255) 
     digitalWrite(_powerPin, LOW);
-    _state = off;
-  }
-  else
-    _state = ready;
+  _state = finished;
 }
 
 
 void HIH61xx::timeoutDetected(void)
 {
-  powerOff();
+  finish();
   _ambientTemp = 32767;
   _relHumidity = 65535;
   _status = statusTimeout;
