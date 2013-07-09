@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 #include <AsyncDelay.h>
-
-class MLX90614;
+#include <SoftWire.h>
 
 class MLX90614 {
 public:
@@ -17,13 +16,14 @@ public:
   static const uint8_t addressFlags = 0xf0;
   static const uint8_t addressSleep = 0xff;
 
-  static uint16_t convertToCentiK(const uint16_t &data);
+  static uint16_t convertToCentiK(uint16_t data);
+  static int16_t convertToCentiC(uint16_t data);
   MLX90614(void);
 
   // Read
-  inline uint16_t getAmbient(void) const;
-  inline uint16_t getObject1(void) const;
-  inline uint16_t getObject2(void) const;
+  inline int16_t getAmbient(void) const;
+  inline int16_t getObject1(void) const;
+  inline int16_t getObject2(void) const;
 
   // TODO: take pin details
   // bool initialise(uint8_t scl, uint8_t sda, uint8_t power = 255);
@@ -36,7 +36,7 @@ public:
   
   void start(void); // Power up if needed, start sampling
   void process(void); // Call often to process state machine
-  void powerOff(void); // Force completion and power-down
+  void finish(void); // Force completion and power-down
 
   uint16_t read(uint8_t address) const;
     
@@ -44,36 +44,39 @@ private:
   enum state_t {
     off,
     poweringUp,
+    exitingPwm,
     readingAmbient,
     readingObject1,
     readingObject2,
-    ready,
+    poweringDown,
+    finished,
   };
     
   state_t state;
-  uint8_t sclPin;
   uint8_t sdaPin;
+  uint8_t sclPin;
   uint8_t powerPin;
 
-  uint16_t ambient;
-  uint16_t object1;
-  uint16_t object2;
+  int16_t ambient;
+  int16_t object1;
+  int16_t object2;
   bool dualSensor;
 
   AsyncDelay delay;
+  SoftWire i2c;
 };
 
-uint16_t MLX90614::getAmbient(void) const
+int16_t MLX90614::getAmbient(void) const
 {
   return ambient;
 }
   
-uint16_t MLX90614::getObject1(void) const
+int16_t MLX90614::getObject1(void) const
 {
   return object1;
 }
 
-uint16_t MLX90614::getObject2(void) const
+int16_t MLX90614::getObject2(void) const
 {
   return object2;
 }
@@ -85,17 +88,17 @@ bool MLX90614::isDualSensor(void) const
 
 bool MLX90614::isFinished(void) const
 {
-  return (state == off || state == ready);
+  return state == finished;
 }
 
 bool MLX90614::isSampling(void) const
 {
-  return !isFinished();
+  return !(state == off || state == finished);
 }
 
 bool MLX90614::isPowerOff(void) const
 {
-  return state == off;
+  return (state == off || state == finished);
 }
 
 
