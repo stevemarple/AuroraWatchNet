@@ -69,19 +69,15 @@ void HIH61xx::process(void)
   case reading:
     {
       uint8_t data[4];
-      bool err = false;
-      err |= _i2c.start(_address, SoftWire::readMode);
-      err |= _i2c.readThenAck(data[0]);
-      err |= _i2c.readThenAck(data[1]);
-      err |= _i2c.readThenAck(data[2]);
-      err |= _i2c.readThenNack(data[3]);
-      _i2c.stop();
-
-      if (err) {
+      if (_i2c.start(_address, SoftWire::readMode) || 
+	  _i2c.readThenAck(data[0]) || 
+	  _i2c.readThenAck(data[1]) ||
+	  _i2c.readThenAck(data[2]) ||
+	  _i2c.readThenNack(data[3])) {
 	timeoutDetected();
 	break;
       }
-      
+      _i2c.stop();
       _status = data[0] >> 6;
       uint16_t rawHumidity = ((((uint16_t)data[0] & 0x3F) << 8) |
 			      (uint16_t)data[1]);
