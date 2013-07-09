@@ -1,0 +1,269 @@
+\documentclass[twoside,a4paper,openany,12pt]{book}
+%%\documentclass[twoside,a4paper,12pt]{article}
+%\documentclass[twoside,a4paper,openany,12pt]{report}
+
+%% Document has convention that only first letter of chapters,
+%% sections is capitalized. Do the same for automatic sections
+\renewcommand\listfigurename{List of figures}
+\renewcommand\listtablename{List of tables}
+
+%% Convenient way to specify margins
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,inner=2.5cm,outer=2.5cm]{geometry}
+
+%% Relative font sizes
+\usepackage{relsize}
+
+%% Nicer fonts
+\usepackage{pslatex}
+
+%% Color definitions
+\usepackage{color}
+\definecolor{MyLightRed}{rgb}{1,.8,.8}
+\definecolor{MyCodeboxColor}{rgb}{.9,.9,.9}
+\definecolor{MyLightBlue}{rgb}{.8,.8,1}
+\definecolor{MyQuoteColor}{rgb}{0,.6,0}
+\definecolor{MyLightMagenta}{rgb}{1,.2,1}
+
+%% For landscape pages printed, but rotated on screen
+\usepackage{pdflscape}
+
+%% Including figures and other graphics
+\usepackage{graphicx}
+
+%% Rotated images etc
+\usepackage{rotating}
+
+%% Author-year citations
+\usepackage[authoryear]{natbib}
+
+%% Subfigure environment
+\usepackage{subfigure}
+
+%% Conditional sections
+\usepackage{ifthen}
+
+%% URLs
+\usepackage[obeyspaces]{url}
+
+% Command to get a tilde which prints as an ASCII tilde in PDFs,
+% needed to allow copying text and pasting into a command window or
+% editor
+\newcommand{\mytilde}{\texttildelow}
+
+%% For tables align on decimal point
+\usepackage{dcolumn}
+\newcolumntype{d}{D{.}{.}{-1}} % centre on decimal place
+
+%% Long tables
+\usepackage{supertabular}
+
+
+%% Alternative to verbatim. Can be used for defining new environments
+\usepackage{fancyvrb}
+%% A command to include Matlab files (verbatim). Surrounded with a
+%% frame and smaller font size than normal. Must be defined before
+%% underscore package because the custom command must be listed in
+%% \UnderscoreCommands
+\CustomVerbatimCommand{\IncludeMatlabFileVerb}{VerbatimInput}{frame=single,fontsize=\relsize{-1}}
+\CustomVerbatimCommand{\IncludeShellFileVerb}{VerbatimInput}{frame=single,fontsize=\relsize{-1}}
+
+%% Include Matlab file verbatim and attach it for the user to download.
+\newcommand{\IncludeMatlabFile}[2]{\IncludeMatlabFileVerb{#1}%
+  \attachfile[mimetype=text/plain,description=#2]{#1}}
+
+%% Include shell file verbatim and attach it for the user to download.
+\newcommand{\IncludeShellFile}[2]{\IncludeShellFileVerb{#1}%
+  \attachfile[mimetype=text/plain,description=#2]{#1}}
+
+
+%% Have floats on subsequent page, not miles away.
+\usepackage{flafter}
+
+\usepackage{marvosym} % for \Info
+\usepackage{keystroke} % for keyboard symbols
+
+
+% Load the underscore package as fixes the problem of copying and
+% pasting text with underscores; previously underscores were converted
+% to spaces, but they matter for code! Need to protect certain
+% commands which take input which has underscores (see underscore
+% package for details)
+\newcommand{\UnderscoreCommands}{%
+  \do\VerbatimInput
+  \do\BVerbatimInput 
+  \do\IncludeMatlabFileVerb
+  \do\IncludeShellFileVerb
+}
+\usepackage[strings]{underscore}
+
+%% Include these packages last!
+\usepackage[bookmarksnumbered=true,
+bookmarksopen=true,
+bookmarksopenlevel=0,
+colorlinks=true,
+linkcolor=blue,
+citecolor=blue,
+urlcolor=blue,
+unicode=true,
+pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
+
+%% Attach files to PDF document. Set the default options we want.
+\usepackage{attachfile2}
+\attachfilesetup{icon=Paperclip}
+
+%% Upright quotes, essential for quoting for Matlab code!
+\usepackage{upquote}
+
+%% A command for the return key
+\newcommand{\myreturn}{%
+  \keystroke{\includegraphics[width=1em]{figures/return-symbol}}}
+
+%% Change how subfigures are labelled
+\makeatletter
+\renewcommand{\@thesubfigure}{\figurename~\thefigure\alph{subfigure}: }
+\renewcommand{\thesubfigure}{\alph{subfigure}}
+%%%\renewcommand{\p@subfigure}{\alph{subfigure}}
+\makeatother
+
+% No indents at start of paragraph, but paragraphs have blank lines
+% between them
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2ex} 
+
+
+%% \filename allows for _ but otherwise is formatted identically to
+%% code. If using tildes (~) then use \mytilde command, inside
+%% \texttt. Use the url package's command to define this, that way
+%% hyperref doesn't see it as a hyperref!
+\DeclareUrlCommand\filename{\urlstyle{tt}}
+\newcommand{\email}[1]{\href{mailto:#1}{#1}}
+\newcommand{\ccThreeUrl}{http://creativecommons.org/licenses/by-sa/3.0/}
+
+%% Environment variables. Like \filename but prepends a $
+\DeclareUrlCommand\envVar{\def\UrlLeft{\$}\urlstyle{tt}}
+\DeclareUrlCommand\dosEnvVar{\def\UrlLeft{\%}\def\UrlRight{\%}\urlstyle{tt}}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+%% Use for menu selections etc
+\newcommand{\myquote}[1]{\textcolor{MyQuoteColor}{\textsl{#1}}}
+
+%% Define our own keypress command, based on keystroke
+\newcommand{\keypress}[1]{\keystroke{#1}}
+
+%% Units
+\newcommand{\units}[2]{\mbox{\ensuremath{#1}\,#2}}
+\newcommand{\dB}[1]{\mbox{\ensuremath{#1}\,dB}}
+\newcommand{\inch}[1]{\mbox{\ensuremath{#1}''}}
+\newcommand{\kHz}[1]{\mbox{\ensuremath{#1}\,kHz}}
+\newcommand{\metre}[1]{\mbox{\ensuremath{#1}\,m}}
+\newcommand{\km}[1]{\mbox{\ensuremath{#1}\,km}}
+\newcommand{\MHz}[1]{\mbox{\ensuremath{#1}\,MHz}}
+\newcommand{\volt}[1]{\mbox{\ensuremath{#1}\,V}}
+\newcommand{\bit}[1]{\mbox{\ensuremath{#1}\,bit}}
+\newcommand{\degrees}[1]{\ensuremath{#1^\circ}}
+\newcommand{\ohm}[1]{\mbox{\ensuremath{#1}\,\ensuremath{\Omega}}}
+\newcommand{\kohm}[1]{\mbox{\ensuremath{#1}\,k\ensuremath{\Omega}}}
+
+%% Some simple abbreviations  
+\newcommand{\ie}{i.e.}
+\newcommand{\eg}{e.g.}
+\newcommand{\etal}{\latin{et al.}}
+\newcommand{\etc}{etc.}
+%% Have warnings printed in light red box, with each item using a
+%% STOP sign as a bullet
+\newenvironment{warninglist}{%
+  \begin{list}{\Stopsign}{}}{%
+    \end{list}}
+\newcommand{\warningbox}[1]{\noindent
+  \colorbox{MyLightRed}{\parbox[l]{\textwidth}{%
+      \begin{warninglist}\item #1\end{warninglist}}} \newline}
+
+%% Have help information printed in light blue box, with each item using an
+%% information sign as a bullet
+\newenvironment{helplist}{%
+  \begin{list}{\Info}{}}{%
+    \end{list}}
+\newcommand{\helpbox}[1]{\noindent
+  \colorbox{MyLightBlue}{\parbox[l]{\textwidth}{%
+      \begin{helplist}\item #1\end{helplist}}} \newline}
+
+%% Verbatim-like environment for code.
+\DefineVerbatimEnvironment{Code}{Verbatim}%
+{frame=single,commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Cmd}{Verbatim}%
+{frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
+\DefineVerbatimEnvironment{LinuxCmd}{Verbatim}%
+{frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
+\DefineVerbatimEnvironment{WindowsCmd}{Verbatim}%
+{frame=single,label=\windowsLogo,framesep=5mm,commandchars=\\\{\}}
+
+%% \DefineVerbatimEnvironment{Cmd}{LinuxCmd}{}
+
+
+\newcommand{\todo}[1][]{\fcolorbox{magenta}{MyLightMagenta}{\mbox{\textcolor{black}{TO DO\ifthenelse{\equal{#1}{}}{}{: #1}}}}}
+
+\newcommand{\figscale}{1.0}
+
+%% Have subsubsections numbered
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+
+\begin{document}
+
+\title{AuroraWatchNet magnetometer manual}
+\author{Steve Marple, \\
+Lancaster University.}
+\date{\today}
+\maketitle
+\thispagestyle{empty}
+\frontmatter
+\pagestyle{headings}
+
+\clearpage  
+\phantomsection  
+% \thispagestyle{empty}
+\chapter{Licence}
+This document is made available under the \href{\ccThreeUrl}{Creative
+  Commons Attribution-ShareAlike 3.0 Unported Licence}.
+
+\begin{center}
+\href{\ccThreeUrl}{\includegraphics{images/by-sa}}
+\end{center}
+
+\clearpage  
+\phantomsection  
+\addcontentsline{toc}{chapter}{\contentsname}  
+\tableofcontents
+
+\newpage
+\phantomsection  
+\addcontentsline{toc}{chapter}{\listfigurename}  
+\listoffigures
+
+%% -----------------------------
+\newpage
+\phantomsection  
+\addcontentsline{toc}{chapter}{\listtablename}  
+\listoftables
+
+
+\include{abbreviations}
+\mainmatter
+%% Allow for sloppy wordbreaking to avoid text spilling into the
+%% margin (eg as a result of \filename and other non-breaking text)
+\sloppy
+\part{Introduction}
+\include{hardware-overview}
+
+\part{Construction}
+\include{beginning-construction}
+\include{calunium-assembly}
+
+\part{Installation}
+
+\include{site-requirements}
+
+\part{Operation}
+
+\end{document}
