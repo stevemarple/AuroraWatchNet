@@ -12,8 +12,12 @@
 
 #include <AWPacket.h>
 //#include <FLC100_shield.h>
+#include <SoftWire.h>
 #include <mysofti2cmaster.h>
 #include <MLX90614.h>
+#include <HIH61xx.h>
+#include <HouseKeeping.h>
+
 #include <RTCx.h>
 #include <CounterRTC.h>
 #include <AsyncDelay.h>
@@ -43,7 +47,7 @@
 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "cloud-RF12-0.01";
+  "cloud-RF12-0.02";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -62,6 +66,7 @@ uint8_t verbosity = 1;
 
 //FLC100 flc100;
 MLX90614 mlx90614;
+HIH61xx hih61xx;
 CommandHandler commandHandler;
 
 const uint8_t xrfSleepPin = 7;
@@ -226,8 +231,10 @@ void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 
 void doSleep(uint8_t mode)
 {
+#ifdef JTD
   disableJTAG();
-
+#endif
+  
   while (ASSR & _BV(TCR2AUB))
     ; // Wait for any pending updates to have latched
   volatile uint8_t tccr2aCopy = TCCR2A;
@@ -675,7 +682,10 @@ void setup(void)
   // 	  << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? "median" : "mean") << endl;
   // console.flush();
 
+  mlx90614.getSoftWire().setDelay_us(2);
   mlx90614.initialise();
+  hih61xx.initialise(A4, A5);
+  houseKeeping.initialise();
   
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
@@ -750,7 +760,8 @@ void setup(void)
 	  << endl;
   console.flush();
 
-  // Try using RFM12B
+  // Select radio; try RFM12B if radioType not set.
+  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_TYPE);
   uint8_t rfm12bBand
     = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_RFM12B_BAND);
   if (rfm12bBand == 0xff)
@@ -760,7 +771,9 @@ void setup(void)
   if (rfm12bChannel == 0xfff)
     rfm12bChannel = 1600;
   // TODO: Fix pin mapping
-  if (rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel)) {
+  if (radioType == EEPROM_RADIO_TYPE_RFM12B
+      || (radioType == 0xFF
+	  && rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel))) {
     disableJTAG();
     ledPin = 17; // JTAG TDO
     console << "Using RFM12B, band: " << rfm12bBand
@@ -791,27 +804,38 @@ void setup(void)
 
 
 bool resultsProcessed = false;
+CounterRTC::Time sampleStartTime;
 void loop(void)
 {
   wdt_reset();
   
-  // if (startSampling && !flc100.isSampling()) {
-  //   flc100.start();
+  if (startSampling) {
+    cRTC.getTime(sampleStartTime);
+      
+    //if (!flc100.isSampling()) 
+    //  flc100.start();
   
-  //   // Set startSampling=false BEFORE setting the alarm. If the
-  //   // computed alarm time is in the past then the callback will be
-  //   // run immediately and will ensure startSampling is made true. If
-  //   // the alarm is set before setting startSampling=false then an
-  //   // alarm could be lost and sampling would stop.  time with
-  //   startSampling = false;
-  //   setAlarm();
+    //   // Set startSampling=false BEFORE setting the alarm. If the
+    //   // computed alarm time is in the past then the callback will be
+    //   // run immediately and will ensure startSampling is made true. If
+    //   // the alarm is set before setting startSampling=false then an
+    //   // alarm could be lost and sampling would stop.  time with
+    //   startSampling = false;
+    //   setAlarm();
     
-  //   resultsProcessed = false;
-  //   console << "Sampling started\n";
-  // }
+    //   resultsProcessed = false;
+    //   console << "Sampling started\n";
+    // }
+    
+    if (!mlx90614.isSampling()) 
+      mlx90614.start();
 
-  if (startSampling && !mlx90614.isSampling()) {
-    mlx90614.start();
+    if (!hih61xx.isSampling())
+      hih61xx.start();
+    
+    if (!houseKeeping.isSampling())
+      houseKeeping.start();
+    
     // Set startSampling=false BEFORE setting the alarm. If the
     // computed alarm time is in the past then the callback will be
     // run immediately and will ensure startSampling is made true. If
@@ -827,6 +851,9 @@ void loop(void)
   
   // flc100.process();
   mlx90614.process();
+  hih61xx.process();
+  houseKeeping.process();
+  
   if (commsHandler.process(responseBuffer, responseBufferLen))
     processResponse(responseBuffer, responseBufferLen);
   
@@ -834,7 +861,9 @@ void loop(void)
 
   // // console << "I2C state: " << (flc100.getI2CState()) << endl;
   // if (flc100.isFinished()) {
-  if (mlx90614.isFinished()) {
+  if (mlx90614.isFinished()
+      && hih61xx.isFinished()
+      && houseKeeping.isFinished()) {
     // Process SD card when normal sampling is not running; SD card
     // access can be slow and block.
     
@@ -847,21 +876,26 @@ void loop(void)
       // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
       // 	console << '\t' << (flc100.getMagData()[i]);
       // console << endl;
-      // console << "#Timestamp: " << flc100.getTimestamp() << endl
+      console << "#Timestamp: " << sampleStartTime.getSeconds() << endl
+	//flc100.getTimestamp() << endl
       // 	      << "#Sensor temperature: " << flc100.getSensorTemperature() << endl
-      // 	      << "#MCU temperature: " << flc100.getMcuTemperature() << endl
-      // 	      << "#Battery voltage: " << flc100.getBatteryVoltage() << endl;
+       	      << "#Sys temperature: " << houseKeeping.getSystemTemperature()
+	      << endl
+	// flc100.getMcuTemperature() << endl
+	// 	      << "#Battery voltage: " << flc100.getBatteryVoltage() << endl;
+	      << "#Battery voltage: " << houseKeeping.getVin() << endl;
+	
       // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
       // 	console << "#magData[" << i << "]: " << (flc100.getMagData()[i])
       // 		<< endl;
       
-      console << "Ambient: " 
-	      << MLX90614::convertToCentiK(mlx90614.getAmbient()) << endl
-	      << "Object 1: "  
-	      << MLX90614::convertToCentiK(mlx90614.getObject1()) << endl;
+      console << "Ambient: " << mlx90614.getAmbient() << endl
+	      << "Object 1: " << mlx90614.getObject1() << endl;
       if (mlx90614.isDualSensor())
-	console << "Object 2: " 
-		<< MLX90614::convertToCentiK(mlx90614.getObject2()) << endl;
+	console << "Object 2: " << mlx90614.getObject2() << endl;
+
+      console << "Humidity: " << hih61xx.getRelHumidity() << endl
+	      << "Ambient: " << hih61xx.getAmbientTemp() << endl;
       
       // Buffer for storing the binary AW packet. Will also be used
       // when writing to SD card.
@@ -911,10 +945,8 @@ void loop(void)
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
       packet.setFlagBit(AWPacket::flagsSampleTimingErrorBit, callbackWasLate);
-      //packet.setTimestamp(flc100.getTimestamp());
-      CounterRTC::Time now;
-      cRTC.getTime(now);
-      packet.setTimestamp(now.getSeconds(), now.getFraction());
+      packet.setTimestamp(sampleStartTime.getSeconds(),
+			  sampleStartTime.getFraction());
       
       packet.putHeader(buffer, sizeof(buffer));
       // printBinaryBuffer(console, buffer, 20);
@@ -959,16 +991,23 @@ void loop(void)
       // 			   (uint16_t(trimmed) << 1) | 
       // 			   median);
 
-      packet.putDataUint16(buffer, sizeof(buffer),
+      packet.putDataInt16(buffer, sizeof(buffer),
 			   AWPacket::tagCloudTempAmbient,
-			   MLX90614::convertToCentiK(mlx90614.getAmbient()));
-      packet.putDataUint16(buffer, sizeof(buffer),
+			   mlx90614.getAmbient());
+      packet.putDataInt16(buffer, sizeof(buffer),
 			   AWPacket::tagCloudTempObject1,
-			   MLX90614::convertToCentiK(mlx90614.getObject1()));
+			   mlx90614.getObject1());
       if (mlx90614.isDualSensor())
 	packet.putDataUint16(buffer, sizeof(buffer),
 			     AWPacket::tagCloudTempObject2,
-			     MLX90614::convertToCentiK(mlx90614.getObject2()));
+			     mlx90614.getObject2());
+
+      packet.putDataInt16(buffer, sizeof(buffer),
+			  AWPacket::tagAmbientTemp,
+			  hih61xx.getAmbientTemp());
+      packet.putDataUint16(buffer, sizeof(buffer),
+			   AWPacket::tagRelHumidity,
+			   hih61xx.getRelHumidity());
       
       if (firstMessage) {
 	// Cancelled when first response is received
