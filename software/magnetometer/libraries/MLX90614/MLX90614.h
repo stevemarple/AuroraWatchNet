@@ -24,7 +24,8 @@ public:
   inline int16_t getAmbient(void) const;
   inline int16_t getObject1(void) const;
   inline int16_t getObject2(void) const;
-
+  inline SoftWire& getSoftWire(void);
+  
   // TODO: take pin details
   // bool initialise(uint8_t scl, uint8_t sda, uint8_t power = 255);
   bool initialise(void);
@@ -39,7 +40,9 @@ public:
   void finish(void); // Force completion and power-down
 
   uint16_t read(uint8_t address) const;
-    
+
+  
+  
 private:
   enum state_t {
     off,
@@ -79,6 +82,11 @@ int16_t MLX90614::getObject1(void) const
 int16_t MLX90614::getObject2(void) const
 {
   return object2;
+}
+
+SoftWire& MLX90614::getSoftWire(void)
+{
+  return i2c;
 }
 
 bool MLX90614::isDualSensor(void) const

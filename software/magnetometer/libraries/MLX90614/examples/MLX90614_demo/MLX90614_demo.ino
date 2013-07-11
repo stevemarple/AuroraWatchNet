@@ -19,6 +19,7 @@ void setup(void)
   disableJTAG();
 #endif
   mlx90614.initialise();
+  mlx90614.getSoftWire().setDelay_us(2);
   samplingInterval.start(1000, AsyncDelay::MILLIS);
 }
 

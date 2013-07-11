@@ -47,8 +47,7 @@ bool MLX90614::initialise(void)
     pinMode(powerPin, OUTPUT);
     digitalWrite(powerPin, LOW); // Off
   }
-  //pinMode(sclPin, INPUT); // Inactive for I2C
-  //pinMode(sdaPin, INPUT); // Inactive for I2C
+
   if (!dualSensor)
     object2 = 0;
   
