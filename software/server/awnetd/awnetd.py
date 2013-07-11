@@ -226,7 +226,7 @@ def writeCloudData(timestamp, data):
         tags = ["cloudTempAmbient", "cloudTempObject1"]
         if config.getboolean("cloud", "dualSensor"):
             tags.append("cloudTempObject2")
-        tags.extend("ambientTemp", "relHumidity")
+        tags.extend(["ambientTemp", "relHumidity"])
         cloudFile.write("{:.4f}".format(seconds))
         for tag in tags:
             if tag in data:
@@ -693,7 +693,8 @@ while running:
                 if config.has_option("cloud", "filename"):
                     data = {}
                     for tag in ["cloudTempAmbient", "cloudTempObject1",
-                                "cloudTempObject2"]:
+                                "cloudTempObject2", 
+                                "ambientTemp", "relHumidity"]:
                         if tag in messageTags:
                             data[tag] = AWPacket.decodeCloudTemp(tag, str(messageTags[tag][0]))
                     writeCloudData(timestamp, data)
