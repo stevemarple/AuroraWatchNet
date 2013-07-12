@@ -523,9 +523,18 @@ def printSignature(buf):
         print("Signature: none")
         
 def printPacket(buf):
-    printHeader(buf)
-    printTags(buf)
-    printSignature(buf)
+    try:
+        printHeader(buf)
+    except Exception as e:
+        print("Error in header: " + str(e))
+    try:
+        printTags(buf)
+    except Exception as e:
+        print("Error in tags: " + str(e))
+    try:
+        printSignature(buf)
+    except Exception as e:
+        print("Error in header: " + str(e))
     
 def validatePacket(buf, hmacKey):
     global defaultMagic
