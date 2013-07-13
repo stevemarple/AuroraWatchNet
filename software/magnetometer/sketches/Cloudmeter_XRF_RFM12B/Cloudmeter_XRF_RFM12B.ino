@@ -992,11 +992,11 @@ void loop(void)
       // 			   median);
 
       packet.putDataInt16(buffer, sizeof(buffer),
-			   AWPacket::tagCloudTempAmbient,
-			   mlx90614.getAmbient());
+			  AWPacket::tagCloudTempAmbient,
+			  mlx90614.getAmbient());
       packet.putDataInt16(buffer, sizeof(buffer),
-			   AWPacket::tagCloudTempObject1,
-			   mlx90614.getObject1());
+			  AWPacket::tagCloudTempObject1,
+			  mlx90614.getObject1());
       if (mlx90614.isDualSensor())
 	packet.putDataUint16(buffer, sizeof(buffer),
 			     AWPacket::tagCloudTempObject2,
