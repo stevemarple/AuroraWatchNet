@@ -3,9 +3,10 @@
 
 # from optparse import OptionParser
 import argparse
+import os
 import random
 import struct
-
+import sys
 
 # from AWEeprom import eeprom
 import AWEeprom
@@ -33,7 +34,7 @@ for k in eeprom:
 #eeprom_data = ['\xFF'] * eeprom_size
 eeprom_data = bytearray('\xFF') * eeprom_size
 
-# Add command-line options based on EEPROM settings
+# Add command line options based on EEPROM settings
 for k in sorted(eeprom.keys()):
     parser.add_argument('--' + k, 
                         type=eeprom[k].get('type'),
@@ -92,7 +93,7 @@ for k in eeprom:
                              eeprom[k]['address'], data)
 
 
-fh = open(args.file, 'wb')
+fh = open(args.file + '.bin', 'wb')
 fh.write(eeprom_data)
 fh.close()
 print('Wrote ' + str(eeprom_size) + ' bytes to ' + args.file)
@@ -116,7 +117,17 @@ Write the EEPROM data with
 avrdude -P usb -p atmega1284p -c dragon_jtag -U eeprom:w:%(filename)s:r
 '''
 print(key_doc % op_dict)
-fh = open(args.file + '.key', 'wb')
+fh = open(args.file + '.key', 'w')
 fh.write(key_doc % op_dict)
 fh.close()
+
+# Save command line arguments
+fh = open(args.file + '.txt', 'w')
+fh.write('# Called as: \n')
+fh.write(' '.join(sys.argv))
+fh.write('\n')
+fh.write('# Current working directory: ' + os.getcwd() + '\n')
+fh.close()
+
+
 
