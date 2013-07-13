@@ -189,13 +189,13 @@ def formatPadding(tag, dataLen, payload):
 # Horrid hack because cloud data was originally sent as absolute
 # temperatures, unlike other tags.
 def decodeCloudTemp(tag, payload):
-    tmp = (float(struct.unpack("!H", str(payload))[0]) / 100)
+    tmp = (float(struct.unpack("!h", str(payload))[0]) / 100)
     if tmp > 173.15:
         tmp -= 273.15
     return tmp
 
 def formatTagCloudTemp(tag, dataLen, payload):
-    return str(decodeCloudTemp(tag, payload)) + "°C"
+    return str(decodeCloudTemp(tag, payload)) + "�C"
     # return str((float(struct.unpack("!H", str(payload))[0]-) / 100) - 273.15) + "°C"
     
     
@@ -204,9 +204,9 @@ tagFormatFunc = {"paddingByte": formatPadding,
                  "magDataAllX": formatTagArrayOfLongs,
                  "magDataAllY": formatTagArrayOfLongs,
                  "magDataAllZ": formatTagArrayOfLongs,
-                 "cloudTempAmbient": formatTagCloudTemp,
-                 "cloudTempObject1": formatTagCloudTemp,
-                 "cloudTempObject2": formatTagCloudTemp,
+                 #"cloudTempAmbient": formatTagCloudTemp,
+                 #"cloudTempObject1": formatTagCloudTemp,
+                 #"cloudTempObject2": formatTagCloudTemp,
                  }
 
 
