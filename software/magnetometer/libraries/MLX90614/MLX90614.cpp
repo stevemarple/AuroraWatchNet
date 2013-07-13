@@ -89,11 +89,6 @@ void MLX90614::process(void)
     }
     break;
 
-  // case exitingPwm2:
-  //   if (delay.isExpired())
-  //     state = readingAmbient;
-  //   break;
-    
   case readingAmbient:
     if (!delay.isExpired())
       break;
