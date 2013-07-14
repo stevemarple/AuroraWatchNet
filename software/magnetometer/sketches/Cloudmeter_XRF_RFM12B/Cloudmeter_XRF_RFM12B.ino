@@ -47,7 +47,7 @@
 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "cloud-RF12-0.02";
+  "cloud-RF12-0.03";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -318,6 +318,9 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   
   // Cancel previous request for EEPROM contents
   eepromContentsLength = 0;
+
+  // Cancel sending current samplingInterval
+  samplingIntervalChanged = false;
   
   // DEBUG: message received, turn off LED
   digitalWrite(ledPin, LOW);
@@ -1024,6 +1027,14 @@ void loop(void)
 	packet.putTimeAdjustment(buffer, sizeof(buffer),
 				 timeAdjustment.getSeconds(),
 				 timeAdjustment.getFraction());
+
+      if (samplingIntervalChanged) {
+	packet.putDataUint16(buffer, sizeof(buffer),
+			     AWPacket::tagSamplingInterval,
+			     (samplingInterval.getSeconds() << 4) +
+			     (samplingInterval.getFraction() >>
+			      (CounterRTC::fractionsPerSecondLog2 - 4)));
+      }
       
       if (eepromContentsLength) {
 	console << "EEPROM contents length: " << eepromContentsLength << endl;
