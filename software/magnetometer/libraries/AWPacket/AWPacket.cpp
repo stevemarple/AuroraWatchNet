@@ -348,6 +348,22 @@ bool AWPacket::putGetFirmwarePage(uint8_t* buffer, size_t bufferLength,
 }
 
 
+bool AWPacket::putTimeData(uint8_t* buffer, size_t bufferLength, uint8_t tag, 
+		   int32_t seconds, int16_t fraction) const
+{
+  uint16_t len = getPacketLength(buffer);
+  if (len + tagLengths[tag] > bufferLength)
+    return false;
+  uint8_t *p = buffer + len;
+  *p++ = tag;
+  avrToNetwork(p, &seconds, sizeof(seconds));
+  p += sizeof(seconds);
+  avrToNetwork(p, &fraction, sizeof(fraction));
+  setPacketLength(buffer, len + tagLengths[tag]);
+  return true;
+}
+
+
 bool AWPacket::putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
 				 int32_t seconds, int16_t fraction) const
 {

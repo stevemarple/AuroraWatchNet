@@ -149,6 +149,8 @@ public:
 
   bool putGetFirmwarePage(uint8_t* buffer, size_t bufferLength,
 			  const char* version, uint16_t pageNumber) const;
+  bool putTimeData(uint8_t* buffer, size_t bufferLength, uint8_t tag, 
+		   int32_t seconds, int16_t fraction) const;
   bool putTimeAdjustment(uint8_t* buffer, size_t bufferLength,
 			 int32_t seconds, int16_t fraction) const;
   bool putEepromContents(uint8_t* buffer, size_t bufferLength,
