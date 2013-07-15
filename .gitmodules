@@ -34,3 +34,6 @@
 [submodule "software/magnetometer/libraries/SoftWire"]
 	path = software/magnetometer/libraries/SoftWire
 	url = https://github.com/stevemarple/SoftWire.git
+[submodule "hardware/Calunium"]
+	path = hardware/Calunium
+	url = https://github.com/stevemarple/Calunium.git

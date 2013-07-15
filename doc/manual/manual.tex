@@ -45,6 +45,9 @@
 %% URLs
 \usepackage[obeyspaces]{url}
 
+%% SI units
+\usepackage[abbreviations]{siunitx}
+
 % Command to get a tilde which prints as an ASCII tilde in PDFs,
 % needed to allow copying text and pasting into a command window or
 % editor
@@ -57,6 +60,7 @@
 %% Long tables
 \usepackage{supertabular}
 
+\usepackage{fancyhdr}
 
 %% Alternative to verbatim. Can be used for defining new environments
 \usepackage{fancyvrb}
@@ -152,18 +156,30 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 \newcommand{\keypress}[1]{\keystroke{#1}}
 
 %% Units
-\newcommand{\units}[2]{\mbox{\ensuremath{#1}\,#2}}
-\newcommand{\dB}[1]{\mbox{\ensuremath{#1}\,dB}}
+%%\newcommand{\units}[2]{\mbox{\ensuremath{#1}\,#2}}
+%%\newcommand{\dB}[1]{\mbox{\ensuremath{#1}\,dB}}
+\newcommand{\dB}[1]{\SI{#1}{dB}}
 \newcommand{\inch}[1]{\mbox{\ensuremath{#1}''}}
 \newcommand{\kHz}[1]{\mbox{\ensuremath{#1}\,kHz}}
-\newcommand{\metre}[1]{\mbox{\ensuremath{#1}\,m}}
+%\newcommand{\metre}[1]{\mbox{\ensuremath{#1}\,m}}
 \newcommand{\km}[1]{\mbox{\ensuremath{#1}\,km}}
-\newcommand{\MHz}[1]{\mbox{\ensuremath{#1}\,MHz}}
+%% \newcommand{\MHz}[1]{\mbox{\ensuremath{#1}\,MHz}}
+\newcommand{\MHz}[1]{\SI{#1}{\mega\hertz}}
 \newcommand{\volt}[1]{\mbox{\ensuremath{#1}\,V}}
 \newcommand{\bit}[1]{\mbox{\ensuremath{#1}\,bit}}
-\newcommand{\degrees}[1]{\ensuremath{#1^\circ}}
-\newcommand{\ohm}[1]{\mbox{\ensuremath{#1}\,\ensuremath{\Omega}}}
-\newcommand{\kohm}[1]{\mbox{\ensuremath{#1}\,k\ensuremath{\Omega}}}
+
+%%\newcommand{\degrees}[1]{\ensuremath{#1^\circ}}
+
+\renewcommand{\textohm}{\ensuremath{\Omega}}
+\newcommand{\kohm}[1]{\SI{#1}{\kilo\ohm}}
+
+
+%%\newcommand{\pF}[1]{\units{#1}{pF}}
+\newcommand{\pF}[1]{\SI{#1}{\pico\farad}}
+\newcommand{\nF}[1]{\SI{#1}{\nano\farad}}
+\newcommand{\uF}[1]{\SI{#1}{\micro\farad}}
+%\newcommand{\nF}[1]{\units{#1}{nF}}
+%\newcommand{\uF}[1]{\units{#1}{\ensuremath{\mu}F}}
 
 %% Some simple abbreviations  
 \newcommand{\ie}{i.e.}
@@ -259,6 +275,8 @@ This document is made available under the \href{\ccThreeUrl}{Creative
 \part{Construction}
 \include{beginning-construction}
 \include{calunium-assembly}
+\include{calunium-firmware}
+\include{sensor-pcb}
 
 \part{Installation}
 
