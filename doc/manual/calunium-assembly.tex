@@ -1,6 +1,12 @@
 \chapter{Calunium assembly}
 
-\section{Calunium version 2}
+The Calunium microcontroller development board is intended to be a
+flexible system for both development and embedded use. As such it has
+various hardware options and careful attention must be paid to
+assembly it for optimum performance. Parts which are not needed are
+omitted to lower power consumption (\eg, power LED, USB controller).
+
+\section{Calunium version 2.0}
 
 
 \subsection{Parts list}
@@ -9,15 +15,26 @@ Omit the parts relating to the \volt{5} regulator, \ldots.
 
 For the I2C bus use \kohm{4.7} pull-up resistors.
 
+
 \begin{landscape}
   \begin{figure}[p]
     \centering
     \includegraphics[keepaspectratio,width=28cm,height=16cm]{%
       ../../hardware/Calunium/hardware/pcb/Calunium_v2/Calunium_v2_sch}  
-    \caption{Calunium v2 circuit diagram.}
-    \label{fig:calunium-v2-cct-diag}
+    \caption{Calunium v.~2.0 circuit diagram.}
+    \label{fig:calunium-v2.0-cct-diag}
+  \end{figure}
+
+  \begin{figure}[p]
+    \centering
+    \includegraphics[keepaspectratio,width=28cm,height=16cm]{%
+      {../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch}.pdf}  
+    \caption{Calunium v.~2.1 circuit diagram.}
+    \label{fig:calunium-v2.1-cct-diag}
   \end{figure}
 \end{landscape}
+
+
 
 \section{Calunium version 2.1}
 
@@ -25,5 +42,10 @@ For the I2C bus use \kohm{4.7} pull-up resistors.
 
 Omit the parts relating to the \volt{5} regulator, \ldots.
 
+
 For battery operation omit the parts relating to the USB interface as
-the MCP2200 consumes too much power.
+the MCP2200 consumes too much power. Also omit the power LED and its
+current-limiting resitor (R1?).
+
+
+Fit a \ohm{680} current-limiting resitor for the debug LED.
