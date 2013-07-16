@@ -6,15 +6,55 @@ various hardware options and careful attention must be paid to
 assembly it for optimum performance. Parts which are not needed are
 omitted to lower power consumption (\eg, power LED, USB controller).
 
-\section{Calunium version 2.0}
+\section{Calunium version 2.0 and version 2.1}
 
 
-\subsection{Parts list}
+\subsection{Order of assembly}
 
-Omit the parts relating to the \volt{5} regulator, \ldots.
-
-For the I2C bus use \kohm{4.7} pull-up resistors.
-
+Fit components in order:
+\begin{buildorder}
+\item IC2. The standard real-time clock is the MicroChip MCP90410 but
+  MicroChip MCP79411 or MCP79412 can be used without any other
+  changes.
+  It is also possible to fit the Maxim DS1338-33 real-time clock,
+  but see below for changes.
+\item Y1 (\kHz{32768}).
+\item R1, fit a \ohm{680} resistor. Ignore the \kohm{1} marking; a
+  lower value resistor is used to enable the green LED to be seen
+  more clearly in daylight.
+\item R7 (\kohm{1}). Do not fit if using the DS1338-33 real-time
+  clock. Instead link between R7 and D2 at the end nearest the RTC
+  battery, as indicated by the white line on the silkscreen. The wire
+  will bypass both R7 and D2 which are not required for the DS1338-33.
+\item R4, R5 (\kohm{4.7}).
+\item R3, R6 (\kohm{10}).
+\item L1 (\uH{10}).
+\item 40~pin socket for IC4.
+\item C4 (\pF{100}).
+\item C3, C5, C7, C9, C12 (\nF{100}).
+\item C2, C8 (\uF{1}).
+\item D1, D2 (BAT85). Do not fit D2 if using the DS1338-33 real-time clock.
+\item LED1 (green LED). The cathode is nearest LED2.
+\item C6 (\uF{4.7}).
+\item ICSP header ($2 \times 3$ jumper block). See
+  \figurename~\ref{fig:icsp-header}.
+\item JP2 and JP3. Fit as combined $2 \times 3$ jumper block.
+\item JP1, JP7 ($1 \times 2$ jumper).
+\item JP4, JP5 ($1 \times 5$ jumper).
+\item X5 ($1 \times 6$ right-angle or vertical header for UART0).
+\item S1 (reset switch).
+\item Arduino headers. \todo[Add description]
+\item C17, C18 (\pF{15}). Do not fit if using DS1338-33 RTC. For
+  Calunium verion 2.0 the capacitors must be fitted on the reverse
+  side of the board (see \figurename~\ref{fig:calunium-rtc-caps-hack}
+  as not specific mounting holes exist (error caused by using an
+  earlier, incorrect datasheet which did not show the loading capacitors).
+\item X1 (Molex power header). Ensure correct orientation, with the
+  backplate closest to the Arduino headers.
+\item \todo[Add component name] (RTC battery holder).
+\item Battery (CR2032).
+\item \todo[Fit shunts to jumpers \ldots]
+\end{buildorder}
 
 \begin{landscape}
   \begin{figure}[p]
@@ -24,25 +64,6 @@ For the I2C bus use \kohm{4.7} pull-up resistors.
     \caption{Calunium v.~2.0 circuit diagram.}
     \label{fig:calunium-v2.0-cct-diag}
   \end{figure}
-\end{landscape}
-
-
-
-\section{Calunium version 2.1}
-
-\subsection{Parts list}
-
-Omit the parts relating to the \volt{5} regulator, \ldots.
-
-
-For battery operation omit the parts relating to the USB interface as
-the MCP2200 consumes too much power. Also omit the power LED and its
-current-limiting resitor (R1?).
-
-
-Fit a \ohm{680} current-limiting resitor for the debug LED.
-
-\begin{landscape}
   \begin{figure}[p]
     \centering
     \includegraphics[keepaspectratio,width=28cm,height=16cm]{%
