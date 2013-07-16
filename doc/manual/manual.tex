@@ -16,6 +16,8 @@
 %% Nicer fonts
 \usepackage{pslatex}
 
+\usepackage{linegoal}
+
 %% Color definitions
 \usepackage{color}
 \definecolor{MyLightRed}{rgb}{1,.8,.8}
@@ -192,8 +194,8 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 \newenvironment{warninglist}{%
   \begin{list}{\Stopsign}{}}{%
     \end{list}}
-\newcommand{\warningbox}[1]{\noindent
-  \colorbox{MyLightRed}{\parbox[l]{\textwidth}{%
+\newcommand{\warningbox}[1]{\noindent%
+  \colorbox{MyLightRed}{\parbox{\textwidth}{%
       \begin{warninglist}\item #1\end{warninglist}}} \newline}
 
 %% Have help information printed in light blue box, with each item using an
@@ -226,6 +228,13 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 \setcounter{secnumdepth}{5}
 \setcounter{tocdepth}{5}
 
+
+\newenvironment{buildorder}{%
+  \begin{enumerate}%
+    \setlength{\itemsep}{0pt}%
+    \setlength{\parskip}{0pt}}%
+  {\end{enumerate}}
+
 \begin{document}
 
 \title{AuroraWatchNet magnetometer manual}
@@ -237,9 +246,9 @@ Lancaster University.}
 \frontmatter
 \pagestyle{headings}
 
-\clearpage  
-\phantomsection  
-% \thispagestyle{empty}
+% \clearpage  
+% \phantomsection  
+% % \thispagestyle{empty}
 \chapter{Licence}
 This document is made available under the \href{\ccThreeUrl}{Creative
   Commons Attribution-ShareAlike 3.0 Unported Licence}.

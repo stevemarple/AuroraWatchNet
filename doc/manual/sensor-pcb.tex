@@ -2,9 +2,9 @@
 
 \section{Sensor PCB version 1.2}
 
-\section{Order of assembly}
+\subsection{Order of assembly}
 Fit components in this order:
-\begin{enumerate}
+\begin{buildorder}
 \item Turned pin sockets for the FLC100 sensor. Accurate alignment is
   important so use a peice of solderless breadboard to hold the male
   turned-pin headers (\figurename~\ref{fig:flc100-step-1}). Insert the
@@ -20,11 +20,11 @@ Fit components in this order:
   an anti-static bag.
   \begin{figure}[p]
     \centering
-    \LARGE{TO DO!}
+    \todo[Take photo and insert]
     %%\includegraphics[width=10cm,keepaspectratio]{%
      %% images/flc100-step-1}
     \caption{Fit the male turned-pin headers.}
-    \label{fig:flc100-step-2}
+    \label{fig:flc100-step-1}
   \end{figure}
   \begin{figure}[p]
     \centering
@@ -37,8 +37,11 @@ Fit components in this order:
     \centering
     \includegraphics[width=10cm,keepaspectratio]{%
       images/flc100-step-3}
-    \caption{Place the sensor PCB onto the female turned-pin sockets.}
-    \label{fig:flc100-step-2}
+    \caption[Place the sensor PCB onto the female turned-pin
+    sockets.]{%
+      Place the sensor PCB onto the female turned-pin sockets. The
+      pliers are used to support the other side of the PCB.}
+    \label{fig:flc100-step-3}
   \end{figure}
 \item IC1 (MAXMCP3424).
 \item IC2 (MAX619).
@@ -53,12 +56,12 @@ Fit components in this order:
 \item SENS2 (LM61).
 \item JP5 and JP7 (fit as $2\times3$ male header).
 \item X1 (RJ45 vertical jack).
-\item \warningbox{Q1 (2N7000). This item is very sensitive to damage
-    by electrostatic discharge!}
+\item Q1 (2N7000). This item is very sensitive to damage by
+  electrostatic discharge!
 \item SENS1. Gently fit the FLC100 sensor into the turned-pin
   sockets. Apply pressure only on the circuit boards, not the
   components or coil.
-\end{enumerate}
+\end{buildorder}
 
 \begin{landscape}
   % \thispagestyle{empty}
