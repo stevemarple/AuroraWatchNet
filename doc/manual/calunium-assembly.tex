@@ -66,8 +66,11 @@ Fit components in order:
   \end{figure}
   \begin{figure}[p]
     \centering
+    % Use symbolic link for image to avoid a filename with a dot in
+    % the main part of the name. This enables the extension to be left
+    % off for easy processing with either latex or pdflatex.
     \includegraphics[keepaspectratio,width=28cm,height=16cm]{%
-      {../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch}.pdf}  
+      images/Calunium_v2_1_sch}
     \caption{Calunium v.~2.1 circuit diagram.}
     \label{fig:calunium-v2.1-cct-diag}
   \end{figure}
