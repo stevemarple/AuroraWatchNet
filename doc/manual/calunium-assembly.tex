@@ -1,9 +1,11 @@
 \chapter{Calunium assembly}
 
+\section{Introduction}
+
 The Calunium microcontroller development board is intended to be a
 flexible system for both development and embedded use. As such it has
 various hardware options and careful attention must be paid to
-assembly it for optimum performance. Parts which are not needed are
+assembling it for optimum performance. Parts which are not needed are
 omitted to lower power consumption (\eg, power LED, USB controller).
 
 \section{Calunium version 2.0 and version 2.1}
@@ -52,9 +54,14 @@ Fit components in order:
 \item X1 (Molex power header). Ensure correct orientation, with the
   backplate closest to the Arduino headers.
 \item \todo[Add component name] (RTC battery holder).
-\item Battery (CR2032).
+\item Q1 (2N7000). This item is very sensitive to damage by
+  electrostatic discharge!
+\item Battery (CR2032). Check that the battery backup pin (3) on the RTC
+  measures \volt{3.0}.
 \item \todo[Fit shunts to jumpers \ldots]
 \end{buildorder}
+Do not fit the ATmega1284P microcontroller until after testing the
+board power supplies.
 
 \begin{landscape}
   \begin{figure}[p]
