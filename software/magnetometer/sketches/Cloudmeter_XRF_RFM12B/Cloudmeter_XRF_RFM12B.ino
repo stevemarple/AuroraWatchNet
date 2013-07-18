@@ -31,6 +31,7 @@
 #include <RF12_Stream.h>
 
 #include <SPI.h>
+//#define USE_SD
 
 #ifdef USE_SD
 #include <SD.h>
@@ -47,7 +48,7 @@
 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "cloud-RF12-0.03";
+  "cloud-RF12-0.04";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -909,7 +910,8 @@ void loop(void)
       if (useSd) {
 	// Check if the SD card circular buffer should be written to disk
 	char newFilename[sdFilenameLen];
-	createFilename(newFilename, sizeof(newFilename), flc100.getTimestamp());
+	createFilename(newFilename, sizeof(newFilename),
+		       sampleStartTime.getSeconds());
 	if ((strcmp(sdFilename, newFilename) != 0 ||
 	     sdCircularBuffer.getSize() >= sdSectorSize ||
 	     sdCircularBuffer.getSizeRemaining() <= 64)
@@ -994,6 +996,20 @@ void loop(void)
       // 			   (uint16_t(trimmed) << 1) | 
       // 			   median);
 
+      
+      packet.putDataInt16(buffer, sizeof(buffer),
+       			  AWPacket::tagMCUTemperature,
+			  houseKeeping.getSystemTemperature());
+      packet.putDataUint16(buffer, sizeof(buffer),
+			   AWPacket::tagBatteryVoltage,
+			   houseKeeping.getVin());
+      // Upper 3 nibbles is seconds, lowest nibble is 16ths of second
+      packet.putDataUint16(buffer, sizeof(buffer),
+      			   AWPacket::tagSamplingInterval,
+      			   (uint16_t(samplingInterval.getSeconds() << 4) |
+      			    samplingInterval.getFraction() >>
+      			    (CounterRTC::fractionsPerSecondLog2 - 4)));
+
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagCloudTempAmbient,
 			  mlx90614.getAmbient());
@@ -1028,13 +1044,13 @@ void loop(void)
 				 timeAdjustment.getSeconds(),
 				 timeAdjustment.getFraction());
 
-      if (samplingIntervalChanged) {
-	packet.putDataUint16(buffer, sizeof(buffer),
-			     AWPacket::tagSamplingInterval,
-			     (samplingInterval.getSeconds() << 4) +
-			     (samplingInterval.getFraction() >>
-			      (CounterRTC::fractionsPerSecondLog2 - 4)));
-      }
+      // if (samplingIntervalChanged) {
+      // 	packet.putDataUint16(buffer, sizeof(buffer),
+      // 			     AWPacket::tagSamplingInterval,
+      // 			     (samplingInterval.getSeconds() << 4) +
+      // 			     (samplingInterval.getFraction() >>
+      // 			      (CounterRTC::fractionsPerSecondLog2 - 4)));
+      // }
       
       if (eepromContentsLength) {
 	console << "EEPROM contents length: " << eepromContentsLength << endl;
