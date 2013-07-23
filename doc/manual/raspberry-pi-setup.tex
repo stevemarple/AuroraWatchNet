@@ -1,0 +1,109 @@
+\chapter{Raspberry Pi setup}
+
+\section{SD card creation}
+
+Download the latest Raspbian image and copy to the SD card following
+the instructions on the Raspberry Pi web site. \textbf{You cannot copy
+  the compressed image to a FAT partition on the SD card}.
+
+\section{Configuring Raspbian}
+
+Raspbian is most easily configured by booting the new image. If you
+are able to discover the IP address (for instance, by checking the
+DHCP tables of your home router) you can do this over the network
+using SSH. Otherwise you must use attach a keyboard and monitor to the
+Raspberry Pi. If you are familiar with linux it is also possible to
+edit the files by mounting the SD card on another Linux system.
+
+\subsection{/dev/ttyAMA0 serial port setup}
+
+Disable the console and \code{getty} process from running on
+\filename{/dev/ttyAMA0}. Edit \filename{/boot/cmdline.txt} to remove
+the parts which relate to \filename{ttyAMA0}. Remove
+\begin{Cmd}
+console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
+\end{Cmd}
+
+
+Edit \filename{/etc/inittab}. Find the line relating to
+\filename{ttyAMA0}. Either delete the line entirely or comment it out
+by inserting a hash character (\#) at the start of the line.
+
+\subsection{Raspbian configuration}
+
+Log in as \piUser\ and run
+\begin{Cmd}
+sudo raspi-config
+\end{Cmd}
+
+\subsubsection{Change user password}
+\textbf{If the default password has not been changed then do so now to keep
+your system secure.}
+
+\subsubsection{Internationalisation options}
+Select \code{Internationalisation Options} and then
+\code{Change Timezone}. For geographic area select %
+\code{None of the above}, then select \code{UTC}. Select \code{OK}.
+
+\subsubsection{Advanced options}
+Select \code{Advanced Options} and then \code{Memory
+  Split}. Set the GPU memory to \code{16} (MB).
+
+\subsubsection{Expand Filesystem}
+Finally select \code{Expand Filesystem}. Although the first option
+do this last. Choose \code{Finish} and then reboot.
+
+\section{Install missing software packages}
+As user \rootUser
+\begin{Cmd}
+apt-get install screen lsof
+\end{Cmd}
+
+\section{Installing the AuroraWatchNet server software}
+
+\subsection{Install the Git repository}
+As \piUser
+\begin{Cmd}
+git clone --recursive git://github.com/stevemarple/AuroraWatchNet.git
+mkdir \mytilde/bin
+cd \mytilde/bin
+ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
+ln -s ../AuroraWatchNet/software/server/bin/log_ip
+\end{Cmd}
+
+\subsection{Configure \protect\filename{cron}}
+
+As user \piUser
+\begin{Cmd}
+crontab -e
+\end{Cmd}
+
+In the \filename{nano} editor add the following lines: \todo[Add lines
+for data transfer]
+\begin{Cmd}
+@reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
+@hourly /home/pi/bin/log_ip > /dev/null 2>&1
+\end{Cmd}
+Save the file, \keystroke{CTRL}-\keystroke{x}, \keystroke{y},
+\myreturn.
+
+\subsection{Create configuration file}
+
+As user \rootUser
+\begin{Cmd}
+mkdir /data
+chown pi.pi /data
+nano /etc/awnet.ini
+\end{Cmd}
+
+\todo[Create file contents, perhaps using a template copied from
+the repository]
+
+\subsection{Create init file for server daemon}
+As user \rootUser
+\begin{Cmd}
+cd /etc/init.d
+ln -s /home/pi/AuroraWatchNet/software/server/awnetd/awnetd.sh awnetd
+update-rc.d  awnetd defaults
+\end{Cmd}
+

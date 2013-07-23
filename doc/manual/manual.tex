@@ -122,7 +122,7 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 
 %% A command for the return key
 \newcommand{\myreturn}{%
-  \keystroke{\includegraphics[width=1em]{figures/return-symbol}}}
+  \keystroke{\includegraphics[width=1em]{images/return-symbol}}}
 
 %% Change how subfigures are labelled
 \makeatletter
@@ -150,6 +150,9 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 \DeclareUrlCommand\dosEnvVar{\def\UrlLeft{\%}\def\UrlRight{\%}\urlstyle{tt}}
 
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\username}[1]{\texttt{#1}}
+\newcommand{\piUser}{\username{pi}}
+\newcommand{\rootUser}{\username{root}}
 
 %% Use for menu selections etc
 \newcommand{\myquote}[1]{\textcolor{MyQuoteColor}{\textsl{#1}}}
@@ -210,11 +213,14 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 \DefineVerbatimEnvironment{Code}{Verbatim}%
 {frame=single,commandchars=\\\{\}}
 \DefineVerbatimEnvironment{Cmd}{Verbatim}%
-{frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
+{frame=single,framesep=5mm,commandchars=\\\{\}}
+% {frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
 \DefineVerbatimEnvironment{LinuxCmd}{Verbatim}%
-{frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
+{frame=single,framesep=5mm,commandchars=\\\{\}}
+% {frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
 \DefineVerbatimEnvironment{WindowsCmd}{Verbatim}%
-{frame=single,label=\windowsLogo,framesep=5mm,commandchars=\\\{\}}
+{frame=single,framesep=5mm,commandchars=\\\{\}}
+% {frame=single,label=\windowsLogo,framesep=5mm,commandchars=\\\{\}}
 
 %% \DefineVerbatimEnvironment{Cmd}{LinuxCmd}{}
 
@@ -290,6 +296,7 @@ This document is made available under the \href{\ccThreeUrl}{Creative
 \part{Installation}
 
 \include{site-requirements}
+\include{raspberry-pi-setup}
 
 \part{Operation}
 
