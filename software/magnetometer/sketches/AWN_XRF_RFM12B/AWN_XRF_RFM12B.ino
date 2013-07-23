@@ -36,7 +36,7 @@
 #include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.08a";
+  "xrf_rf12-0.09a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
