@@ -3,8 +3,8 @@
 \section{SD card creation}
 
 Download the latest Raspbian image and copy to the SD card following
-the instructions on the Raspberry Pi web site. \textbf{You cannot copy
-  the compressed image to a FAT partition on the SD card}.
+the instructions on the Raspberry Pi web site. \textbf{Copying
+  the compressed image to a FAT partition on the SD card will not work}.
 
 \section{Configuring Raspbian}
 
@@ -12,22 +12,24 @@ Raspbian is most easily configured by booting the new image. If you
 are able to discover the IP address (for instance, by checking the
 DHCP tables of your home router) you can do this over the network
 using SSH. Otherwise you must use attach a keyboard and monitor to the
-Raspberry Pi. If you are familiar with linux it is also possible to
+Raspberry Pi. If you are familiar with Linux it is also possible to
 edit the files by mounting the SD card on another Linux system.
 
 \subsection{/dev/ttyAMA0 serial port setup}
 
-Disable the console and \code{getty} process from running on
-\filename{/dev/ttyAMA0}. Edit \filename{/boot/cmdline.txt} to remove
-the parts which relate to \filename{ttyAMA0}. Remove
+Disable the console from running on \filename{/dev/ttyAMA0}. Edit
+\filename{/boot/cmdline.txt} to remove the parts which relate to
+\filename{ttyAMA0}. Remove
 \begin{Cmd}
 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
 \end{Cmd}
 
 
-Edit \filename{/etc/inittab}. Find the line relating to
-\filename{ttyAMA0}. Either delete the line entirely or comment it out
-by inserting a hash character (\#) at the start of the line.
+Disable the \code{getty} process from running on
+\filename{/dev/ttyAMA0}. Edit \filename{/etc/inittab}. Find the line
+relating to \filename{ttyAMA0}. Either delete the line entirely or
+comment it out by inserting a hash character (\#) at the start of the
+line.
 
 \subsection{Raspbian configuration}
 
@@ -41,8 +43,12 @@ sudo raspi-config
 your system secure.}
 
 \subsubsection{Internationalisation options}
-Select \code{Internationalisation Options} and then
-\code{Change Timezone}. For geographic area select %
+\filename{cron} uses local time and the shift to and from daylight
+saving time complicates the \filename{cron} tables. Set the Raspberry
+Pi's timezone to UTC to avoid daylight saving.
+
+Select \code{Internationalisation Options} and
+then \code{Change Timezone}. For geographic area select %
 \code{None of the above}, then select \code{UTC}. Select \code{OK}.
 
 \subsubsection{Advanced options}
@@ -62,7 +68,7 @@ apt-get install screen lsof
 \section{Installing the AuroraWatchNet server software}
 
 \subsection{Install the Git repository}
-As \piUser
+As user \piUser
 \begin{Cmd}
 git clone --recursive git://github.com/stevemarple/AuroraWatchNet.git
 mkdir \mytilde/bin
@@ -87,6 +93,14 @@ for data transfer]
 Save the file, \keystroke{CTRL}-\keystroke{x}, \keystroke{y},
 \myreturn.
 
+\subsection{Configure \protect\filename{ifplugd}}
+
+As user \rootUser
+\begin{Cmd}
+cd /etc/ifplugd/action.d
+ln -s /home/pi/AuroraWatchNet/software/server/bin/log_ip
+\end{Cmd}
+
 \subsection{Create configuration file}
 
 As user \rootUser
@@ -107,3 +121,6 @@ ln -s /home/pi/AuroraWatchNet/software/server/awnetd/awnetd.sh awnetd
 update-rc.d  awnetd defaults
 \end{Cmd}
 
+\subsection{Configure \protect\filename{ntp}}
+\todo[May not be necessary for most users, but all users should check
+that the time is correct]
