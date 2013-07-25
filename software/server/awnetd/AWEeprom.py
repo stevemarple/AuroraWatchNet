@@ -85,7 +85,7 @@ eeprom = {
         'type': safe_eval,
         'choices': [0, 1, 255],
         'default': 255,
-        'help': 'XRF radio type; 1=XRF, 2=RFM12B, 255=autoselect'
+        'help': 'XRF radio type; 0=XRF, 1=RFM12B, 255=autoselect'
         },
     'radio_xrf_band': {
         'address': 0x3B,
