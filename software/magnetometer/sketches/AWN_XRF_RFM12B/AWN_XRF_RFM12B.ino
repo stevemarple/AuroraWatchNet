@@ -48,6 +48,10 @@ uint8_t ledPin = LED_BUILTIN;
 // power consumption it is always switched off.
 bool useLed = false;
 
+// Number of messages transmitted. Rollover is expected and must be
+// planned for!
+uint8_t messageCount = 0;
+
 Stream& console = Serial;
 XRF_Radio xrf(Serial1);
 uint8_t rfm12b_rxBuffer[256];
@@ -956,10 +960,14 @@ void loop(void)
            
       // Send by radio
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+      ++messageCount;
       // DEBUG: message queued, turn on LED
-      if (useLed)
-	digitalWrite(ledPin, HIGH);
-
+      if (useLed) {
+	if (messageCount >=
+	    eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED))
+	  useLed = false;
+	digitalWrite(ledPin, useLed);
+      }
       
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
@@ -1002,9 +1010,14 @@ void loop(void)
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
-      // DEBUG: message queued, turn on LED
-      if (useLed)
-	digitalWrite(ledPin, HIGH);
+      ++messageCount;
+      // Message queued, turn on LED
+      if (useLed) {
+	if (messageCount >=
+	    eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED))
+	  useLed = false;
+	digitalWrite(ledPin, useLed);
+      }
       
     }
     
