@@ -29,14 +29,15 @@
 
 #include <CircularStack.h>
 #include <AwEeprom.h>
+#include <DisableJTAG.h>
+
 #include "CommandHandler.h"
 #include "CommsHandler.h"
 
 #include "xbootapi.h"
-#include "disable_jtag.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.09a";
+  "xrf_rf12-0.10a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -214,7 +215,7 @@ void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 
 void doSleep(uint8_t mode)
 {
-  disable_jtag();
+  disableJTAG();
 
   while (ASSR & _BV(TCR2AUB))
     ; // Wait for any pending updates to have latched
@@ -727,7 +728,8 @@ void setup(void)
 	  << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl;
   console.flush();
 
-  // Try using RFM12B
+  // Select radio; try RFM12B if radioType not set.
+  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_TYPE);
   uint8_t rfm12bBand
     = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_RFM12B_BAND);
   if (rfm12bBand == 0xff)
@@ -737,8 +739,10 @@ void setup(void)
   if (rfm12bChannel == 0xfff)
     rfm12bChannel = 1600;
   // TODO: Fix pin mapping
-  if (rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel)) {
-    disable_jtag();
+  if (radioType == EEPROM_RADIO_TYPE_RFM12B
+      || (radioType == 0xFF
+	  && rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel))) {
+    disableJTAG();
     ledPin = 17; // JTAG TDO
     console << "Using RFM12B, band: " << rfm12bBand
     << ", channel: " << rfm12bChannel << endl;
