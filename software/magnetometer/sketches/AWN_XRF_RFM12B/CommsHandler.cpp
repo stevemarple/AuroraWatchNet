@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <avr/eeprom.h>
-#include <avr/wdt.h>
+//#include <avr/wdt.h>
+
+#include "xbootapi.h"
 
 extern "C" {
 #include "hmac-md5.h"
@@ -110,13 +112,17 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
     if (responseTimeout.isExpired()) {
       Serial.println("Message timeout");
       errno = errorResponseTimeout;
-      
-      if (eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK) &&
-	  messagesWithoutAck >= (uint8_t)eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK)) {
-	//xboot_reset();
-	wdt_enable(WDTO_1S);
-	while (1)
-	  ;
+
+      ++ messagesWithoutAck;
+      uint8_t maxMessagesNoAck
+	= eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
+      if (maxMessagesNoAck && messagesWithoutAck >= maxMessagesNoAck) {
+	Serial.println("Reboot due to timeout"); // DEBUG
+	delay(1000);
+	xboot_reset();
+	//wdt_enable(WDTO_1S);
+	//while (1)
+	//  ;
       }
       
       // Put message back into queue if retries not exceeded
