@@ -44,6 +44,10 @@ uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 
 uint8_t ledPin = LED_BUILTIN;
 
+// Flag to indicate if LED should be switched on. To ensure minimal
+// power consumption it is always switched off.
+bool useLed = false;
+
 Stream& console = Serial;
 XRF_Radio xrf(Serial1);
 uint8_t rfm12b_rxBuffer[256];
@@ -569,7 +573,13 @@ void setup(void)
   console << "Uses RC oscillator: " << isRcOsc
 	  << "\nCKSEL: " << _HEX(lowFuse & ckselMask)
 	  << "\nMCUSR: " << _HEX(mcusrCopy) << endl; 
-    
+
+  // Only use the LED following a reset initiated by user action
+  // (JTAG, external reset and power on). Exclude brown-out and
+  // watchdig resets.
+  if (mcusrCopy & (JTRF | EXTRF | PORF))
+    useLed = true;
+  
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
   useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
   
@@ -947,7 +957,8 @@ void loop(void)
       // Send by radio
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
-      digitalWrite(ledPin, HIGH);
+      if (useLed)
+	digitalWrite(ledPin, HIGH);
 
       
       //if (verbosity)
@@ -992,7 +1003,8 @@ void loop(void)
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       // DEBUG: message queued, turn on LED
-      digitalWrite(ledPin, HIGH);
+      if (useLed)
+	digitalWrite(ledPin, HIGH);
       
     }
     
