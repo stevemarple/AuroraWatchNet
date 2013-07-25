@@ -81,4 +81,8 @@
 // Maximum number of messages without an acknowledgement
 #define EEPROM_MAX_MESSAGES_NO_ACK 0x49
 #define EEPROM_MAX_MESSAGES_NO_ACK_SIZE 1
+
+// Maximum number of messages before turning off the LED
+#define EEPROM_MAX_MESSAGES_LED 0x4a
+#define EEPROM_MAX_MESSAGES_LED_SIZE 1
 #endif

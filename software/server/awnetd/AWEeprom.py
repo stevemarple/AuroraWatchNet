@@ -165,4 +165,11 @@ eeprom = {
         'help': 'Number of messages without receiving an ACK before rebooting',
         'metavar': 'NUMBER'
         },
+    'max_messages_led': {
+        'address': 0x4a,
+        'format': 'B',
+        'default': '20',
+        'help': 'Number of messages before turning off LED',
+        'metavar': 'NUMBER'
+        },
     }
