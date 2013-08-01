@@ -21,11 +21,10 @@ sudo shutdown -r now
 
 \section{Starting and stopping the data recording daemon}
 
-The recording process must be started and stopped as user \rootUser,
-the actual data recording process runs as user \piUser.
-
-\todo[See if it is possible to make the required username part of the
-\code{Cmd} environment]
+Data is recorded on the Raspberry Pi using a \emph{daemon} process,
+which is started and stopped by the Debian init scripts. The scripts
+must be started and stopped as user \rootUser, the actual data
+recording process runs as user \piUser.
 
 To start data recording
 \begin{Cmd}
@@ -42,6 +41,7 @@ It is also possible to check the status of the data recording process
 sudo /etc/init.d/awnetd status
 \end{Cmd}
 
+\label{awnetd-restart}
 The \code{restart} option forcibly stops recording (if running) and
 then starts it again:
 \begin{Cmd}
@@ -55,9 +55,9 @@ streams to a virtual terminal using \code{screen}. It is possible to
 attach to this virtual terminal to monitor the output.
 
 As user \piUser
-\begin{PiCmd}
+\begin{Cmd}
 screen -r awnet
-\end{PiCmd}
+\end{Cmd}
 
 To exit from \code{screen} type \keystroke{CTRL}-\keystroke{a},
 \keystroke{d}. 

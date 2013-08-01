@@ -9,17 +9,18 @@
 The software can be updated easily simply by \emph{pulling} a new
 version from the Github repository. As user \piUser
 \begin{Cmd}
-cd ~/AuroraWatchNet
+cd \mytilde/AuroraWatchNet
 git pull
 \end{Cmd}
 
 \section{Sensor unit firmware updates}
-Ensure the AuroraWatchNet software has been updated
-(section~\ref{awn-software-updates}). Only apply firmware updates if
-they are necessary. The firmware version selected must match the
-hardware, if it does not the sensor unit will be left inoperable. 
-
-To update the firmware
+Only apply firmware updates if they are necessary. The firmware
+version selected must match the hardware, if it does not the sensor
+unit will be left inoperable and recovery will require an in-circuit
+serial programmer. First ensure that the AuroraWatchNet software has
+been updated (section~\ref{awn-software-updates}) and the recording
+process restarted (section~\ref{awnetd-restart}). To update the
+firmware
 \begin{Cmd}
 send_cmd.py --upgradeFirmware=\textsl{name-version}
 \end{Cmd}
