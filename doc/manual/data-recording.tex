@@ -1,0 +1,14 @@
+\chapter{Data recording and transfer}
+
+\section{Introduction}
+
+Data is recorded on the Raspberry Pi using a \emph{daemon}
+process, which is started and stopped by the Debian init scripts. The
+recording process saves the data as daily files, whose locations are
+determined by the \filename{/etc/awnet.ini} configuration file. Data
+transfer is initiated at regular intervals using a \filename{cron} job
+(see section~\ref{sec:cron-configuration}) to call \filename{rsync}.
+
+\section{Controlling the data recording process}
+
+
