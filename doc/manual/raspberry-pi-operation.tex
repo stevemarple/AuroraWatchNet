@@ -1,0 +1,69 @@
+\chapter{Raspberry Pi operation}
+
+\section{Introduction}
+
+For generic operation of the Raspberry Pi (setting the hostname,
+assigning a fixed IP address \etc) please see the Raspbian
+documentation,
+\url{http://www.raspbian.org/RaspbianDocumentation}.
+
+\section{Shutting down the Raspberry Pi}
+
+The Raspberry Pi should be shutdown before power is removed:
+\begin{Cmd}
+sudo shutdown -h now
+\end{Cmd}
+
+To reboot the Raspberry Pi use
+\begin{Cmd}
+sudo shutdown -r now
+\end{Cmd}
+
+\section{Starting and stopping the data recording daemon}
+
+The recording process must be started and stopped as user \rootUser,
+the actual data recording process runs as user \piUser.
+
+\todo[See if it is possible to make the required username part of the
+\code{Cmd} environment]
+
+To start data recording
+\begin{Cmd}
+sudo /etc/init.d/awnetd start
+\end{Cmd}
+
+To stop data recording
+\begin{Cmd}
+sudo /etc/init.d/awnetd stop
+\end{Cmd}
+
+It is also possible to check the status of the data recording process
+\begin{Cmd}
+sudo /etc/init.d/awnetd status
+\end{Cmd}
+
+The \code{restart} option forcibly stops recording (if running) and
+then starts it again:
+\begin{Cmd}
+sudo /etc/init.d/awnetd restart
+\end{Cmd}
+
+\section{Monitoring the data recording process}
+
+The data recording process directs its standard output and error
+streams to a virtual terminal using \code{screen}. It is possible to
+attach to this virtual terminal to monitor the output.
+
+As user \piUser
+\begin{PiCmd}
+screen -r awnet
+\end{PiCmd}
+
+To exit from \code{screen} type \keystroke{CTRL}-\keystroke{a},
+\keystroke{d}. 
+
+\warningbox{Pressing \keystroke{CTRL}-\keystroke{c} will terminate the recording
+  process.}
+
+
+

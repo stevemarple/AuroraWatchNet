@@ -225,6 +225,12 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 %% \DefineVerbatimEnvironment{Cmd}{LinuxCmd}{}
 
 
+\DefineVerbatimEnvironment{RootCmd}{Verbatim}%
+{frame=single,framesep=5mm,label=\rmdefault{As user }\rootUser,commandchars=\\\{\}}
+\DefineVerbatimEnvironment{PiCmd}{Verbatim}%
+{frame=single,framesep=5mm,label=As user \piUser,commandchars=\\\{\}}
+
+
 \newcommand{\todo}[1][]{\fcolorbox{magenta}{MyLightMagenta}{\mbox{\textcolor{black}{TO DO\ifthenelse{\equal{#1}{}}{}{: #1}}}}}
 
 \newcommand{\figscale}{1.0}
@@ -299,6 +305,7 @@ This document is made available under the \href{\ccThreeUrl}{Creative
 \include{raspberry-pi-setup}
 
 \part{Operation}
+\include{raspberry-pi-operation}
 
 \include{updates}
 \end{document}
