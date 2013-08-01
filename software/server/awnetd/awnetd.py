@@ -15,6 +15,7 @@ import tty
 
 import hmac
 import AWPacket
+import AWEeprom
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -317,11 +318,11 @@ def handleControlMessage(buf, pendingTags):
             pendingTags["allSamples"] = struct.pack(AWPacket.tagFormat["allSamples"],
                                                     flag)
             r.append("allSamples:" + str(flag))
+        elif cmd == 'pending_tags':
+            r.append('pending_tags:' + describePendingTags())
         else:
             r.append("ERROR: do not understand '" + str(cmd) + "'")
     print("\n".join(r))
-    #print(repr(pendingTags))
-    
     return r
 
 
@@ -465,7 +466,26 @@ def debugPrint(level, mesg):
     global options
     if options.verbosity >= level:
         print(mesg)
-        
+    
+def describePendingTags():
+    global pendingTags
+    r = []
+    for k in pendingTags.keys():
+        if k == 'eepromContents':
+             address = struct.unpack('!H', pendingTags[k][0:2])[0]
+             addressName = AWEeprom.lookup_address(address)
+             if addressName is None:
+                 #addressName = 'EEPROM ' + hex(address) + ': '
+                 #fmt = 'B' * (len(pendingTags[k]) - 2)
+                 # addressName = 'EEPROM (unknown address ' + hex(address) + ')'
+                 name = k + '(unknown address, ' + hex(address) + ')'
+             else:
+                 name = k + '(' + addressName + ')'
+             r.append(name)
+        else:
+             r.append(k)
+    return ','.join(r)
+
 # ==========================================================================
 
 # Parse command line options
@@ -727,7 +747,8 @@ while running:
                 s = controlSocketConn.recv(1024)
                 if s:
                     controlBuffer += s
-                    handleControlMessage(controlBuffer, pendingTags)
+                    mesg = handleControlMessage(controlBuffer, pendingTags)
+                    fd.send('\n'.join(mesg) + '\n')
                 else:
                     # EOF on control socket connection
                     controlSocketConn.shutdown(socket.SHUT_RDWR)
