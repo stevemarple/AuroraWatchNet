@@ -23,8 +23,14 @@ def safe_eval(s):
     return eval(s, {'__builtins__': None}, {})
 
 
+def lookup_address(address):
+    for k in eeprom.keys():
+        if eeprom[k]['address'] == address:
+            return k
+    return None
+
 # EEPROM address details. The key is derived from the C language name
-# and becomes the command line option when genreating an EEPROM image
+# and becomes the command line option when generating an EEPROM image
 # file. The value is a dict with the following entries:
 #    address: The first address in EEPROM.
 #    format: struct.pack format string
