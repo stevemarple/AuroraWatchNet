@@ -1,7 +1,5 @@
-#!/usr/bin/env python
 #!/usr/bin/python
 
-# from optparse import OptionParser
 import argparse
 import os
 import random
