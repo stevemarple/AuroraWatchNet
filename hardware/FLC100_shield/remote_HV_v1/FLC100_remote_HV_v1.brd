@@ -566,8 +566,8 @@ design rules under a new name.</description>
 <attribute name="VALUE" x="34.925" y="36.195" size="1.016" layer="27"/>
 </element>
 <element name="C4" library="SparkFun" package="CPOL-RADIAL-10UF-25V" value="4u7" x="30.48" y="17.78" smashed="yes">
-<attribute name="NAME" x="33.3375" y="21.9075" size="1.016" layer="25" ratio="10"/>
-<attribute name="VALUE" x="33.3375" y="20.32" size="1.016" layer="27"/>
+<attribute name="NAME" x="33.3375" y="16.8275" size="1.016" layer="25" ratio="10"/>
+<attribute name="VALUE" x="33.3375" y="15.24" size="1.016" layer="27"/>
 </element>
 <element name="JP6" library="SteveMarple" package="1X06_FEMALE" value="B-MAG" x="3.81" y="26.035" smashed="yes" rot="R90">
 <attribute name="NAME" x="6.985" y="26.035" size="1.016" layer="25" ratio="10" rot="R90" display="off"/>
