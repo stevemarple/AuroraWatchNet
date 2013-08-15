@@ -23,3 +23,7 @@ images/FLC100_shield_v1_0_sch.pdf : ../../hardware/FLC100_shield/shield_v1.0/FLC
 
 images/Calunium_v2_1_sch.pdf : ../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch.pdf
 	$(CP) $< $@
+
+images/system-overview.pdf : images/src/system-overview.odg
+	soffice --headless --draw --convert-to pdf --outdir images images/src/system-overview.odg
+
