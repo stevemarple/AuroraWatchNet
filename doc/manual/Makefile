@@ -16,7 +16,8 @@ clean:
 
 .PHONY : images
 images : images/FLC100_shield_v1_0_sch.pdf \
-	images/Calunium_v2_1_sch.pdf	
+	images/Calunium_v2_1_sch.pdf \
+	images/system-overview.pdf
 
 images/FLC100_shield_v1_0_sch.pdf : ../../hardware/FLC100_shield/shield_v1.0/FLC100_shield_v1.0_sch.pdf
 	$(CP) $< $@
