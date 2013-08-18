@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import matplotlib as mpl
 import os
 from numpy.f2py.auxfuncs import throw_error
@@ -58,10 +59,17 @@ def labelPlot(ax, starttime, endtime, units):
     # ax.set(xlim=[starttime, endtime])
     print('starttime: ' + str(starttime))
     
-    step = 3 * 3600 / multiplier
+    # step = 3 * 3600 / multiplier
+    step = 4 * 3600 / multiplier
     xticks = np.arange(starttime, endtime+step, step)
-    xticklabels = ['00', '03', '06', '09', '12', '15', '18', '21', '00']
+    # xticklabels = ['00', '03', '06', '09', '12', '15', '18', '21', '00']
+    xticklabels = ['00', '04', '08', '12', '16', '20', '00']
     print(xticks)
+    minorLocator = mpl.ticker.AutoMinorLocator(n=4)
+    ax.xaxis.set_minor_locator(minorLocator)
+    mpl.pyplot.grid(True, axes=ax, which='major', linestyle=':')
+    mpl.pyplot.grid(True, axes=ax, which='minor', linestyle=':', 
+                    color=[0.7, 0.7, 0.7])
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlabel('Time (UT)')
@@ -70,6 +78,22 @@ def labelPlot(ax, starttime, endtime, units):
     ax.set_title('Cloud detection')
     ax.tick_params(direction='out')
 
+
+def calc_dew_point(T, RH, a=6.1121, b=18.678, c=257.14, d=234.5):
+    # Calculate dew point using Arden-Buck equation
+
+    P_sat_mod = a * np.exp((b - (T/a)) * (T / (c+T)))
+
+    gamma_mod = np.log((RH/100) * np.exp( (b - (T/d)) * (T / (c+T))))
+
+    return (c * gamma_mod) / (b - gamma_mod)
+
+def calc_cloud_temp_height(T, T_dp):
+    # Difference between dry adiabatic lapse rate and dew lapse rate
+    # is 8K per 1000 metres
+    height = 125 * (T - T_dp) 
+    temp = T - (0.0098 * height)
+    return temp, height
 # ==========================================================================
 
 # Parse command line options
@@ -113,7 +137,7 @@ starttime = (td.days * 86400) + td.seconds + float(td.microseconds)*1e-6
 endtime = starttime + 86400
 
 
-fstr = "/data/aurorawatch/net/test1/%Y/%m/test1_%Y%m%d_cloud.txt"
+fstr = "/data/aurorawatch/net/test2/%Y/%m/test2_%Y%m%d_cloud.txt"
 filename = date.strftime(fstr)
 print("loading " + filename)
 
@@ -134,7 +158,7 @@ elif 0:
                        converters={'timestamp': fromtimestamp})
 else:
     data = pd.read_csv(filename, sep=None, 
-                       names=['timestamp', 'ambient', 'sky'])
+                       names=['timestamp', 'detector', 'sky', 'ambient', 'RH'])
 
 #data.set_index(pd.DatetimeIndex(data['timestamp']), inplace=True)
 #data.set_index(np.int64(data['timestamp'] * 1000000L), inplace=True)
@@ -144,6 +168,12 @@ data.set_index((data['timestamp'] + 0.5).astype('int'), inplace=True)
 
 data.sort('timestamp', inplace=True)
 data.drop_duplicates(cols='timestamp', inplace=True)
+
+
+data.ambient[data.ambient > 50] = np.nan
+data.ambient[data.ambient < -40] = np.nan
+data.sky[data.sky > 50] = np.nan
+data.sky[data.sky < -40] = np.nan
 
 
 # print(data['timestamp'].values)
@@ -158,6 +188,10 @@ data.drop_duplicates(cols='timestamp', inplace=True)
 #data.set_index(pd.DatetimeIndex(samt), inplace=True)
 #data.set_index(samt, inplace=True)
 data['tempdiff'] = data['ambient'] - data['sky']
+data['dew_point'] = calc_dew_point(data['ambient'], data['RH'])
+data['cloudtemp'], data['cloudbase'] = \
+    calc_cloud_temp_height(data['ambient'], data['dew_point'])
+
 # print(data.index.dtype)
 
 # print(data)
@@ -178,7 +212,10 @@ print(np.diff(ax.get_xlim()))
 
 data['ambient'].plot(ax=ax, color=[0, 0.6, 0])
 data['sky'].plot(ax=ax, color='b')
+data['detector'].plot(ax=ax, color=[0.5, 0.5, 0.5])
 data['tempdiff'].plot(ax=ax, color='r')
+data['dew_point'].plot(ax=ax, color='cyan')
+data['cloudtemp'].plot(ax=ax, color='k')
 
 print("MIN X: ")
 print(data.index.values.min())
@@ -186,11 +223,12 @@ print("MAX X: ")
 print(data.index.values.max())
 
 
-lw = 0.5;
+lw = 0.1;
 lines = ax.get_lines()
 plt.setp(lines, 'linewidth', lw, 'antialiased', False)
 
-lh = ax.legend(lines, ['Ambient', 'Sky', 'Ambient - sky'],
+lh = ax.legend(lines, ['Ambient', 'Sky', 'Detector', 'Ambient - sky',
+                       'Dew point', 'LCL'],
                fancybox=True, loc='best')
 lh.get_frame().set_alpha(0.7)
 plt.setp(lh.get_lines(), 'antialiased', False)

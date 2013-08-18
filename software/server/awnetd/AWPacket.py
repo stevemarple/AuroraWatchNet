@@ -254,6 +254,12 @@ def isSignedMessage(buf):
         return None
     return buf[flagsOffset] & (1 << flagsSignedMessageBit)
     
+def is_response_message(buf):
+    global flagsResponseBit
+    if len(buf) <= flagsOffset:
+        return None
+    return buf[flagsOffset] & (1 << flagsResponseBit)
+
 def getSequenceId(buf):
     if not isSignedMessage(buf):
         return None
@@ -467,6 +473,17 @@ def printBuffer(buf, length=None):
         length = len(buf)
     print(" ".join(map(hex, buf[:length])))
     
+def header_to_str_array(buf):
+    t = getTimestamp(buf)
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    return ['Magic: ' + ''.join(map(chr, getMagic(buf))),
+            'Version: ' + str(getVersion(buf)),
+            'Flags: ' + hex(getFlags(buf)),
+            'Packet length: ' + str(getPacketLength(buf)),
+            'Site ID: ' + str(getSiteId(buf)),
+            ('Timestamp: ' + str(t[0]) + ',' + str(t[1]) 
+             + ' (' + dt.isoformat() + ')')]
+
 def printHeader(buf):
     print("Magic: " + "".join(map(chr, getMagic(buf))))
     print("Version: " + str(getVersion(buf)))
@@ -522,11 +539,29 @@ def printSignature(buf):
     else:
         print("Signature: none")
         
-def printPacket(buf):
+def printPacket(buf, message_time=None):
+    
     try:
-        printHeader(buf)
+        if is_response_message(buf):
+            separator = '------------- Response'
+        else:
+            separator = '============= Message'
+    except:
+        separator = '============= Invalid Message' 
+
+    if message_time is not None:
+        separator += ' received ' + str(time.time())
+
+    s = [separator]
+    try:
+        # printHeader(buf)
+        s.extend(header_to_str_array(buf))
     except Exception as e:
-        print("Error in header: " + str(e))
+        # print("Error in header: " + str(e))
+        s.append('Error in header: ' + str(e))
+
+    print('\n'.join(s))
+
     try:
         printTags(buf)
     except Exception as e:

@@ -502,7 +502,7 @@ parser.add_argument('--no-acknowledge', action='store_false',
                     dest='acknowledge',
                     help="Don't transmit acknowledgement")
 parser.add_argument('--read-only', action='store_true',
-                    help='Open device file read-only (implies --no-acknowledge')
+                    help='Open device file read-only (implies --no-acknowledge)')
 parser.add_argument('--device', metavar='FILE', help='Device file')
 parser.add_argument('-v', '--verbose', dest='verbosity', action='count', 
                      default=0, help='Increase verbosity')
