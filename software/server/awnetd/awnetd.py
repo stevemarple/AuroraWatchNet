@@ -652,11 +652,15 @@ while running:
             buf.append(s)
             message = AWPacket.validatePacket(buf, hmacKey)
             if message is not None:
+                if device.isatty():
+                    message_time = time.time()
+                else:
+                    message_time = None
                 if args.verbosity:
-                    print('=============')
-                    if device.isatty():
-                        print('Valid message received ' + str(time.time()))
-                    AWPacket.printPacket(message)
+                    # print('=============')
+                    # if device.isatty():
+                    #     print('Valid message received ' + str(time.time()))
+                    AWPacket.printPacket(message, message_time=message_time)
                 
                 timestamp = AWPacket.getTimestamp(message)
                 messageTags = AWPacket.parsePacket(message)
@@ -699,14 +703,19 @@ while running:
                     fd.write(response)
 
                     if args.verbosity:   
-                        print('Response: ------')
-                    AWPacket.printPacket(response)
+                        # print('Response: ------')
+                        AWPacket.printPacket(response, message_time=message_time)
                     
                 if config.has_option('awpacket', 'filename'):
+                    # Save the message and response
                     writeAWPacketToFile(timestamp, message, 
                                         config.get('awpacket', 'filename'))
-                
-                if config.has_option('aurorawatchrealtime', 'filename'):
+                    if response is not None:
+                        writeAWPacketToFile(timestamp, response, 
+                                            config.get('awpacket', 'filename'))
+
+                if (config.has_option('aurorawatchrealtime', 'filename') and
+                    not AWPacket.is_response_message(message)):
                     data = { }
                     for tag in ['magDataX', 'magDataY', 'magDataZ']:
                         if tag in messageTags:
@@ -715,7 +724,8 @@ while running:
                             data[tag] = comp[1];
                     writeAuroraWatchRealTimeData(timestamp, data)
                 
-                if config.has_option('cloud', 'filename'):
+                if (config.has_option('cloud', 'filename') and
+                    AWPacket.is_response_message(message)):
                     data = {}
                     for tag in ['cloudTempAmbient', 'cloudTempObject1',
                                 'cloudTempObject2', 
@@ -724,7 +734,8 @@ while running:
                             data[tag] = AWPacket.decodeCloudTemp(tag, str(messageTags[tag][0]))
                     writeCloudData(timestamp, data)
                     
-                writeAuroraWatchNetTextData(timestamp, messageTags)
+                if (not AWPacket.is_response_message(message)):
+                    writeAuroraWatchNetTextData(timestamp, messageTags)
                         
             else:
                 response = None
