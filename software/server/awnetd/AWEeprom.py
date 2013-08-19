@@ -178,4 +178,11 @@ eeprom = {
         'help': 'Number of messages before turning off LED',
         'metavar': 'NUMBER'
         },
+    'mcp7941x_cal': {
+        'address': 0x4b,
+        'format': 'b',
+        'default': 0,
+        'help': 'MCP7941x calibration value',
+        'metavar': 'NUMBER'
+        },
     }

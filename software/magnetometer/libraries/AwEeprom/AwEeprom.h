@@ -85,4 +85,9 @@
 // Maximum number of messages before turning off the LED
 #define EEPROM_MAX_MESSAGES_LED 0x4a
 #define EEPROM_MAX_MESSAGES_LED_SIZE 1
+
+// MCP7941x calibration value
+#define EEPROM_MCP7941X_CAL 0x4b
+#define EEPROM_MCP7941X_CAL_SIZE 1
+
 #endif
