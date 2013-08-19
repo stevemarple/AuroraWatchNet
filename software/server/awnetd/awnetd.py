@@ -725,7 +725,7 @@ while running:
                     writeAuroraWatchRealTimeData(timestamp, data)
                 
                 if (config.has_option('cloud', 'filename') and
-                    AWPacket.is_response_message(message)):
+                    not AWPacket.is_response_message(message)):
                     data = {}
                     for tag in ['cloudTempAmbient', 'cloudTempObject1',
                                 'cloudTempObject2', 
