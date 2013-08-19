@@ -37,7 +37,7 @@
 #include "xbootapi.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_rf12-0.10a";
+  "xrf_rf12-0.11a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -686,6 +686,9 @@ void setup(void)
   // but needs to be enabled on the MCP7941x.
   rtc.enableBatteryBackup();
 
+  // Set the calibration register (ignored if not MCP7941x).
+  rtc.setCalibration(eeprom_read_byte((uint8_t*)EEPROM_MCP7941X_CAL));
+  
   // Ensure the oscillator is running.
   rtc.startClock();
 
