@@ -29,12 +29,12 @@ def read_config(config_file):
 # Valid commands and information about each
 # TODO: use a standard naming convention
 aw_cmds = {
-    'samplingInterval' : {
+    'sampling_interval' : {
         # 'format': 'f',
         'help': 'Sampling interval',
         'metavar': 'SECONDS',
         },
-    'upgradeFirmware': {
+    'upgrade_firmware': {
         'help': 'Upgrade firmware',
         'metavar': 'FIRMWARE_VERSION',
         },
@@ -43,9 +43,10 @@ aw_cmds = {
         'metavar': 'TRUE',
         'choices': ['TRUE'],
         },
-    'test_arg': {
-        'help': 'ffffff',
-        },
+    # 'pending_commands': {
+    #     'help': 'Display list of pending commands',
+    #     'action': 'store_true',
+    #     },
     }
 
 # Add options for EEPROM settings, prefix with 'eeprom_'
@@ -65,11 +66,16 @@ parser.add_argument('-v', '--verbose',
                     help='Be verbose')
 
 for k in sorted(aw_cmds.keys()):
-    parser.add_argument('--' + k.replace('_', '-'), 
-                        type=aw_cmds[k].get('type'),
-                        choices=aw_cmds[k].get('choices'),
-                        help=aw_cmds[k].get('help'),
-                        metavar=aw_cmds[k].get('metavar'))
+    if aw_cmds[k].has_key('action'):
+        parser.add_argument('--' + k.replace('_', '-'),
+                            action=aw_cmds[k].get('action'),
+                            help=aw_cmds[k].get('help'))
+    else:
+        parser.add_argument('--' + k.replace('_', '-'),
+                            type=aw_cmds[k].get('type'),
+                            choices=aw_cmds[k].get('choices'),
+                            help=aw_cmds[k].get('help'),
+                            metavar=aw_cmds[k].get('metavar'))
 
 # Process the command line arguments
 args = parser.parse_args()
@@ -88,7 +94,7 @@ for k in aw_cmds:
 
     m = re.match('^eeprom_(.*)', k)
     if m:
-        cmd['name'] = 'eepromWrite'
+        cmd['name'] = 'write_eeprom'
         eeprom_setting = m.group(1)
         # Parse struct format string into order, quantity, type
         pfmt = AWEeprom.parse_unpack_format(eeprom[eeprom_setting]['format'])

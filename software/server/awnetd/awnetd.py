@@ -14,7 +14,8 @@ import time
 import tty
 
 import hmac
-import AWPacket
+# import AWPacket
+import AW_Message
 import AWEeprom
 
 if sys.version_info[0] >= 3:
@@ -24,13 +25,13 @@ else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
 
-import AWPacket
+# import AWPacket
 
 
 
-def readConfig(config_file):
+def read_config_file(config_file):
     global config
-    global siteIds
+    global site_ids
     config = SafeConfigParser()
     
     config.add_section('daemon')
@@ -59,55 +60,55 @@ def readConfig(config_file):
         print('## Config files read: ' + ', '.join(config_files_read))
 
     if config.has_option('s', 'siteids'):
-        siteIds = config.get('s', 'siteids').split()
+        site_ids = config.get('s', 'siteids').split()
     else:
-        siteIds = []
+        site_ids = []
 
 
-def getFileforTime(timestamp, fileObj, fstr, buffering=-1):
+def get_file_for_time(timestamp, file_obj, fstr, buffering=-1):
     seconds = timestamp[0] + timestamp[1]/32768.0
-    tmpName = time.strftime(fstr, time.gmtime(seconds))
-    if fileObj is not None and tmpName != fileObj.name:
+    tmp_name = time.strftime(fstr, time.gmtime(seconds))
+    if file_obj is not None and tmp_name != file_obj.name:
         # Filename has changed
-        fileObj.close()
-        fileObj = None
+        file_obj.close()
+        file_obj = None
         
-    if fileObj is None:
+    if file_obj is None:
         # File wasn't open or filename changed
-        p = os.path.dirname(tmpName)
+        p = os.path.dirname(tmp_name)
         if not os.path.isdir(p):
             os.makedirs(p)
 
-        fileObj = open(tmpName, 'a+', buffering)
+        file_obj = open(tmp_name, 'a+', buffering)
     
-    return fileObj
+    return file_obj
 
-awpacketFile = None
-def writeAWPacketToFile(timestamp, message, fstr):
-    global awpacketFile        
+aw_message_file = None
+def write_message_to_file(timestamp, message, fstr):
+    global aw_message_file        
     try:
-        awpacketFile = getFileforTime(timestamp, awpacketFile, fstr)
-        awpacketFile.write(message);
-        awpacketFile.flush()
+        aw_message_file = get_file_for_time(timestamp, aw_message_file, fstr)
+        aw_message_file.write(message);
+        aw_message_file.flush()
     except Exception as e:
         print('Could not save AWPacket: ' + str(e))
     
 # AuroraWatch realtime file
-realtimeFile = None
-def writeAuroraWatchRealTimeData(timestamp, data):
-    global realtimeFile
+realtime_file = None
+def write_aurorawatch_realtime_data(timestamp, data):
+    global realtime_file
     seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
-    tmpName = time.strftime(config.get('aurorawatchrealtime', 
+    tmp_name = time.strftime(config.get('aurorawatchrealtime', 
                                        'filename'),
                             time.gmtime(seconds))
-    if realtimeFile is not None and tmpName != realtimeFile.name:
+    if realtime_file is not None and tmp_name != realtime_file.name:
         # Filename has changed
-        realtimeFile.close()
-        realtimeFile = None
+        realtime_file.close()
+        realtime_file = None
             
-    if realtimeFile is None:
+    if realtime_file is None:
         # File wasn't open or filename changed
-        p = os.path.dirname(tmpName)
+        p = os.path.dirname(tmp_name)
         if not os.path.isdir(p):
             try:
                 os.makedirs(p)
@@ -116,39 +117,39 @@ def writeAuroraWatchRealTimeData(timestamp, data):
                 return
         
         try:
-            realtimeFile = open(tmpName, 'a+', 1)
+            realtime_file = open(tmp_name, 'a+', 1)
         except Exception as e:
             print('Exception was ' + str(e))
-            realtimeFile = None
+            realtime_file = None
     
-    if realtimeFile is not None:
-        realtimeFile.write('{:05d}'.format(seconds % 86400))
-        for tag in ['magDataX', 'magDataY', 'magDataZ']:
-            if tag in data:
-                realtimeFile.write(' {:.1f}'.format(1e9 * AWPacket.adcCountsToTesla(data[tag])))
+    if realtime_file is not None:
+        realtime_file.write('{:05d}'.format(seconds % 86400))
+        for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
+            if tag_name in data:
+                realtime_file.write(' {:.1f}'.format(1e9 * AW_Message.adc_counts_to_tesla(data[tag_name])))
             else:
-                realtimeFile.write(' nan')
-        realtimeFile.write('\n')
+                realtime_file.write(' nan')
+        realtime_file.write('\n')
 
 # File object to which AuroraWatchNet text data format files are written    
-awnetTextFile = None
-def writeAuroraWatchNetTextData(timestamp, messageTags):
+awnet_text_file = None
+def write_aurorawatchnet_text_data(timestamp, message_tags):
     if not config.has_option('awnettextdata', 'filename'):
         return
     
-    global awnetTextFile
-    unixTime = timestamp[0] + timestamp[1]/32768.0
+    global awnet_text_file
+    unix_time = timestamp[0] + timestamp[1]/32768.0
     
-    tmpName = time.strftime(config.get('awnettextdata', 'filename'),
-                            time.gmtime(unixTime))
-    if awnetTextFile is not None and tmpName != awnetTextFile.name:
+    tmp_name = time.strftime(config.get('awnettextdata', 'filename'),
+                            time.gmtime(unix_time))
+    if awnet_text_file is not None and tmp_name != awnet_text_file.name:
         # Filename has changed
-        awnetTextFile.close()
-        awnetTextFile = None
+        awnet_text_file.close()
+        awnet_text_file = None
             
-    if awnetTextFile is None:
+    if awnet_text_file is None:
         # File wasn't open or filename changed
-        p = os.path.dirname(tmpName)
+        p = os.path.dirname(tmp_name)
         if not os.path.isdir(p):
             try:
                 os.makedirs(p)
@@ -157,59 +158,60 @@ def writeAuroraWatchNetTextData(timestamp, messageTags):
                 return
         
         try:
-            awnetTextFile = open(tmpName, 'a+', 1)
+            awnet_text_file = open(tmp_name, 'a+', 1)
         except Exception as e:
             print('Exception was ' + str(e))
-            awnetTextFile = None
+            awnet_text_file = None
     
-    if awnetTextFile is not None:
-        # data = [unixTime]
+    if awnet_text_file is not None:
         data = [ ]
-        for tag in ['magDataX', 'magDataY', 'magDataZ']:
-            if tag in messageTags:
-                comp = struct.unpack(AWPacket.tagFormat[tag], 
-                                     str(messageTags[tag][0]))
-                data.append(1e9 * AWPacket.adcCountsToTesla(comp[1] + 0.0))
+        for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
+            if tag_name in message_tags:
+                comp = struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                                     str(message_tags[tag_name][0]))
+                data.append(1e9 * AW_Message.adc_counts_to_tesla(comp[1] + 0.0))
             else:
                 data.append(float('NaN'));
         
-        for tag in ['sensorTemperature', 'MCUTemperature']:
-            if tag in messageTags:
-                data.append(struct.unpack(AWPacket.tagFormat[tag], 
-                                     str(messageTags[tag][0]))[0] / 100.0)
+        for tag_name in ['magnetometer_temperature', 'system_temperature']:
+            if tag_name in message_tags:
+                data.append(struct.unpack(AW_Message.tag_data[tag_name] \
+                                              ['format'], 
+                                          str(message_tags[tag_name][0]))[0] / 
+                            100.0)
             else:
                 data.append(float('NaN'))
 
-        if 'batteryVoltage' in messageTags:
-            data.append(struct.unpack(AWPacket.tagFormat['batteryVoltage'], 
-                                 str(messageTags['batteryVoltage'][0]))[0] 
+        if 'battery_voltage' in message_tags:
+            data.append(struct.unpack(AW_Message.tag_data['battery_voltage']['format'], 
+                                      str(message_tags['battery_voltage'][0]))[0] 
                         / 1000.0)
         else:
             data.append(float('NaN'))
         
-        awnetTextFile.write(str(timestamp[0]))
+        awnet_text_file.write(str(timestamp[0]))
         # strip zero before decimal point 
-        awnetTextFile.write(str(timestamp[1]/32768.0).lstrip('0'))
-        awnetTextFile.write('\t')
-        awnetTextFile.write('\t'.join(map(str, data)))
-        awnetTextFile.write('\n')
+        awnet_text_file.write(str(timestamp[1]/32768.0).lstrip('0'))
+        awnet_text_file.write('\t')
+        awnet_text_file.write('\t'.join(map(str, data)))
+        awnet_text_file.write('\n')
 
 # AuroraWatch realtime file
-cloudFile = None
-def writeCloudData(timestamp, data):
-    global cloudFile
+cloud_file = None
+def write_cloud_data(timestamp, data):
+    global cloud_file
     global config
     seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
-    tmpName = time.strftime(config.get('cloud', 'filename'),
+    tmp_name = time.strftime(config.get('cloud', 'filename'),
                             time.gmtime(seconds))
-    if cloudFile is not None and tmpName != cloudFile.name:
+    if cloud_file is not None and tmp_name != cloud_file.name:
         # Filename has changed
-        cloudFile.close()
-        cloudFile = None
+        cloud_file.close()
+        cloud_file = None
             
-    if cloudFile is None:
+    if cloud_file is None:
         # File wasn't open or filename changed
-        p = os.path.dirname(tmpName)
+        p = os.path.dirname(tmp_name)
         if not os.path.isdir(p):
             try:
                 os.makedirs(p)
@@ -218,27 +220,28 @@ def writeCloudData(timestamp, data):
                 return
         
         try:
-            cloudFile = open(tmpName, 'a+', 1)
+            cloud_file = open(tmp_name, 'a+', 1)
         except Exception as e:
             print('Exception was ' + str(e))
-            cloudFile = None
+            cloud_file = None
         
-    if cloudFile is not None:
-        tags = ['cloudTempAmbient', 'cloudTempObject1']
-        if config.getboolean('cloud', 'dualSensor'):
-            tags.append('cloudTempObject2')
-        tags.extend(['ambientTemp', 'relHumidity'])
-        cloudFile.write('{:.4f}'.format(seconds))
-        for tag in tags:
-            if tag in data:
-                cloudFile.write(' {:.2f}'.format(data[tag]))
+    if cloud_file is not None:
+        tag_names = ['cloud_ambient_temperature', 
+                     'cloud_object1_temperature']
+        if config.getboolean('cloud', 'dual_sensor'):
+            tags.append('cloud_object2_temperature')
+        tag_names.extend(['ambient_temperature', 'relative_humidity'])
+        cloud_file.write('{:.4f}'.format(seconds))
+        for tag_name in tag_names:
+            if tag_name in data:
+                cloud_file.write(' {:.2f}'.format(data[tag_name]))
             else:
-                cloudFile.write(' nan')
-        cloudFile.write('\n')
+                cloud_file.write(' nan')
+        cloud_file.write('\n')
     
     
 # Process any CR or LF terminated messages which are in the buffer    
-def handleControlMessage(buf, pendingTags):
+def handle_control_message(buf, pending_tags):
     r = []
     while len(buf):
         cmds = buf.splitlines()
@@ -254,183 +257,189 @@ def handleControlMessage(buf, pendingTags):
         if cmd == '' or cmd.startswith('#'):
             continue
         
-        if cmd.startswith('samplingInterval='):
-            val = float(cmd.replace('samplingInterval=', '', 1)) * 16
-            # pendingTags['samplingInterval'] = struct.pack('!L', val)
-            pendingTags['samplingInterval'] = \
-                struct.pack(AWPacket.tagFormat['samplingInterval'], val)
-            r.append('samplingInterval:' + str(val / 16))
+        if cmd.startswith('sampling_interval='):
+            val = float(cmd.replace('sampling_interval=', '', 1)) * 16
+            # pending_tags['sampling_interval'] = struct.pack('!L', val)
+            pending_tags['sampling_interval'] = \
+                struct.pack(AW_Message.tag_data['sampling_interval']['format'],
+                            val)
+            r.append('sampling_interval:' + str(val / 16))
         
-        elif cmd.startswith('upgradeFirmware='):
-            version = str(cmd.replace('upgradeFirmware=', '', 1))
+        elif cmd.startswith('upgrade_firmware='):
+            version = str(cmd.replace('upgrade_firmware=', '', 1))
             try:
-                handleCmdUpgradeFirmware(version)
-                r.append('upgradeFirmware:' + version)
+                handle_cmd_upgrade_firmware(version)
+                r.append('upgrade_firmware:' + version)
             except Exception as e:
                 r.append('ERROR: ' + str(e))
                     
         elif cmd == 'reboot=TRUE':
-            pendingTags['reboot'] = [];
+            pending_tags['reboot'] = [];
             r.append('reboot:TRUE')
         
-        elif cmd.startswith('eepromRead='):
-            if 'eepromContents' in pendingTags:
+        elif cmd.startswith('read_eeprom='):
+            if 'eeprom_contents' in pending_tags:
                 # The EEPROM write and EEPROM read both result in the same 
                 # tag being returned; allow only one at once.
                 r.append('ERROR: EEPROM write pending, cannot read')
             else:
-                edata = str(cmd.replace('eepromRead=', '', 1)).split(',')
+                edata = str(cmd.replace('read_eeprom=', '', 1)).split(',')
                 address = int(edata[0], 0)
                 sz = int(edata[1], 0)
                 if sz < 1:
                     r.append('ERROR: bad value for size')
                 else:
-                    pendingTags['readEeprom'] = struct.pack(AWPacket.tagFormat['readEeprom'],
-                                                            address, sz)
-                    r.append('eepromRead:' + str(address) + ',' + str(sz))
+                    pending_tags['read_eeprom'] = struct\
+                        .pack(AW_Message.tag_data['read_eeprom']['format'],
+                              address, sz)
+                    r.append('read_eeprom:' + str(address) + ',' + str(sz))
         
-        elif cmd.startswith('eepromWrite='):
-            if 'eepromRead' in pendingTags:
+        elif cmd.startswith('write_eeprom='):
+            if 'read_eeprom' in pending_tags:
                 # The EEPROM write and EEPROM read both result in the same 
                 # tag being returned; allow only one at once.
                 r.append('ERROR: EEPROM read pending, cannot write')
             else:
                 edata = [ int(x, 0) for x in 
-                         str(cmd.replace('eepromWrite=', '', 1)).split(',') ]
+                         str(cmd.replace('write_eeprom=', '', 1)).split(',') ]
                 if len(edata) > 1:
-                    pendingTags['eepromContents'] = \
+                    pending_tags['eeprom_contents'] = \
                         struct.pack('!H' + str(len(edata)-1) + 'B',
                                     *edata)
                                     #edata[0], len(edata)-1, *edata[1:])
-                    r.append('eepromWrite:' + ','.join(map(str, edata)))                  
+                    r.append('write_eeprom:' + ','.join(map(str, edata)))                  
                 else:
                     r.append('ERROR: no data to send')
         
-        elif cmd.startswith('numSamples='):
-            numCtrl = map(int, 
-                          str(cmd.replace('numSamples=', '', 1)).split(','))
-            pendingTags['numSamples'] = struct.pack(AWPacket.tagFormat['numSamples'], 
-                                                    numCtrl[0], numCtrl[1])
-            r.append('numSamples:' + str(numCtrl[0]) + ',' + str(numCtrl[1]))
+        elif cmd.startswith('num_samples='):
+            num_ctrl = map(int, 
+                          str(cmd.replace('num_samples=', '', 1)).split(','))
+            pending_tags['num_samples'] = \
+                struct.pack(AW_Message.tag_data['num_samples']['format'], 
+                            num_ctrl[0], num_ctrl[1])
+            r.append('num_samples:' + str(num_ctrl[0]) + ',' + str(num_ctrl[1]))
         
-        elif cmd.startswith('allSamples='):
-            flag = (int(cmd.replace('allSamples=', '', 1)) != 0)
-            pendingTags['allSamples'] = struct.pack(AWPacket.tagFormat['allSamples'],
-                                                    flag)
-            r.append('allSamples:' + str(flag))
+        elif cmd.startswith('all_samples='):
+            flag = (int(cmd.replace('all_samples=', '', 1)) != 0)
+            pending_tags['all_samples'] = \
+                struct.pack(AW_Message.tag_data['all_samples']['format'],
+                            flag)
+            r.append('all_samples:' + str(flag))
         elif cmd == 'pending_tags':
-            r.append('pending_tags:' + describePendingTags())
+            r.append('pending_tags:' + describe_pending_tags())
         else:
             r.append('ERROR: do not understand '' + str(cmd) + ''')
     print('\n'.join(r))
     return r
 
 
-def getFirmwareDetails(version):
+def get_firmware_details(version):
     filename = os.path.join(config.get('firmware', 'path'),
                             version + '.bin')
-    crcFilename = os.path.join(config.get('firmware', 'path'),
+    crc_filename = os.path.join(config.get('firmware', 'path'),
                             version + '.crc')
 
     if not os.path.exists(filename):
         raise Exception('firmware file ' + filename + ' does not exist')
-    if not os.path.exists(crcFilename):
-        raise Exception('CRC file ' + crcFilename + ' does not exist')
-    firmwareFile = open(filename)
-    firmware = firmwareFile.read();
-    firmwareFile.close()
+    if not os.path.exists(crc_filename):
+        raise Exception('CRC file ' + crc_filename + ' does not exist')
+    firmware_file = open(filename)
+    firmware = firmware_file.read();
+    firmware_file.close()
     
-    if len(firmware) % AWPacket.firmwareBlockSize != 0:
+    if len(firmware) % AW_Message.firmware_block_size != 0:
         raise Exception('firmware file ' + filename + ' not a multiple  of '
-                        + str(AWPacket.firmwareBlockSize) + ' bytes')
+                        + str(AW_Message.firmware_block_size) + ' bytes')
 
     # Be paranoid about the CRC file
-    crcFile = open(crcFilename)
-    crcContents = crcFile.read()
-    crcFile.close()
-    crcLines = crcContents.splitlines()
-    if len(crcLines) != 1:
-        raise Exception('Bad file format for ' + crcFilename)
-    crcCols = crcLines[0].split()
-    statedCrcHex = crcCols[0]
-    statedVersion = crcCols[1]
-    statedCrc = int(struct.unpack('>H', binascii.unhexlify(statedCrcHex))[0])
+    crc_file = open(crc_filename)
+    crc_contents = crc_file.read()
+    crc_file.close()
+    crc_lines = crc_contents.splitlines()
+    if len(crc_lines) != 1:
+        raise Exception('Bad file format for ' + crc_filename)
+    crc_cols = crc_lines[0].split()
+    stated_crc_hex = crc_cols[0]
+    stated_version = crc_cols[1]
+    stated_crc = int(struct.unpack('>H', binascii.unhexlify(stated_crc_hex))[0])
     
     # The CRC check must be computed over the entire temporary 
     # application section; extend as necessary
-    tempAppSize = (131072 - 4096) / 2;
-    if len(firmware) < tempAppSize:
-        padding = chr(0xFF) * (tempAppSize - len(firmware))
-        paddedFirmware = firmware + padding
-    elif len(firmware) > tempAppSize:
+    temp_app_size = (131072 - 4096) / 2;
+    if len(firmware) < temp_app_size:
+        padding = chr(0xFF) * (temp_app_size - len(firmware))
+        padded_firmware = firmware + padding
+    elif len(firmware) > temp_app_size:
         raise Exception('Firmware image too large (' + str(len(firmware)) + ' bytes)')
     else:
-        paddedFirmware = firmware
+        padded_firmware = firmware
     
-    actualCrc = AWPacket.crc16(paddedFirmware)
-    if actualCrc != statedCrc:
-        raise Exception('Firmware CRC does not match with ' + crcFilename + ' ' + str(actualCrc) + ' ' + str(statedCrc))
-    if version != statedVersion:
-        raise Exception('Version does not match with ' + crcFilename)
-    return statedCrc, len(firmware) / AWPacket.firmwareBlockSize
+    actual_crc = AW_Message.crc16(padded_firmware)
+    if actual_crc != stated_crc:
+        raise Exception('Firmware CRC does not match with ' + crc_filename + ' ' + str(actual_crc) + ' ' + str(stated_crc))
+    if version != stated_version:
+        raise Exception('Version does not match with ' + crc_filename)
+    return stated_crc, len(firmware) / AW_Message.firmware_block_size
 
-def handleCmdUpgradeFirmware(version):
-    if len(version) > AWPacket.firmwareVersionMaxLength:
+def handle_cmd_upgrade_firmware(version):
+    if len(version) > AW_Message.firmware_version_max_length:
         raise Exception('Bad version')
     
-    versionStr = str(version)
-    # crc, numPages = getFirmwareDetails(version.decode('ascii'))
-    crc, numPages = getFirmwareDetails(versionStr)
-    paddedVersion = version + ('\0' * (AWPacket.firmwareVersionMaxLength
+    version_str = str(version)
+    # crc, num_pages = get_firmware_details(version.decode('ascii'))
+    crc, num_pages = get_firmware_details(version_str)
+    padded_version = version + ('\0' * (AW_Message.firmware_version_max_length
                                       - len(version)))
-    args = list(paddedVersion)
-    args.append(numPages)
+    args = list(padded_version)
+    args.append(num_pages)
     args.append(crc)
-    pendingTags['upgradeFirmware'] = \
-        struct.pack(AWPacket.tagFormat['upgradeFirmware'], *args)
+    pending_tags['upgrade_firmware'] = \
+        struct.pack(AW_Message.tag_data['upgrade_firmware']['format'], *args)
     
     
 # Deal with any item requested in the incoming packet
-def handlePacketRequests(messageTags):
+def handle_packet_requests(message_tags):
     try:
-        if 'getFirmwarePage' in messageTags:
+        if 'get_firmware_page' in message_tags:
             # Write the page to requested tags
-            packetReqGetFirmwarePage(messageTags['getFirmwarePage'][0])
+            packet_req_get_firmware_page(message_tags['get_firmware_page'][0])
 #    except Exception as e:
 #       None 
     finally:
         None
     
-def packetReqGetFirmwarePage(data):
-    global requestedTags
-    unpackedData = struct.unpack(AWPacket.tagFormat['getFirmwarePage'],
-                                 buffer(data)) 
-    version = ''.join(unpackedData[0:AWPacket.firmwareVersionMaxLength])
-    versionStr = version.split('\0', 1)[0]
+def packet_req_get_firmware_page(data):
+    global requested_tags
+    unpacked_data = \
+        struct.unpack(AW_Message.tag_data['get_firmware_page']['format'],
+                      buffer(data)) 
+    version = ''.join(unpacked_data[0:AW_Message.firmware_version_max_length])
+    version_str = version.split('\0', 1)[0]
                                                          
-    pageNumber, = unpackedData[AWPacket.firmwareVersionMaxLength:]
-    imageFilename = AWPacket.getImageFilename(versionStr)
-    imageFile = open(imageFilename)
+    page_number, = unpacked_data[AW_Message.firmware_version_max_length:]
+    image_filename = AW_Message.get_image_filename(version_str)
+    image_file = open(image_filename)
     
     # Ensure file is closed in the case of any error
     try:   
-        imageFile.seek(AWPacket.firmwareBlockSize * pageNumber)
-        fwPage = imageFile.read(AWPacket.firmwareBlockSize)
+        image_file.seek(AW_Message.firmware_block_size * page_number)
+        fw_page = image_file.read(AW_Message.firmware_block_size)
     except:
         print('SOME ERROR')
-        # Some error, so don't try adding to requestedTags
+        # Some error, so don't try adding to requested_tags
         return
     finally:
         # Ensure file is closed in all circumstances
-        imageFile.close()
+        image_file.close()
 
     args = list(version)
-    args.append(pageNumber)
-    args.extend(list(fwPage))
-    requestedTags['firmwarePage'] = struct.pack(AWPacket.tagFormat['firmwarePage'], *args) 
+    args.append(page_number)
+    args.extend(list(fw_page))
+    requested_tags['firmware_page'] = \
+        struct.pack(AW_Message.tag_data['firmware_page']['format'], *args) 
 
 
-def getTermiosBaudRate(baud):
+def get_termios_baud_rate(baud):
     rates = {'9600': termios.B9600,
              '19200': termios.B19200,
              '38400': termios.B38400,
@@ -442,16 +451,16 @@ def getTermiosBaudRate(baud):
     else:
         return None
 
-def readlineWithTimeout(fileObj, timeout=None):
+def readline_with_timeout(file_obj, timeout=None):
     '''Read size bytes from the file. If a timeout is set it may
     return less characters as requested. With no timeout it will block
     until the requested number of bytes is read.'''
     r = ''
     while True:
         start = time.time()
-        ready,_,_ = select.select([fileObj],[],[], timeout)
+        ready,_,_ = select.select([file_obj],[],[], timeout)
         if ready:
-            buf = fileObj.read(1)
+            buf = file_obj.read(1)
             if buf == '\r' or buf == '\n':
                 break # done
             r += buf
@@ -462,25 +471,25 @@ def readlineWithTimeout(fileObj, timeout=None):
                 break
     return r
 
-def debugPrint(level, mesg):
+def debug_print(level, mesg):
     global args
     if args.verbosity >= level:
         print(mesg)
     
-def describePendingTags():
-    global pendingTags
+def describe_pending_tags():
+    global pending_tags
     r = []
-    for k in pendingTags.keys():
-        if k == 'eepromContents':
-             address = struct.unpack('!H', pendingTags[k][0:2])[0]
-             addressName = AWEeprom.lookup_address(address)
-             if addressName is None:
-                 #addressName = 'EEPROM ' + hex(address) + ': '
-                 #fmt = 'B' * (len(pendingTags[k]) - 2)
-                 # addressName = 'EEPROM (unknown address ' + hex(address) + ')'
+    for k in pending_tags.keys():
+        if k == 'eeprom_contents':
+             address = struct.unpack('!H', pending_tags[k][0:2])[0]
+             address_name = AWEeprom.lookup_address(address)
+             if address_name is None:
+                 #address_name = 'EEPROM ' + hex(address) + ': '
+                 #fmt = 'B' * (len(pending_tags[k]) - 2)
+                 # address_name = 'EEPROM (unknown address ' + hex(address) + ')'
                  name = k + '(unknown address, ' + hex(address) + ')'
              else:
-                 name = k + '(' + addressName + ')'
+                 name = k + '(' + address_name + ')'
              r.append(name)
         else:
              r.append(k)
@@ -511,47 +520,47 @@ args = parser.parse_args()
 if args.read_only:
     args.acknowledge = False
 
-readConfig(args.config_file)
-if siteIds:
-    print('Site IDs: ' + ', '.join(siteIds))
+read_config_file(args.config_file)
+if site_ids:
+    print('Site IDs: ' + ', '.join(site_ids))
 else:
     print('Site IDs: none')
     
 print('Done')
-commsBlockSize = int(config.get('serial', 'blocksize'))
+comms_block_size = int(config.get('serial', 'blocksize'))
 
 if args.device:
-    deviceFilename = args.device
+    device_filename = args.device
 else:
-    deviceFilename = config.get('serial', 'port')
+    device_filename = config.get('serial', 'port')
 
-if deviceFilename == '-':
+if device_filename == '-':
     device = os.sys.stdin
 else:
     if args.read_only:
-        device = open(deviceFilename, 'rb', 0)
+        device = open(device_filename, 'rb', 0)
     else:
-        device = open(deviceFilename, 'a+b', 0)
+        device = open(device_filename, 'a+b', 0)
 
-if deviceFilename == '-':
-    controlSocket = None
+if device_filename == '-':
+    control_socket = None
     
 elif device.isatty():
     if args.verbosity:
-        print('Reading from ' + deviceFilename)
+        print('Reading from ' + device_filename)
     tty.setraw(device, termios.TCIOFLUSH)
-    termAttr = termios.tcgetattr(device)
-    termAttr[4] = termAttr[5] = getTermiosBaudRate(config.get('serial', 
+    term_attr = termios.tcgetattr(device)
+    term_attr[4] = term_attr[5] = get_termios_baud_rate(config.get('serial', 
                                                           'baudrate'))
-    termios.tcsetattr(device, termios.TCSANOW, termAttr)
+    termios.tcsetattr(device, termios.TCSANOW, term_attr)
 
     # Discard any characters already present in the device
     termios.tcflush(device, termios.TCIOFLUSH)
 
 
-    deviceSetupCmds = config.get('serial', 'setup').split(';')
-    if len(deviceSetupCmds):
-        debugPrint(2, 'Setup device... ')
+    device_setup_cmds = config.get('serial', 'setup').split(';')
+    if len(device_setup_cmds):
+        debug_print(2, 'Setup device... ')
         device.flush()
         time.sleep(1)
         device.write('+++')
@@ -559,58 +568,58 @@ elif device.isatty():
         time.sleep(1.2)
         termios.tcflush(device, termios.TCIFLUSH)
         
-        # print(readlineWithTimeout(device, 1))
-        for cmd in deviceSetupCmds:
+        # print(readline_with_timeout(device, 1))
+        for cmd in device_setup_cmds:
             device.write(cmd)
             device.write('\r')
-            debugPrint(3, cmd)
-            debugPrint(3, readlineWithTimeout(device, 1))
+            debug_print(3, cmd)
+            debug_print(3, readline_with_timeout(device, 1))
         
         device.write('ATDN\r')
         device.flush()
-        debugPrint(3, 'ATDN')
-        debugPrint(3, readlineWithTimeout(device, 1))
-        debugPrint(2, '... done')
+        debug_print(3, 'ATDN')
+        debug_print(3, readline_with_timeout(device, 1))
+        debug_print(2, '... done')
 
     if config.has_option('controlsocket', 'filename'):
         if os.path.exists(config.get('controlsocket', 'filename')):
             os.remove(config.get('controlsocket', 'filename'))
-        controlSocket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        controlSocket.bind(config.get('controlsocket', 'filename'))
-        # controlSocket.setblocking(False)
-        controlSocket.listen(1)
+        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        control_socket.bind(config.get('controlsocket', 'filename'))
+        # control_socket.setblocking(False)
+        control_socket.listen(1)
     else:
-        controlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        controlSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         # ord('A'_ = 65, ord('W') = 87 
-        controlSocket.bind(('localhost', 6587))
-        controlSocket.setblocking(False)
-        controlSocket.listen(0)
+        control_socket.bind(('localhost', 6587))
+        control_socket.setblocking(False)
+        control_socket.listen(0)
 else:
     # Plain files should be opened read-only
     device.close()
-    device = open(deviceFilename, 'r', 0)
-    controlSocket = None
+    device = open(device_filename, 'r', 0)
+    control_socket = None
         
-controlSocketConn = None
-controlBuffer = None
+control_socket_conn = None
+control_buffer = None
 
 # Pending tags are persistent and are removed when acknowledged
-pendingTags = {}
+pending_tags = {}
 
-# selectList = [device, controlSocket]
-selectList = [device]
-if controlSocket is not None:
-    selectList.append(controlSocket)
+# select_list = [device, control_socket]
+select_list = [device]
+if control_socket is not None:
+    select_list.append(control_socket)
     
 if not config.has_option('magnetometer', 'key'):
     print('Config file missing key from magnetometer section')
     exit(1)
 
-hmacKey = config.get('magnetometer', 'key').decode('hex')
-if len(hmacKey) != 16:
+hmac_key = config.get('magnetometer', 'key').decode('hex')
+if len(hmac_key) != 16:
     print('key must be 32 characters long')
     exit(1)
 
@@ -621,12 +630,12 @@ buf = bytearray()
 running = True
 while running:
     try:
-        if controlSocketConn is None:
-            inputready,outputready,exceptready = select.select(selectList,[],[])
+        if control_socket_conn is None:
+            inputready,outputready,exceptready = select.select(select_list,[],[])
         else:
-            selectList2 = selectList[:]
-            selectList2.append(controlSocketConn)
-            inputready,outputready,exceptready = select.select(selectList2,[],[])
+            select_list2 = select_list[:]
+            select_list2.append(control_socket_conn)
+            inputready,outputready,exceptready = select.select(select_list2,[],[])
     except select.error as e:
         print('select error: ' + str(e))
         break
@@ -650,7 +659,7 @@ while running:
 #                print(hex(ord(s)))
     
             buf.append(s)
-            message = AWPacket.validatePacket(buf, hmacKey)
+            message = AW_Message.validate_packet(buf, hmac_key)
             if message is not None:
                 if device.isatty():
                     message_time = time.time()
@@ -660,118 +669,126 @@ while running:
                     # print('=============')
                     # if device.isatty():
                     #     print('Valid message received ' + str(time.time()))
-                    AWPacket.printPacket(message, message_time=message_time)
+                    AW_Message.print_packet(message, message_time=message_time)
                 
-                timestamp = AWPacket.getTimestamp(message)
-                messageTags = AWPacket.parsePacket(message)
-                AWPacket.tidyPendingTags(pendingTags, messageTags)
+                timestamp = AW_Message.get_timestamp(message)
+                message_tags = AW_Message.parse_packet(message)
+                AW_Message.tidy_pending_tags(pending_tags, message_tags)
                 
                 if fd.isatty() and args.acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
-                    AWPacket.putHeader(response, 
-                                       siteId=AWPacket.getSiteId(message),
-                                       timestamp=timestamp,
-                                       flags=(1 << AWPacket.flagsResponseBit))
-                    AWPacket.putCurrentUnixTime(response)
+                    AW_Message.put_header(response,
+                                          site_id=AW_Message.get_site_id(message),
+                                          timestamp=timestamp,
+                                          flags=(1 << AW_Message.flags_response_bit))
+                    AW_Message.put_current_epoch_time(response)
                     
                     # Handle packet requests. These tags live only for the 
                     # duration between receiving the request and sending the
                     # response.
-                    requestedTags = {}
-                    handlePacketRequests(messageTags)
-                    for tag in requestedTags:
-                        AWPacket.putData(response, AWPacket.tags[tag], requestedTags[tag])
+                    requested_tags = {}
+                    handle_packet_requests(message_tags)
+                    for tag_name in requested_tags:
+                        AW_Message.put_data(response, 
+                                            AW_Message.tags_data[tag_name]['id'], 
+                                            requested_tags[tag_name])
                     
 
-                    for tag in pendingTags:
-                        AWPacket.putData(response, AWPacket.tags[tag], pendingTags[tag])
-                        # del pendingTags[tag]
+                    for tag_name in pending_tags:
+                        AW_Message.put_data(response, 
+                                            AW_Message.tags_data[tag_name]['id'],
+                                            pending_tags[tag_name])
+                        # del pending_tags[tag]
                         
                     # Add padding to round up to a multiple of block size
-                    paddingLength = (commsBlockSize - 
-                                     ((AWPacket.getPacketLength(response) +
-                                       AWPacket.signatureBlockLength) %
-                                      commsBlockSize))
-                    AWPacket.putPadding(response, paddingLength)
-                    AWPacket.putSignature(response, hmacKey, 
-                                          AWPacket.getRetries(message), 
-                                          AWPacket.getSequenceId(message))
+                    padding_length = (comms_block_size - 
+                                     ((AW_Message.get_packet_length(response) +
+                                       AW_Message.signature_block_length) %
+                                      comms_block_size))
+                    AW_Message.put_padding(response, padding_length)
+                    AW_Message.put_signature(response, hmac_key, 
+                                             AW_Message.get_retries(message), 
+                                             AW_Message.get_sequence_id(message))
                     
                     # Trim spare bytes from end of buffer
-                    del response[AWPacket.getPacketLength(response):]
+                    del response[AW_Message.get_packet_length(response):]
                     fd.write(response)
 
                     if args.verbosity:   
                         # print('Response: ------')
-                        AWPacket.printPacket(response, message_time=message_time)
+                        AW_Message.print_packet(response, message_time=message_time)
                     
                 if config.has_option('awpacket', 'filename'):
                     # Save the message and response
-                    writeAWPacketToFile(timestamp, message, 
+                    write_message_to_file(timestamp, message, 
                                         config.get('awpacket', 'filename'))
                     if response is not None:
-                        writeAWPacketToFile(timestamp, response, 
+                        write_message_to_file(timestamp, response, 
                                             config.get('awpacket', 'filename'))
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
-                    not AWPacket.is_response_message(message)):
+                    not AW_Message.is_response_message(message)):
                     data = { }
-                    for tag in ['magDataX', 'magDataY', 'magDataZ']:
-                        if tag in messageTags:
-                            comp = struct.unpack(AWPacket.tagFormat[tag], 
-                                                 str(messageTags[tag][0]))
-                            data[tag] = comp[1];
-                    writeAuroraWatchRealTimeData(timestamp, data)
+                    for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
+                        if tag_name in message_tags:
+                            comp = \
+                                struct.unpack(AW_Message.tag_data[tag_data]['format'], 
+                                              str(message_tags[tag_data][0]))
+                            data[tag_name] = comp[1];
+                    write_aurorawatch_realtime_data(timestamp, data)
                 
                 if (config.has_option('cloud', 'filename') and
-                    not AWPacket.is_response_message(message)):
+                    not AW_Message.is_response_message(message)):
                     data = {}
-                    for tag in ['cloudTempAmbient', 'cloudTempObject1',
-                                'cloudTempObject2', 
-                                'ambientTemp', 'relHumidity']:
-                        if tag in messageTags:
-                            data[tag] = AWPacket.decodeCloudTemp(tag, str(messageTags[tag][0]))
-                    writeCloudData(timestamp, data)
+                    for tag_name in ['cloud_ambient_temperature', 
+                                     'cloud_object1_temperature',
+                                     'cloud_object2_temperature', 
+                                     'ambient_temperature',
+                                     'relative_humidity']:
+                        if tag_name in message_tags:
+                            data[tag_name] = AW_Message.decode_cloud_temp( \
+                                tag_name, str(message_tags[tag_name][0]))
+                    write_cloud_data(timestamp, data)
                     
-                if (not AWPacket.is_response_message(message)):
-                    writeAuroraWatchNetTextData(timestamp, messageTags)
+                if (not AW_Message.is_response_message(message)):
+                    write_aurorawatchnet_text_data(timestamp, message_tags)
                         
             else:
                 response = None
 
 
                         
-        elif fd == controlSocket:
-            if controlSocketConn is not None:
+        elif fd == control_socket:
+            if control_socket_conn is not None:
                 try:
-                    controlSocketConn.shutdown(socket.SHUT_RDWR)
+                    control_socket_conn.shutdown(socket.SHUT_RDWR)
                 except:
                     None
-            controlSocketConn = None
+            control_socket_conn = None
             try:
-                (controlSocketConn, client_address) = controlSocket.accept()
-                controlSocketConn.settimeout(10)
-                controlBuffer = bytearray()
+                (control_socket_conn, client_address) = control_socket.accept()
+                control_socket_conn.settimeout(10)
+                control_buffer = bytearray()
             except Exception as e:
                 print('ERROR: ' + str(e))
-                controlSocketConn = None
+                control_socket_conn = None
 
 
-        elif fd == controlSocketConn:
+        elif fd == control_socket_conn:
             try:
-                s = controlSocketConn.recv(1024)
+                s = control_socket_conn.recv(1024)
                 if s:
-                    controlBuffer += s
-                    mesg = handleControlMessage(controlBuffer, pendingTags)
+                    control_buffer += s
+                    mesg = handle_control_message(control_buffer, pending_tags)
                     fd.send('\n'.join(mesg) + '\n')
                 else:
                     # EOF on control socket connection
-                    controlSocketConn.shutdown(socket.SHUT_RDWR)
-                    controlSocketConn.close()
-                    controlSocketConn = None
+                    control_socket_conn.shutdown(socket.SHUT_RDWR)
+                    control_socket_conn.close()
+                    control_socket_conn = None
             except Exception as e:
                 print('ERROR: ' + str(e))
-                controlSocketConn = None
+                control_socket_conn = None
         else:
             print('Other: ' + str(fd))

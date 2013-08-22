@@ -60,14 +60,14 @@ firmware_version_max_length = 16
 firmware_block_size = 128
 
 
-def format_tag_array_of_longs(tag, dataLen, payload):
+def format_tag_array_of_longs(tag_name, dataLen, payload):
     # return ' '.join(map(str, list(struct.unpack('!' + str(dataLen/4) + 'l', str(payload)))))
     return repr(list(struct.unpack('!' + str(dataLen/4) + 'l', str(payload))))
     
-def format_padding(tag, dataLen, payload):
+def format_padding(tag_name, dataLen, payload):
     return str([0] * dataLen)
 
-def format_tag_blank(tag, dataLen, payload):
+def format_tag_blank(tag_name, dataLen, payload):
     return ''
 
 # Description of the radio communication protocol tags. The different
@@ -375,14 +375,15 @@ for tag_name in tag_data.keys():
 
 # Horrid hack because cloud data was originally sent as absolute
 # temperatures, unlike other tags.
-def decode_cloud_temp(tag, payload):
-    tmp = (float(struct.unpack('!h', str(payload))[0]) / 100)
+def decode_cloud_temp(tag_name, payload):
+    tmp = (float(struct.unpack(tag_data[tag_name]['format'],
+                               str(payload))[0]) / 100)
     if tmp > 173.15:
         tmp -= 273.15
     return tmp
 
-def format_tag_cloud_temp(tag, dataLen, payload):
-    return str(decode_cloud_temp(tag, payload)) + '°C'
+def format_tag_cloud_temp(tag_name, dataLen, payload):
+    return str(decode_cloud_temp(tag_name, payload)) + '°C'
     # return str((float(struct.unpack('!H', str(payload))[0]-) / 100) - 273.15) + '°C'
     
     
