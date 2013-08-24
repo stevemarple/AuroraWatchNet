@@ -407,12 +407,12 @@ def put_padding(buf, padding_length):
         return
 
     if padding_length == 1:
-        put_data(buf, tags_data['paddingByte']['id'], [])
+        put_data(buf, tag_data['paddingByte']['id'], [])
     elif padding_length == 2:
-        put_data(buf, tags_data['paddingByte']['id'], [])
-        put_data(buf, tags_data['paddingByte']['id'], [])
+        put_data(buf, tag_data['paddingByte']['id'], [])
+        put_data(buf, tag_data['paddingByte']['id'], [])
     else:
-        put_data(buf, tags_data['padding']['id'], bytearray(padding_length - 3))
+        put_data(buf, tag_data['padding']['id'], bytearray(padding_length - 3))
 
 def put_signature(buf, hmac_key, retries, sequence_id):
     if is_signed_message(buf):
