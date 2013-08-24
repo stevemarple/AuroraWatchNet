@@ -61,7 +61,6 @@ firmware_block_size = 128
 
 
 def format_tag_array_of_longs(tag_name, dataLen, payload):
-    # return ' '.join(map(str, list(struct.unpack('!' + str(dataLen/4) + 'l', str(payload)))))
     return repr(list(struct.unpack('!' + str(dataLen/4) + 'l', str(payload))))
     
 def format_padding(tag_name, dataLen, payload):
@@ -253,126 +252,6 @@ for tag_name in tag_data.keys():
     tag_id_to_name[tag_id] = tag_name
 
 
-# tags = {'mag_data_x': 1,
-#         'mag_data_y': 1,
-#         'mag_data_z': 2,
-#         'magnetometer_temperature': 3,
-#         'system_temperature': 4,
-#         'battery_voltage': 5,
-#         'time_adjustment': 6,
-#         'reboot_flags': 7,
-#         'sampling_interval': 8,
-#         'paddingByte': 9,
-#         'padding': 10,
-#         'current_epoch_time': 11,
-#         'reboot': 12,
-#         'current_firmware': 13,
-#         'upgrade_firmware': 14,
-#         'get_firmware_page': 15,
-#         'firmware_page': 16,
-#         'read_eeprom': 17,
-#         'eeprom_contents': 18,
-#         'num_samples': 19,
-#         'all_samples': 20,
-#         'mag_data_AllX': 21,
-#         'mag_data__all_y': 22,
-#         'mag_data__all_z': 23,
-# 	'cloud_ambient_temperature': 24,
-# 	'cloud_object1_temperature': 25,
-# 	'cloud_object2_temperature': 26,
-#         'ambientTemp': 27,
-#         'relative_humidity': 28,
-#         }
-
-# tagNames = ['mag_data_x', 
-#             'mag_data_y',
-#             'mag_data_z',
-#             'magnetometer_temperature',
-#             'system_temperature',
-#             'battery_voltage',
-#             'time_adjustment',
-#             'reboot_flags',
-#             'sampling_interval',
-#             'paddingByte',
-#             'padding',
-#             'current_epoch_time',
-#             'reboot',
-#             'current_firmware',
-#             'upgrade_firmware',
-#             'get_firmware_page',
-#             'firmware_page',
-#             'read_eeprom',
-#             'eeprom_contents',
-#             'num_samples',
-#             'all_samples',
-#             'mag_data_AllX',
-#             'mag_data__all_y',
-#             'mag_data__all_z',
-#             'cloud_ambient_temperature',
-#             'cloud_object1_temperature',
-#             'cloud_object2_temperature',
-#             'ambientTemp', 
-#             'relative_humidity',
-#         ]
-
-# # Zero means variable length
-# tag_lengths = {'mag_data_x': 6,
-#               'mag_data_y': 6,
-#               'mag_data_z': 6,
-#               'magnetometer_temperature': 3,
-#               'system_temperature': 3,
-#               'battery_voltage': 3,
-#               'time_adjustment': 7,
-#               'reboot_flags': 2,
-#               'sampling_interval': 3,
-#               'paddingByte': 1,
-#               'padding': 0,
-#               'current_epoch_time': 7,
-#               'reboot': 1, 
-#               'current_firmware': (size_of_tag + firmware_version_max_length),
-#               'upgrade_firmware': (size_of_tag + firmware_version_max_length +
-#                                   size_of_firmware_page_number + size_of_crc),
-#               'get_firmware_page': (size_of_tag + firmware_version_max_length + 
-#                                   size_of_firmware_page_number),
-#               'firmware_page': (size_of_tag + firmware_version_max_length + 
-#                                size_of_firmware_page_number + firmware_block_size),
-#               'read_eeprom': 5,
-#               'eeprom_contents': 0,
-#               'num_samples': 3,
-#               'all_samples': 2,
-#               'mag_data_AllX': 0,
-#               'mag_data__all_y': 0,
-#               'mag_data__all_z': 0,
-#               'cloud_ambient_temperature': 3,
-#               'cloud_object1_temperature': 3,
-#               'cloud_object2_temperature': 3,
-#               'ambientTemp': 3, 
-#               'relative_humidity': 3,
-#                } 
-
-# tagFormat = {'mag_data_x': '!Bl',
-#              'mag_data_y': '!Bl',
-#              'mag_data_z': '!Bl',
-#              'magnetometer_temperature': '!h',
-#              'system_temperature': '!h',
-#              'battery_voltage': '!H',
-#              'sampling_interval': '!H',
-#              'current_epoch_time': '!LH',
-#              'current_firmware': ('!' + str(firmware_version_max_length) + 'c'),
-#              'upgrade_firmware': ('!' + str(firmware_version_max_length) + 'cHH'),
-#              'get_firmware_page': ('!' + str(firmware_version_max_length) + 'cH'),
-#              'firmware_page': ('!' + str(firmware_version_max_length) + 'cH' + 
-#                               str(firmware_block_size) + 'c'), 
-#              'read_eeprom': '!HH',
-#              'num_samples': '!BB',
-#              'all_samples': '!?',
-#              'cloud_ambient_temperature': '!h',
-#              'cloud_object1_temperature': '!h',
-#              'cloud_object2_temperature': '!h',
-#              'ambientTemp': '!h', 
-#              'relative_humidity': '!H',
-#              }
-
 # Horrid hack because cloud data was originally sent as absolute
 # temperatures, unlike other tags.
 def decode_cloud_temp(tag_name, payload):
@@ -384,20 +263,7 @@ def decode_cloud_temp(tag_name, payload):
 
 def format_tag_cloud_temp(tag_name, dataLen, payload):
     return str(decode_cloud_temp(tag_name, payload)) + '°C'
-    # return str((float(struct.unpack('!H', str(payload))[0]-) / 100) - 273.15) + '°C'
     
-    
-# tagFormatFunc = {'padding_byte': format_padding,
-#                  'padding': format_padding,
-#                  'mag_data_all_x': format_tag_array_of_longs,
-#                  'mag_data_all_y': format_tag_array_of_longs,
-#                  'mag_data_all_z': format_tag_array_of_longs,
-#                  #'cloud_ambient_temperature': format_tag_cloud_temp,
-#                  #'cloud_object1_temperature': format_tag_cloud_temp,
-#                  #'cloud_object2_temperature': format_tag_cloud_temp,
-#                  }
-
-
     
 def get_header_field(buf, offset, size):
     if len(buf) < offset + size:
@@ -411,9 +277,6 @@ def get_header_field(buf, offset, size):
 def get_magic(buf):
     if len(buf) > magic_offset + magic_size:
         return bytearray(buf[magic_offset:magic_offset+magic_size])
-        # for i in range(magic_size):
-        #    r[i] = buf[magic_offset + i]
-        # return r
     else:
         return None
     
@@ -521,14 +384,12 @@ def put_data(buf, tag_id, data):
     
 def put_current_epoch_time(buf):
     packet_length = get_packet_length(buf)
-    ### tag_len = tag_lengths['current_epoch_time']
     tag_len = tag_data['current_epoch_time']['length']
     i = packet_length 
     now = time.time()
     seconds = long(now);
     frac = int(round((now % 1) * 32768.0))
 
-    ###buf[i] = tags['current_epoch_time']
     buf[i] = tag_data['current_epoch_time']['id']
     i += 1
     for n in range(tag_len-2, -1, -1):
@@ -574,9 +435,8 @@ def put_signature(buf, hmac_key, retries, sequence_id):
     
     # Take least significant bytes
     hmac_bytes = hmac_md5.digest()
-    buf[(signedLen - hmac_length):signedLen] = hmac_bytes[(len(hmac_bytes)-hmac_length):]
-    # buf[signedLen - 1] = 0xff    
-    # buf[signedLen-2] = 99
+    buf[(signedLen - hmac_length):signedLen] = \
+        hmac_bytes[(len(hmac_bytes)-hmac_length):]
 
 def make_header(site_id, timestamp, magic=default_magic, 
                version=default_version, flags=0):
@@ -605,15 +465,7 @@ def parse_packet(buf):
             data_len = tag_len - 1
         data = buf[i:(i+data_len)]
         
-        
-#        if tagName in tagFormat:
-#            data = struct.unpack(tagFormat[tagName], str(data))
-#            print(tagName)
-#            print(tagFormat[tagName])
-#            print(repr(data))
-#            print(repr(list(data)))
-            
-        
+              
         if tag_name not in r:
             r[tag_name] = []
         r[tag_name].append(data)
@@ -678,17 +530,7 @@ def header_to_str_array(buf):
             ('Timestamp: ' + str(t[0]) + ',' + str(t[1]) 
              + ' (' + dt.isoformat() + ')')]
 
-# def print_header(buf):
-#     print('Magic: ' + ''.join(map(chr, get_magic(buf))))
-#     print('Version: ' + str(get_version(buf)))
-#     print('Flags: ' + hex(get_flags(buf)))
-#     print('Packet length: ' + str(get_packet_length(buf)))
-#     print('Site ID: ' + str(get_site_id(buf)))
-#     t = get_timestamp(buf)
-#     dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
-#     print('Timestamp: ' + str(t[0]) + ',' + str(t[1]) \
-#               + ' (' + dt.isoformat() + ')')
-    
+  
 def print_header(buf):
     print('\n'.header_to_str_array(buf))
 
@@ -714,26 +556,15 @@ def print_tags(buf):
         else:
             data_len = tag_len - 1    
           
-        ### TODO: Replace by empty format function
-        # if tagName == 'firmware_page':
-        #     dataRepr = ''
-        # el
         if tag.has_key('formatter'):
-            # dataRepr = tagFormatFunc[tagName](tagName, data_len, buf[i:(i+data_len)])
             data_repr = tag['formatter'](tag_name, data_len, 
                                          buf[i:(i+data_len)])
-        # elif tagName in tagFormat:
         elif tag.has_key('format'):
-            #dataRepr = repr(list(struct.unpack(tagFormat[tagName],
-            #                                   str(buf[i:(i+data_len)]))))
             data_repr = repr(list(struct.unpack(tag['format'],
                                                 str(buf[i:(i+data_len)]))))
         else:
             data_repr = '0x  ' + ' '.join(map(byte_hex, buf[i:(i+data_len)]))
             
-        #print(tagName + ' (#' + str(tag) + '): 0x  ' 
-        #      + ' '.join(map(byte_hex, buf[i:(i+data_len)])) 
-        #      + '   ' + dataRepr)
         print(tag_name + ' (#' + str(tag_id) + '):  ' + data_repr)
         i += data_len
         
@@ -764,7 +595,6 @@ def print_packet(buf, message_time=None):
         # print_header(buf)
         s.extend(header_to_str_array(buf))
     except Exception as e:
-        # print('Error in header: ' + str(e))
         s.append('Error in header: ' + str(e))
 
     print('\n'.join(s))
@@ -784,8 +614,6 @@ def validate_packet(buf, hmac_key):
 
     valid = True    
     while (len(buf)):
-        # print('buf: ' + ' '.join(map(hex, buf)))
-    
         valid = True
         
         # Check magic
@@ -835,8 +663,9 @@ def validate_packet(buf, hmac_key):
                 print('#########################')
                 print('Packet failed HMAC-MD5, computed as ' +
                       ' '.join(map(byte_hex, map(ord, hmac_bytes))))
+
+                # Be paranoid when printing invalid packets!
                 try:
-                    # Be wary of printing invalid packets!
                     print_packet(buf)
                 except:
                     None

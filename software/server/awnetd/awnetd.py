@@ -14,7 +14,6 @@ import time
 import tty
 
 import hmac
-# import AWPacket
 import AW_Message
 import AWEeprom
 
@@ -24,8 +23,6 @@ if sys.version_info[0] >= 3:
 else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
-
-# import AWPacket
 
 
 
@@ -91,7 +88,7 @@ def write_message_to_file(timestamp, message, fstr):
         aw_message_file.write(message);
         aw_message_file.flush()
     except Exception as e:
-        print('Could not save AWPacket: ' + str(e))
+        print('Could not save message: ' + str(e))
     
 # AuroraWatch realtime file
 realtime_file = None

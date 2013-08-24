@@ -43,10 +43,6 @@ aw_cmds = {
         'metavar': 'TRUE',
         'choices': ['TRUE'],
         },
-    # 'pending_commands': {
-    #     'help': 'Display list of pending commands',
-    #     'action': 'store_true',
-    #     },
     }
 
 # Add options for EEPROM settings, prefix with 'eeprom_'
@@ -152,4 +148,4 @@ else:
 
 s.shutdown(socket.SHUT_RDWR)
 s.close()
-#time.sleep(1)
+
