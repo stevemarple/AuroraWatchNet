@@ -8,7 +8,7 @@ import os
 import struct
 import subprocess
 
-import AWPacket
+import AW_Message
 
 
 # Parse command line options
@@ -52,7 +52,7 @@ except subprocess.CalledProcessError as e:
 binFile = open(binFilename, "a+b") 
 binContents = binFile.read()
 
-blockSize = AWPacket.firmwareBlockSize
+blockSize = AW_Message.firmware_block_size
 # blockSize = 256;
 if len(binContents) % blockSize:
     # Pad the file to the block size used for transmission
@@ -71,7 +71,7 @@ elif len(binContents) > tempAppSize:
     print("Firmware image too large (" + str(len(binContents)) + " bytes)")
     os.sys.exit(1)
     
-crc = AWPacket.crc16(binContents)
+crc = AW_Message.crc16(binContents)
 crcFile = open(crcFilename, "w")
 crcStr = struct.pack(">H", crc)
 # Output in similar way to md5sum
