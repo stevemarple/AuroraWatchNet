@@ -2,8 +2,8 @@
 
 from __future__ import print_function
 
+import argparse
 import binascii
-from optparse import OptionParser
 import os
 import struct
 import subprocess
@@ -13,68 +13,69 @@ import AW_Message
 
 # Parse command line options
 
-usage = "usage: %prog [options] firmware.elf"
-optParser = OptionParser(usage)
-optParser.add_option("-e", "--elf-file", dest="elfFilename",
-                     metavar="file.elf", help="ELF file")
-optParser.add_option("-f", "--firmware-version", dest="firmwareVersion", 
-                     metavar="version", help="firmware version")
+parser = argparse.ArgumentParser(description='Make firmware image files')
+parser.add_argument('-e', '--elf-file', 
+                    required=True,
+                    dest='elf_filename',
+                    help='ELF file',
+                    metavar='file.elf')
+parser.add_argument('-f', '--firmware-version', 
+                    required=True,
+                    help='firmware version',
+                    metavar='version')
 
-(options, args) = optParser.parse_args()
+options = parser.parse_args()
 
-if len(args) != 0:
-    optParser.error("incorrect arguments")
-
-if not os.path.exists(options.elfFilename):
-    print(options.elfFilename + " does not exist")
+if not os.path.exists(options.elf_filename):
+    print(options.elf_filename + ' does not exist')
     os.sys.exit(1)
 
 # TODO: Use config file
-fwPath = "/var/aurorawatchnet/firmware"
-binFilename = os.path.join(fwPath, options.firmwareVersion + ".bin")
-crcFilename = os.path.join(fwPath, options.firmwareVersion + ".crc")
+fw_path = '/var/aurorawatchnet/firmware'
+bin_filename = os.path.join(fw_path, options.firmware_version + '.bin')
+crc_filename = os.path.join(fw_path, options.firmware_version + '.crc')
 
-if os.path.exists(binFilename):
-    print("Error: " + binFilename + " already exists")
+if os.path.exists(bin_filename):
+    print('Error: ' + bin_filename + ' already exists')
     os.sys.exit(1)
-if os.path.exists(crcFilename):
-    print("Error: " + crcFilename + " already exists")
+if os.path.exists(crc_filename):
+    print('Error: ' + crc_filename + ' already exists')
     os.sys.exit(1)
 
 try:
-    cmd = ["avr-objcopy", "-O", "binary", options.elfFilename, binFilename]
+    cmd = ['avr-objcopy', '-O', 'binary', options.elf_filename, bin_filename]
     subprocess.check_call(cmd)
 except subprocess.CalledProcessError as e:
-    print("Could not convert firmware file: " + str(e))
+    print('Could not convert firmware file: ' + str(e))
     os.sys.exit(1)
         
 # Windows support doubtful but use binary mode anyway
-binFile = open(binFilename, "a+b") 
-binContents = binFile.read()
+bin_file = open(bin_filename, 'a+b') 
+bin_contents = bin_file.read()
 
-blockSize = AW_Message.firmware_block_size
-# blockSize = 256;
-if len(binContents) % blockSize:
+block_size = AW_Message.firmware_block_size
+if len(bin_contents) % block_size:
     # Pad the file to the block size used for transmission
-    padding = chr(0xFF) * (blockSize - (len(binContents) % blockSize))
-    binContents += padding
-    binFile.write(padding)
-binFile.close()
+    padding = chr(0xFF) * (block_size - (len(bin_contents) % block_size))
+    bin_contents += padding
+    bin_file.write(padding)
+bin_file.close()
 
 # The CRC check must be computed over the entire temporary 
 # application section; extend as necessary
-tempAppSize = (131072 - 4096) / 2;
-if len(binContents) < tempAppSize:
-    padding = chr(0xFF) * (tempAppSize - len(binContents))
-    binContents += padding
-elif len(binContents) > tempAppSize:
-    print("Firmware image too large (" + str(len(binContents)) + " bytes)")
+temp_app_size = (131072 - 4096) / 2;
+if len(bin_contents) < temp_app_size:
+    padding = chr(0xFF) * (temp_app_size - len(bin_contents))
+    bin_contents += padding
+elif len(bin_contents) > temp_app_size:
+    print('Firmware image too large (' + str(len(bin_contents)) + ' bytes)')
     os.sys.exit(1)
     
-crc = AW_Message.crc16(binContents)
-crcFile = open(crcFilename, "w")
-crcStr = struct.pack(">H", crc)
+crc = AW_Message.crc16(bin_contents)
+crc_file = open(crc_filename, 'w')
+crc_str = struct.pack('>H', crc)
 # Output in similar way to md5sum
-print(binascii.hexlify(crcStr) + "  " + options.firmwareVersion, file=crcFile)
-crcFile.close()
+print(binascii.hexlify(crc_str) + '  ' + options.firmware_version, 
+      file=crc_file)
+crc_file.close()
 
