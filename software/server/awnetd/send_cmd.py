@@ -7,8 +7,8 @@ import struct
 import sys
 import time
 
-import AWEeprom
-from AWEeprom import eeprom
+from aurorawatch import EEPROM
+from aurorawatch import safe_eval
 
 
 if sys.version_info[0] >= 3:
@@ -46,8 +46,8 @@ aw_cmds = {
     }
 
 # Add options for EEPROM settings, prefix with 'eeprom_'
-for k in eeprom.keys():
-    aw_cmds['eeprom_' + k] = eeprom[k]
+for k in EEPROM.data:
+    aw_cmds['eeprom_' + k] = EEPROM.data[k]
 
 # Parse command line options
 parser = \
@@ -93,27 +93,26 @@ for k in aw_cmds:
         cmd['name'] = 'write_eeprom'
         eeprom_setting = m.group(1)
         # Parse struct format string into order, quantity, type
-        pfmt = AWEeprom.parse_unpack_format(eeprom[eeprom_setting]['format'])
+        pfmt = EEPROM.parse_unpack_format(EEPROM.data[eeprom_setting]['format'])
         if pfmt[2] in ('c', 's', 'p'):
             # String data
             data = s
         else:
             # Convert into numeric data
-            data = AWEeprom.safe_eval(s)
+            data = safe_eval(s)
 
         # Pack data into suitable bytearrays matching the EEPROM layout
         if pfmt[1] > 1:
             # Multiple values required
-            eeprom_data = struct.pack(eeprom[eeprom_setting]['format'],
+            eeprom_data = struct.pack(EEPROM.data[eeprom_setting]['format'],
                                       *data)
         else:
-            # struct.pack_into(eeprom[eeprom_setting]['format'], eeprom_data,
-            eeprom_data = struct.pack(eeprom[eeprom_setting]['format'],
+            eeprom_data = struct.pack(EEPROM.data[eeprom_setting]['format'],
                                            data)
             
         # Convert the bytewise values into a string, remembering to
         # prepend the address
-        cmd['value'] = str(eeprom[eeprom_setting]['address']) + ',' + \
+        cmd['value'] = str(EEPROM.data[eeprom_setting]['address']) + ',' + \
             ','.join([str(ord(x)) for x in eeprom_data])
     else:
         cmd['name'] = k

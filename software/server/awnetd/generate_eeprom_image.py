@@ -6,12 +6,8 @@ import random
 import struct
 import sys
 
-# from AWEeprom import eeprom
-import AWEeprom
-
-eeprom = AWEeprom.eeprom
-
-
+from aurorawatch import EEPROM
+from aurorawatch import safe_eval
 
 # Parse command line options
 parser = argparse.ArgumentParser(description='Create EEPROM image.')
@@ -22,29 +18,30 @@ parser.add_argument('--file',
 
 # find the size of the EEPROM data
 eeprom_size = 0
-for k in eeprom:
-    sz = struct.calcsize(eeprom[k]['format'])
-    if eeprom[k]['address'] + sz > eeprom_size:
-        eeprom_size = eeprom[k]['address'] + sz
+for k in EEPROM.data:
+    sz = struct.calcsize(EEPROM.data[k]['format'])
+    if EEPROM.data[k]['address'] + sz > eeprom_size:
+        eeprom_size = EEPROM.data[k]['address'] + sz
 
 # Create a blank EEPROM image of the correct size
-#eeprom_data = [0xFF] * eeprom_size
-#eeprom_data = ['\xFF'] * eeprom_size
-eeprom_data = bytearray('\xFF') * eeprom_size
+#eeprom_image = [0xFF] * eeprom_size
+#eeprom_image = ['\xFF'] * eeprom_size
+eeprom_image = bytearray('\xFF') * eeprom_size
 
 # Add command line options based on EEPROM settings
-for k in sorted(eeprom.keys()):
-    parser.add_argument('--' + k, 
-                        type=eeprom[k].get('type'),
-                        choices=eeprom[k].get('choices'),
-                        help=eeprom[k].get('help'),
-                        metavar=eeprom[k].get('metavar'))
+for k in sorted(EEPROM.data.keys()):
+    # Use '-' in option names instead of '_'
+    parser.add_argument('--' + k.replace('_', '-'),
+                        type=EEPROM.data[k].get('type'),
+                        choices=EEPROM.data[k].get('choices'),
+                        help=EEPROM.data[k].get('help'),
+                        metavar=EEPROM.data[k].get('metavar'))
 
 # Process the command line arguments
 args = parser.parse_args()
 
 # Calculate key length from the pattern, not the size reserved for it
-hmac_key_length = AWEeprom.parse_unpack_format(eeprom['hmac_key']['format'])[1]
+hmac_key_length = EEPROM.parse_unpack_format(EEPROM.data['hmac_key']['format'])[1]
 generated_key = None
 if args.hmac_key is None:
     # Create a random key
@@ -59,11 +56,11 @@ elif args.hmac_key == 'blank':
 
 # Apply settings defined from command line arguments, else use the
 # default setting if defined.
-for k in eeprom:
+for k in EEPROM.data:
     s = getattr(args, k) # Get from command line
     if s is None:
         # Not set, get default value
-        s = eeprom[k].get('default')
+        s = EEPROM.data[k].get('default')
 
     if s is not None:
         # There is a value to set
@@ -73,32 +70,32 @@ for k in eeprom:
         s = str(s)
 
         # Parse struct format string into order, quantity, type
-        pfmt = AWEeprom.parse_unpack_format(eeprom[k]['format'])
+        pfmt = EEPROM.parse_unpack_format(EEPROM.data[k]['format'])
 
         if pfmt[2] in ('c', 's', 'p'):
             # String data
             data = s
         else:
             # Convert into numeric data
-            data = AWEeprom.safe_eval(s)
+            data = safe_eval(s)
 
         if pfmt[1] > 1:
             # Multiple values required
-            struct.pack_into(eeprom[k]['format'], eeprom_data,
-                             eeprom[k]['address'], *data)
+            struct.pack_into(EEPROM.data[k]['format'], eeprom_image,
+                             EEPROM.data[k]['address'], *data)
         else:
-            struct.pack_into(eeprom[k]['format'], eeprom_data,
-                             eeprom[k]['address'], data)
+            struct.pack_into(EEPROM.data[k]['format'], eeprom_image,
+                             EEPROM.data[k]['address'], data)
 
 
 eeprom_image_filename = args.file + '.bin'
 fh = open(eeprom_image_filename, 'wb')
-fh.write(eeprom_data)
+fh.write(eeprom_image)
 fh.close()
 print('Wrote ' + str(eeprom_size) + ' bytes to ' + eeprom_image_filename)
 
 # Print out and save key details
-hmac_key = AWEeprom.safe_eval(args.hmac_key)
+hmac_key = safe_eval(args.hmac_key)
 hex02x = lambda n : '%02x' % n
 hex0x02x = lambda n : '0x%02x' % n
 op_dict = {'key_pretty': ','.join(map(hex0x02x, hmac_key)),

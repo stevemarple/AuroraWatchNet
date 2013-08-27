@@ -15,7 +15,7 @@ import tty
 
 import hmac
 import AW_Message
-import AWEeprom
+from aurorawatch import EEPROM
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -479,14 +479,12 @@ def describe_pending_tags():
     for k in pending_tags.keys():
         if k == 'eeprom_contents':
              address = struct.unpack('!H', pending_tags[k][0:2])[0]
-             address_name = AWEeprom.lookup_address(address)
-             if address_name is None:
-                 #address_name = 'EEPROM ' + hex(address) + ': '
-                 #fmt = 'B' * (len(pending_tags[k]) - 2)
-                 # address_name = 'EEPROM (unknown address ' + hex(address) + ')'
-                 name = k + '(unknown address, ' + hex(address) + ')'
-             else:
+             if EEPROM.address_to_name.has_key(address):
+                 address_name = EEPROM.address_to_name[address]
                  name = k + '(' + address_name + ')'
+             else:
+                 name = k + '(unknown address, ' + hex(address) + ')'
+                 
              r.append(name)
         else:
              r.append(k)
