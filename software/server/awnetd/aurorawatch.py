@@ -46,21 +46,6 @@ class EEPROM(object):
             m[2] = int(m[2])
         return m[1:4]
 
-    # Use eval but without allowing the user to access builtin functions
-    # or locals
-    # @staticmethod
-    # def safe_eval(s):
-    #     '''Like eval but without allowing the user to access builtin
-    #     functions or locals.'''
-    #     return eval(s, {'__builtins__': None}, {})
-
-
-    # def lookup_address(address):
-    #     for k in data.keys():
-    #         if data[k]['address'] == address:
-    #             return k
-    #     return None
-
     # EEPROM address details. The key is derived from the C language name
     # and becomes the command line option when generating an EEPROM image
     # file. The value is a dict with the following entries:
@@ -222,8 +207,6 @@ class EEPROM(object):
     for k in data.keys():
         address_to_name[data[k]['address']] = k
 
-
-# __all__ = ['validate_packet']
 
 class Message(object):
     default_magic = 'AW'
