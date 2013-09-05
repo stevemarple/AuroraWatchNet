@@ -686,13 +686,13 @@ while running:
                     handle_packet_requests(message_tags)
                     for tag_name in requested_tags:
                         AW_Message.put_data(response, 
-                                            AW_Message.tags_data[tag_name]['id'], 
+                                            AW_Message.tag_data[tag_name]['id'], 
                                             requested_tags[tag_name])
                     
 
                     for tag_name in pending_tags:
                         AW_Message.put_data(response, 
-                                            AW_Message.tags_data[tag_name]['id'],
+                                            AW_Message.tag_data[tag_name]['id'],
                                             pending_tags[tag_name])
                         # del pending_tags[tag]
                         
@@ -728,8 +728,8 @@ while running:
                     for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
                         if tag_name in message_tags:
                             comp = \
-                                struct.unpack(AW_Message.tag_data[tag_data]['format'], 
-                                              str(message_tags[tag_data][0]))
+                                struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                                              str(message_tags[tag_name][0]))
                             data[tag_name] = comp[1];
                     write_aurorawatch_realtime_data(timestamp, data)
                 
