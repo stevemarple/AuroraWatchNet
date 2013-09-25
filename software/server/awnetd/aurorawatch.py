@@ -666,7 +666,7 @@ class Message(object):
             tag_id = buf[i]
             i += 1
             if not tag_id_to_name.has_key(tag_id):
-                raise Exception('Unknown tag: ' + str(tag))
+                raise Exception('Unknown tag: ' + str(tag_id))
             tag_name = tag_id_to_name[tag_id]
             tag = tag_data[tag_name]
             tag_len = tag['length']
@@ -756,7 +756,7 @@ class Message(object):
             i += 1
             if not tag_id_to_name.has_key(tag_id):
                 # Cannot continue since the length is not known
-                print('Unknown tag: ' + str(tag))
+                print('Unknown tag: ' + str(tag_id))
                 return
             tag_name = tag_id_to_name[tag_id]
             tag = tag_data[tag_name]
