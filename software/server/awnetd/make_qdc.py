@@ -38,8 +38,8 @@ parser.add_argument('-e', '--end-time',
                     help='End time',
                     metavar='DATETIME');
 parser.add_argument('-v', '--verbose', 
-                    action='count', 
-                    default=0, help='Be verbose')
+                    action='store_true', 
+                    help='Be verbose')
 parser.add_argument('-n', '--network', 
                     default='AURORAWATCHNET',
                     help='Network',
@@ -51,8 +51,7 @@ parser.add_argument('--site',
 parser.add_argument('--archive',
                     help='Data archive name')
 parser.add_argument('--dry-run',
-                    action='count',
-                    default=0,
+                    action='store_true',
                     help='Test, do not save quiet day curves')
 parser.add_argument('--plot',
                     action='count',
@@ -93,8 +92,8 @@ print('End date: ' + str(end_time))
 network = args.network.upper()
 site = args.site.upper()
 
-if args.verbose:
-    ap.verbose = True
+ap.verbose = args.verbose
+    
 
 ax = None
 t1 = dt64.get_start_of_month(start_time)
@@ -121,7 +120,10 @@ while t1 < end_time:
             p = os.path.dirname(filename)
             if not os.path.isdir(p):
                 os.makedirs(p)
-            mag_qdc.savetxt(filename)
+            if args.dry_run:
+                print('Dry run, not saving QDC to ' + filename)
+            else:
+                mag_qdc.savetxt(filename)
 
     t1 = t2
 
