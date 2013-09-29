@@ -59,6 +59,7 @@ def activity_plot(mag_data, mag_qdc, filename):
         'Bad value for channels'
 
     channel = mag_data.channels[0]
+    global activity
     activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
                                                       magqdc=mag_qdc,
                                                       lsq_fit=False)
@@ -72,7 +73,8 @@ def activity_plot(mag_data, mag_qdc, filename):
     fig = plt.figure(facecolor='w')
     ax = plt.axes(pos)
 
-    activity.plot(axes=ax, label='Activity (' + channel + ')')
+    activity.plot(axes=ax, units_prefix='n', 
+                  label='Activity (' + channel + ')')
     ax2 = plt.axes(pos2)
 
     ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
@@ -138,7 +140,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling):
 
     day = np.timedelta64(24, 'h')
 
-    archive, archive_details = ap.get_archive_details(network, site, 'MagData')
+    archive, archive_details = ap.get_archive_info(network, site, 'MagData')
     channel = archive_details['channels'][0]
 
     # Load the data to plot. For rolling plots load upto midnight so

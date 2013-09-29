@@ -135,9 +135,9 @@ for network_uc, site_uc in network_site.values():
             if mag_data is not None:
                 mag_qdc = mag_data.make_qdc(smooth=True)
 
-                archive, ad = ap.get_archive_details(network_uc, site_uc, 
-                                                     'MagQDC', 
-                                                     archive=getattr(args, 
+                archive, ad = ap.get_archive_info(network_uc, site_uc, 
+                                                  'MagQDC', 
+                                                  archive=getattr(args, 
                                                                      'archive'))
                 filename = dt64.strftime(t1, ad['path'])
                 p = os.path.dirname(filename)
