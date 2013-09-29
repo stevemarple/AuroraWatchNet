@@ -77,6 +77,8 @@ def activity_plot(mag_data, mag_qdc, filename):
                   label='Activity (' + channel + ')')
     ax2 = plt.axes(pos2)
 
+    # Set Y limit to be 1.5 times highest threshold. Units are
+    # nanotesla since that was set when plotting.
     ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
     
 
