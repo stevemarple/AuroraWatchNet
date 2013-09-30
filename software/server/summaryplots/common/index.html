@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-gb" lang="en-gb">
+<head>
+<meta charset="UTF-8">
+<title>AuroraWatchNet summary browser</title>
+<script type="text/javascript" src="js/gaia_date.js"></script>
+<script type="text/javascript" src="js/gaia_sprintf.js"></script>
+<script type="text/javascript" src="js/gaia_date_control.js"></script>
+<script type="text/javascript" src="js/viewer.js"></script>
+</head>
+<body onload="bodyOnLoad(); return true">
+
+<div>
+<span id="date-prev-day"></span>&nbsp;&nbsp;
+<span id="date-year"></span>-<span id="date-month"></span>-<span id="date-dom"></span><span id="date-go"></span>&nbsp;&nbsp;
+<span id="date-next-day"></span>&nbsp;&nbsp;
+<span id="rolling-plots"><button onclick="loadRollingPlots(); return true;" title="Rolling plots">Rolling plots</button></span>
+</div>
+
+<div id="div-site-plots">
+  <div>
+    <img id="img-magnetometer" />
+  </div>
+  <div>
+    <img id="img-temperature" />
+  </div>
+  <div>
+    <img id="img-voltage" />
+  </div>
+</div>
+<div id="div-stackplot">
+  <img id="img-stackplot" />
+</div>
+
+</body>
+</html>
