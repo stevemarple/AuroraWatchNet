@@ -9,5 +9,5 @@ extend coverage of the existing AuroraWatch system.
 
 Unless indicated otherwise this software is licensed under the GNU 
 General Public License v2. Some sections use a different license,
-(eg the documentatiion uses the Creative Commons Attribution-ShareAlike
+(eg the manual uses the Creative Commons Attribution-ShareAlike
 3.0 Unported (CC BY-SA 3.0) license).
