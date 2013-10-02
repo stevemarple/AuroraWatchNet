@@ -70,11 +70,9 @@ function initialiseSiteDetails() {
     'magnetometer': '%Y/%m/' + sites[i] + '_%Y%m%d.png',
     'temperature': '%Y/%m/' + sites[i] + '_temp_%Y%m%d.png',
     'voltage': '%Y/%m/' + sites[i] + '_voltage_%Y%m%d.png',
-    'humidity': '%Y/%m/' + sites[i] + '_humidity_%Y%m%d.png',
     'rolling-magnetometer': 'rolling.png',
     'rolling-temperature': 'rolling_temp.png',
     'rolling-voltage': 'rolling_volt.png',
-    'rolling-humidity': 'rolling_humidity.png',
     };
 }
 
