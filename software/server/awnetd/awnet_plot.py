@@ -62,7 +62,7 @@ def activity_plot(mag_data, mag_qdc, filename):
     global activity
     activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
                                                       magqdc=mag_qdc,
-                                                      lsq_fit=False)
+                                                      fit=False)
 
     pos = [0.15, 0.1, 0.775, 0.75]
 
@@ -178,7 +178,10 @@ def make_aurorawatch_plot(network, site, st, et, rolling):
         errors = [0.0]
     else:
         # Fit the QDC to the previous data
-        qdc_aligned, errors, fi = mag_qdc.align(fit_data, lsq_fit=True, 
+        qdc_aligned, errors, fi = mag_qdc.align(fit_data, 
+                                                fit=True,
+                                                err_func=ap.data.sign_error,
+                                                plot_fit=False,
                                                 full_output=True)
 
     # Adjust the quiet day curve with the error obtained by fitting to
