@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import argparse    
 import copy
+import io
 import os
 import sys
 import time
+import pyexiv2
+# import Image
 
 import numpy as np
 import matplotlib as mpl
@@ -37,12 +40,33 @@ def mysavefig(fig, filename):
     for ax in fig.axes:
         ax.xaxis.set_major_formatter(dt64.Datetime64Formatter(fmt='%H'))
 
-    fig.savefig(filename, dpi=80)
+    image_format = filename[(filename.rindex('.') + 1):]
+    
+    # Save the figure to a buffer which is used to create pyexiv object.
+    buf = io.BytesIO()
+    fig.savefig(buf, dpi=80, format=image_format)
+    buf.seek(0)
+    metadata = pyexiv2.ImageMetadata.from_buffer(buf.getvalue())
+    metadata.read()
+    
+    # Add the metadata. pyexiv2 only supports a few tags
+    metadata['Exif.Image.Copyright'] = \
+        'This work is licensed under the Creative Commons ' + \
+        'Attribution-NonCommercial-ShareAlike 3.0 Unported License. ' + \
+        'To view a copy of this license, visit ' + \
+        'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
+    metadata.write()
+
+    f = open(filename, 'wb') # Open the file originally specified
+    f.write(metadata.buffer) # Finally write to disk
+    f.close()
+    buf.close()
+
     if args.verbose:
         print('saved to ' + filename)
         
     if not args.show:
-        plt.close(fig)
+        plt.close(fig) # Close to save memory
 
 def has_data_of_type(network, site, data_type):
     return ap.networks.has_key(network) \
