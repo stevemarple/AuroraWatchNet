@@ -69,7 +69,6 @@ def mysavefig(fig, filename, exif_tags=None):
     
         # Add the metadata. pyexiv2 only supports a few tags
         for k in exif_tags:
-            print(k + ': ' + exif_tags[k])
             metadata[k] = exif_tags[k]
         metadata.write()
 
