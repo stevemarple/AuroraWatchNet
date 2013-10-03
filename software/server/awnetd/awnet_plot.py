@@ -29,7 +29,7 @@ os.environ['TZ'] = 'UTC'
 time.tzset()
 
 
-def mysavefig(fig, filename):
+def mysavefig(fig, filename, exif_tags=None):
     global args
     path = os.path.dirname(filename)
     if not os.path.exists(path):
@@ -40,33 +40,49 @@ def mysavefig(fig, filename):
     for ax in fig.axes:
         ax.xaxis.set_major_formatter(dt64.Datetime64Formatter(fmt='%H'))
 
-    image_format = filename[(filename.rindex('.') + 1):]
+        
+    # TO DO: Update all site information with correct copyright,
+    # license and attribution data. Temporarily set here as currently
+    # all are CC3 BY-NC-SA.
+    if exif_tags is None:
+        exif_tags = {
+            'Exif.Image.Copyright':  \
+                'This work is licensed under the Creative Commons ' + \
+                'Attribution-NonCommercial-ShareAlike 3.0 Unported ' + \
+                'License. To view a copy of this license, visit ' + \
+                'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
+            }
+        
     
-    # Save the figure to a buffer which is used to create pyexiv object.
-    buf = io.BytesIO()
-    fig.savefig(buf, dpi=80, format=image_format)
-    buf.seek(0)
-    metadata = pyexiv2.ImageMetadata.from_buffer(buf.getvalue())
-    metadata.read()
+    if exif_tags is None or len(exif_tags) == 0:
+        # Can save directly to a file
+        fig.savefig(buf, dpi=80)
+    else:
+        # Save the figure to a buffer which is used to create a
+        # pyexiv2 object.
+        image_format = filename[(filename.rindex('.') + 1):]
+        buf = io.BytesIO()
+        fig.savefig(buf, dpi=80, format=image_format)
+        buf.seek(0)
+        metadata = pyexiv2.ImageMetadata.from_buffer(buf.getvalue())
+        metadata.read()
     
-    # Add the metadata. pyexiv2 only supports a few tags
-    metadata['Exif.Image.Copyright'] = \
-        'This work is licensed under the Creative Commons ' + \
-        'Attribution-NonCommercial-ShareAlike 3.0 Unported License. ' + \
-        'To view a copy of this license, visit ' + \
-        'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
-    metadata.write()
+        # Add the metadata. pyexiv2 only supports a few tags
+        for k in exif_tags:
+            print(k + ': ' + exif_tags[k])
+            metadata[k] = exif_tags[k]
+        metadata.write()
 
-    f = open(filename, 'wb') # Open the file originally specified
-    f.write(metadata.buffer) # Finally write to disk
-    f.close()
-    buf.close()
+        f = open(filename, 'wb') # Open the file originally specified
+        f.write(metadata.buffer) # Finally write to disk
+        f.close()
+        buf.close()
 
     if args.verbose:
         print('saved to ' + filename)
         
-    if not args.show:
-        plt.close(fig) # Close to save memory
+    # if not args.show:
+    #     plt.close(fig) # Close to save memory
 
 def has_data_of_type(network, site, data_type):
     return ap.networks.has_key(network) \
@@ -76,7 +92,7 @@ def has_data_of_type(network, site, data_type):
 def round_to(a, b, func=np.round):
     return func(a / b) * b
 
-def activity_plot(mag_data, mag_qdc, filename):
+def activity_plot(mag_data, mag_qdc, filename, exif_tags):
     assert np.all(mag_data.channels == mag_qdc.channels) \
         and len(mag_data.channels) == 1 \
         and len(mag_qdc.channels) == 1, \
@@ -132,9 +148,9 @@ def activity_plot(mag_data, mag_qdc, filename):
 
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
-    mysavefig(fig, filename)
+    mysavefig(fig, filename, exif_tags)
         
-def make_aurorawatch_plot(network, site, st, et, rolling):
+def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     '''
     Load data and make the AuroraWatch activity plot. Plots always
     cover 24 hours, but may begin at midnight for day plots, or at any
@@ -223,19 +239,19 @@ def make_aurorawatch_plot(network, site, st, et, rolling):
     st2 = dt64.ceil(st, day)
     md_day = mag_data.extract(start_time=st2)
     activity_plot(md_day, mag_qdc_adj,
-                  dt64.strftime(st2, mag_fstr))
+                  dt64.strftime(st2, mag_fstr), exif_tags)
     r = [md_day]
 
     if rolling:
         # Trim end time
         md_rolling = mag_data.extract(end_time=et)
         activity_plot(md_rolling, mag_qdc_adj,
-                      rolling_magdata_filename)
+                      rolling_magdata_filename, exif_tags)
         r.append(md_rolling)
     return r
 
 
-def make_temperature_plot(temperature_data, filename):
+def make_temperature_plot(temperature_data, filename, exif_tags):
     temperature_data.plot()
     fig = plt.gcf()
     ax = plt.gca()
@@ -243,10 +259,10 @@ def make_temperature_plot(temperature_data, filename):
     fig.set_figheight(3)
     fig.subplots_adjust(bottom=0.175, top=0.75, 
                         left=0.15, right=0.925)
-    mysavefig(fig, filename)
+    mysavefig(fig, filename, exif_tags)
 
 
-def make_voltage_plot(voltage_data, filename):
+def make_voltage_plot(voltage_data, filename, exif_tags):
     voltage_data.plot()
     fig = plt.gcf()
     ax = plt.gca()
@@ -255,10 +271,10 @@ def make_voltage_plot(voltage_data, filename):
     fig.set_figheight(3)
     fig.subplots_adjust(bottom=0.175, top=0.75, 
                         left=0.15, right=0.925)
-    mysavefig(fig, filename)
+    mysavefig(fig, filename, exif_tags)
 
 
-def make_stack_plot(mdl, filename):
+def make_stack_plot(mdl, filename, exif_tags):
     ap.magdata.stack_plot(mdl, offset=100e-9)
     fig = plt.gcf()
     ax = plt.gca()
@@ -270,7 +286,7 @@ def make_stack_plot(mdl, filename):
     labels = [ tl.get_text() for tl in tll]
     labels = map(lambda x: x.replace('AURORAWATCHNET', 'AWN'), labels)
     ax.yaxis.set_ticklabels(labels)
-    mysavefig(fig, filename)
+    mysavefig(fig, filename, exif_tags)
 
 def make_links(link_dir, link_data):
     for link in link_data:
@@ -287,6 +303,11 @@ def make_links(link_dir, link_data):
             os.unlink(link_name)
         os.symlink(target, link_name)
 
+
+cc3_by_nc_sa = 'This work is licensed under the Creative Commons ' + \
+    'Attribution-NonCommercial-ShareAlike 3.0 Unported License. ' + \
+    'To view a copy of this license, visit ' + \
+    'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
         
 # ==========================================================================
 
@@ -389,9 +410,27 @@ while t1 < end_time:
     mdl_day = []
     mdl_rolling = []
 
+    # Get copyright and attribution data for all sites. License had
+    # better be CC3-BY-NC-SA for all since we are combining them.
+    copyright_list = []
+    attribution_list = []
+
     for network_uc, site_uc in network_site.values():
         site_lc = site_uc.lower()
         network_lc = network_uc.lower()
+        
+        copyright_ = ap.get_site_info(network_uc, site_uc, 'copyright')
+        attribution = ap.get_site_info(network_uc, site_uc, 'attribution')
+        
+        exif_tags = {'Exif.Image.Copyright': \
+                         ' '.join(['Copyright: ' + copyright_,
+                                    'License: ' + \
+                                        ap.get_site_info(network_uc, 
+                                                         site_uc, 
+                                                         'license'),
+                                    'Attribution: ' + attribution])}
+                                    
+                                    
 
         if args.summary_dir:
             summary_dir = args.summary_dir
@@ -429,11 +468,13 @@ while t1 < end_time:
         if has_data_of_type(network_uc, site_uc, 'MagData'):
             try:
                 md = make_aurorawatch_plot(network_uc, site_uc, t1, t2, 
-                                           args.rolling)
+                                           args.rolling, exif_tags)
                 # Store mag_data objects for daily and rolling
                 # stack plots.
                 if md is not None:
                     mdl_day.append(md[0])
+                    copyright_list.append(copyright_)
+                    attribution_list.append(attribution)
                     if args.rolling:
                         mdl_rolling.append(md[1])
 
@@ -451,13 +492,15 @@ while t1 < end_time:
                 if args.rolling:
                     # Rolling plot
                     make_temperature_plot(temp_data.extract(end_time=t2),
-                                          rolling_tempdata_filename)
+                                          rolling_tempdata_filename, 
+                                          exif_tags)
 
                 # Make day plot. Trim data from start because when
                 # --rolling option is given it can include data from
                 # the previous day.
                 make_temperature_plot(temp_data.extract(start_time=t1_eod),
-                                      dt64.strftime(t1_eod, temp_fstr))
+                                      dt64.strftime(t1_eod, temp_fstr),
+                                      exif_tags)
 
 
         if has_data_of_type(network_uc, site_uc, 'VoltageData'):
@@ -469,20 +512,34 @@ while t1 < end_time:
                 if args.rolling:
                     # Rolling plot
                     make_voltage_plot(voltage_data.extract(end_time=t2),
-                                      rolling_voltdata_filename)
+                                      rolling_voltdata_filename,
+                                      exif_tags)
 
                 # Make day plot. Trim data from start because when
                 # --rolling option is given it can include data from
                 # the previous day.
                 make_voltage_plot(voltage_data.extract(start_time=t1_eod),
-                                  dt64.strftime(t1_eod, voltage_fstr))
+                                  dt64.strftime(t1_eod, voltage_fstr),
+                                  exif_tags)
 
 
     if args.stack_plot and len(mdl_day):
+        site_ca = [] # site copyright/attribution details
+        for n in range(len(mdl_day)):
+            site_ca.append(mdl_day[n].network + '/' + mdl_day[n].site + 
+                           ' data: ' +
+                           '    Copyright: ' + copyright_list[n] +
+                           '    Attribution: ' + attribution_list[n] + 
+                           '    ')
+            
+        exif_tags2 = {'Exif.Image.Copyright': \
+                          ' '.join(site_ca) + '    License: ' + cc3_by_nc_sa}
         make_stack_plot(mdl_day, dt64.strftime(mdl_day[0].start_time, 
-                                               stackplot_fstr))
+                                               stackplot_fstr),
+                        exif_tags2)
         if args.rolling:
-            make_stack_plot(mdl_rolling, rolling_stackplot_filename)
+            make_stack_plot(mdl_rolling, rolling_stackplot_filename, 
+                            exif_tags2)
 
     t1 = t2
     # End of time loop
