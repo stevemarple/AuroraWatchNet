@@ -148,7 +148,8 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags):
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
     mysavefig(fig, filename, exif_tags)
-        
+    return activity
+ 
 def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     '''
     Load data and make the AuroraWatch activity plot. Plots always
@@ -240,16 +241,17 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     # plot simultaneously with a rolling plot.
     st2 = dt64.ceil(st, day)
     md_day = mag_data.extract(start_time=st2)
-    activity_plot(md_day, mag_qdc_adj,
-                  dt64.strftime(st2, mag_fstr), exif_tags)
-    r = [md_day]
+    act = activity_plot(md_day, mag_qdc_adj,
+                        dt64.strftime(st2, mag_fstr), exif_tags)
+    r = [md_day, act]
 
     if rolling:
         # Trim end time
         md_rolling = mag_data.extract(end_time=et)
-        activity_plot(md_rolling, mag_qdc_adj,
-                      rolling_magdata_filename, exif_tags)
+        act_rolling = activity_plot(md_rolling, mag_qdc_adj,
+                                    rolling_magdata_filename, exif_tags)
         r.append(md_rolling)
+        r.append(act_rolling)
     return r
 
 
@@ -288,6 +290,44 @@ def make_stack_plot(mdl, filename, exif_tags):
     labels = [ tl.get_text() for tl in tll]
     labels = map(lambda x: x.replace('AURORAWATCHNET', 'AWN'), labels)
     ax.yaxis.set_ticklabels(labels)
+    mysavefig(fig, filename, exif_tags)
+
+def combined_activity_plot(act, filename, exif_tags):
+    '''
+    act: list of AuroraWatchActivity objects
+    filename: filename for plot
+    exif_tags: dict of tags to add to image
+    returns: None
+    '''
+    # Calculate activity as proportion of amber alert
+    act_data = np.concatenate(map(lambda d: d.data / d.thresholds[2], act))
+    act_data[np.isnan(act_data)] = 0
+    
+    if act_data.shape[0] == 2:
+        # When only two sites use lowest activity values
+        data = np.min(act_data, axis=0)
+    else:
+        data = np.median(act_data, axis=0)
+        
+    activity_data = copy.deepcopy(act[0])
+    activity_data.network = 'AuroraWatch'
+    activity_data.site = 'UK'
+    # Set specific thresholds, and convert data from proportion of
+    # amber threshold
+    activity_data.data = np.array([data]) * 100e-9
+    activity_data.thresholds = np.array([0.0, 50e-9, 100e-9, 200e-9])
+    activity_data.units = 'T'
+
+    activity_data.plot(units_prefix='n')
+    fig = plt.gcf()
+    ax = plt.gca()
+    # Set Y limit to be 1.5 times highest threshold. Units are
+    # nanotesla since that was set when plotting.
+    ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
+    fig.set_figwidth(6.4)
+    fig.set_figheight(4.8)
+    fig.subplots_adjust(bottom=0.1, top=0.85, 
+                        left=0.15, right=0.925)
     mysavefig(fig, filename, exif_tags)
 
 def make_links(link_dir, link_data):
@@ -410,7 +450,9 @@ while t1 < end_time:
 
     # List of magdata objects for this day
     mdl_day = []
+    act_day = []
     mdl_rolling = []
+    act_rolling = []
 
     # Get copyright and attribution data for all sites. License had
     # better be CC3-BY-NC-SA for all since we are combining them.
@@ -447,8 +489,13 @@ while t1 < end_time:
         
         stackplot_fstr = os.path.join(summary_dir, 'stackplots',
                                       '%Y/%m/%Y%m%d.png')
-
         rolling_stackplot_filename = os.path.join(summary_dir, 'stackplots',
+                                                  'rolling.png')
+
+        actplot_fstr = os.path.join(summary_dir, 'activity_plots',
+                                    '%Y/%m/%Y%m%d.png')
+        rolling_activity_filename = os.path.join(summary_dir, 
+                                                  'activity_plots',
                                                   'rolling.png')
 
         temp_fstr = os.path.join(site_summary_dir, 
@@ -475,10 +522,12 @@ while t1 < end_time:
                 # stack plots.
                 if md is not None:
                     mdl_day.append(md[0])
+                    act_day.append(md[1])
                     copyright_list.append(copyright_)
                     attribution_list.append(attribution)
                     if args.rolling:
-                        mdl_rolling.append(md[1])
+                        mdl_rolling.append(md[2])
+                        act_rolling.append(md[3])
 
             except Exception as e:
                 # except Warning as e:
@@ -539,10 +588,16 @@ while t1 < end_time:
         make_stack_plot(mdl_day, dt64.strftime(mdl_day[0].start_time, 
                                                stackplot_fstr),
                         exif_tags2)
+
+        combined_activity_plot(act_day, dt64.strftime(act_day[0].start_time, 
+                                                      actplot_fstr), 
+                               exif_tags2)
         if args.rolling:
             make_stack_plot(mdl_rolling, rolling_stackplot_filename, 
                             exif_tags2)
-
+            combined_activity_plot(act_rolling, rolling_activity_filename,
+                                   exif_tags2)
+            
     t1 = t2
     # End of time loop
 
