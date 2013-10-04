@@ -189,7 +189,10 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     # generated efficiently.
     mag_data = ap.load_data(network, site, 'MagData', st, dt64.ceil(et, day),
                             channels=[channel])
-    if mag_data is None:
+
+    if mag_data is None or \
+            not np.any(np.logical_not(np.isnan(mag_data.data))): 
+        # not .np.any(etc) eliminates empty array or array of just nans
         if args.verbose:
             print('No magnetic field data')
         return
