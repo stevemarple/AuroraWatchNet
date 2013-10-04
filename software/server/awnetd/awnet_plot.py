@@ -627,7 +627,8 @@ if args.make_links:
                       'fstr': voltage_fstr},]
         make_links(site_summary_dir, link_data)
  
-    # Stack plot links use a different base directory
+    # Stack plots and combined activity links use a different base
+    # directories
     make_links(os.path.join(summary_dir, 'stackplots'),
                [{'name': 'yesterday.png', 
                  'date': yesterday,
@@ -635,6 +636,14 @@ if args.make_links:
                 {'name': 'today.png', 
                  'date': today,
                  'fstr': stackplot_fstr}])
+    make_links(os.path.join(summary_dir, 'activity_plots'),
+               [{'name': 'yesterday.png', 
+                 'date': yesterday,
+                 'fstr': actplot_fstr},               
+                {'name': 'today.png', 
+                 'date': today,
+                 'fstr': actplot_fstr}])
+
 
 if args.show:    
     plt.show()
