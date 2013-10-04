@@ -321,6 +321,11 @@ def combined_activity_plot(act, filename, exif_tags):
     activity_data.plot(units_prefix='n')
     fig = plt.gcf()
     ax = plt.gca()
+    ax.set_ylabel('Activity (nT)')
+    ax.set_title('AuroraWatch UK\nAverage geomagnetic activity\n' +
+                 dt64.fmt_dt64_range(activity_data.start_time,
+                                     activity_data.end_time))
+    ax.grid(True)
     # Set Y limit to be 1.5 times highest threshold. Units are
     # nanotesla since that was set when plotting.
     ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
