@@ -139,12 +139,10 @@ function loadDailyPlots(t) {
   
   // var urlParts = window.location.pathname.split('/');
   // var site = urlParts[urlParts.length - 2];
-  if (site == 'stackplots') {
+  if (site == 'stackplots' || site == 'activity_plots') {
     //var fstr = siteDetails[network][site][s];
     document.getElementById('img-stackplot').src 
       = gaiaDate.strftime(t, '%Y/%m/%Y%m%d.png') + uniq;
-    //document.getElementById('div-stackplot').style.visibility = 'visible';
-    //document.getElementById('div-site-plots').style.visibility = 'hidden';
   }
   else {
     for (var i = 0; i < imgIds.length; ++i) {
@@ -162,11 +160,9 @@ function loadDailyPlots(t) {
       }
 	
     }
-    //document.getElementById('div-site-plots').style.visibility = 'visible';
-    //document.getElementById('div-stackplot').style.visibility = 'hidden';
   }
 
-  if (site == 'stackplots') {
+  if (site == 'stackplots' || site == 'activity_plots') {
     document.getElementById('div-stackplot').style.visibility = 'visible';
     document.getElementById('div-site-plots').style.visibility = 'hidden';
   }
@@ -191,8 +187,7 @@ function loadRollingPlots() {
   //var site = urlParts[urlParts.length - 2];
   var uniq = '?' + Date.now();
 
-  if (site == 'stackplots') {
-    //var url = siteDetails[network][site]['rolling-' + site];
+  if (site == 'stackplots' || site == 'activity_plots') {
     var url = 'rolling.png';
     document.getElementById('img-stackplot').src = url + uniq;
     document.getElementById('div-stackplot').style.visibility = 'visible';
