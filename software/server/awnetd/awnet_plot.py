@@ -101,7 +101,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags):
     global activity
     activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
                                                       magqdc=mag_qdc,
-                                                      fit=False)
+                                                      fit=None)
 
     pos = [0.15, 0.1, 0.775, 0.75]
 
@@ -222,12 +222,15 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
         errors = [0.0]
     else:
         # Fit the QDC to the previous data
-        qdc_aligned, errors, fi = mag_qdc.align(fit_data, 
-                                                fit=True,
-                                                #err_func=ap.data.sign_error,
-                                                err_func=ap.data.leastsq_error,
-                                                plot_fit=args.plot_fit,
-                                                full_output=True)
+        qdc_aligned, errors, fi = mag_qdc.align(\
+            fit_data, 
+            # fit=True,
+            fit=ap.data.Data.minimise_sign_error_fit,
+            #err_func=ap.data.sign_error,
+            # err_func=ap.data.leastsq_error,
+            plot_fit=args.plot_fit,
+            full_output=True)
+
         if args.plot_fit:
             fig = plt.gcf()
             fig.set_figwidth(6.4)
