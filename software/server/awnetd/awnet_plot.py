@@ -479,6 +479,15 @@ while t1 < end_time:
     attribution_list = []
 
     for network_uc, site_uc in network_site.values():
+        site_start_time = ap.get_site_info(network_uc, site_uc, 
+                                           info='start_time')
+        site_end_time = ap.get_site_info(network_uc, site_uc, 
+                                         info='end_time')
+        if site_start_time and t2 <= site_start_time:
+            next
+        if site_end_time and t1 >= site_end_time:
+            next
+
         site_lc = site_uc.lower()
         network_lc = network_uc.lower()
         
