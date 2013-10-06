@@ -131,15 +131,19 @@ for network_uc, site_uc in network_site.values():
                 ax = plt.gca()
 
         else:
-            mag_data = ap.load_data(network_uc, site_uc, 'MagData', t1, t2)
+            archive, ad = ap.get_archive_info(network_uc, site_uc, 
+                                              'MagData', 
+                                              archive=getattr(args, 
+                                                              'archive'))
+
+            mag_data = ap.load_data(network_uc, site_uc, 'MagData', t1, t2,
+                                    archive=archive)
             if mag_data is not None:
                 mag_qdc = mag_data.make_qdc(smooth=True)
+                qdc_archive, qdc_ad \
+                    = ap.get_archive_info(network_uc, site_uc, 'MagQDC')
 
-                archive, ad = ap.get_archive_info(network_uc, site_uc, 
-                                                  'MagQDC', 
-                                                  archive=getattr(args, 
-                                                                     'archive'))
-                filename = dt64.strftime(t1, ad['path'])
+                filename = dt64.strftime(t1, qdc_ad['path'])
                 p = os.path.dirname(filename)
                 if not os.path.isdir(p):
                     os.makedirs(p)
