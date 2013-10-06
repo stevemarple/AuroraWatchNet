@@ -174,6 +174,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     '''
 
     global mag_fstr
+    global args
 
     # Debug
     global mag_data
@@ -217,15 +218,25 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
         return
 
     if fit_data is None:
-        # Cannot fit, so assume not errors in QDC
+        # Cannot fit, so assume no errors in QDC
         errors = [0.0]
     else:
         # Fit the QDC to the previous data
         qdc_aligned, errors, fi = mag_qdc.align(fit_data, 
                                                 fit=True,
-                                                err_func=ap.data.sign_error,
-                                                plot_fit=False,
+                                                #err_func=ap.data.sign_error,
+                                                err_func=ap.data.leastsq_error,
+                                                plot_fit=args.plot_fit,
                                                 full_output=True)
+        if args.plot_fit:
+            fig = plt.gcf()
+            fig.set_figwidth(6.4)
+            fig.set_figheight(4.8)
+            fig.subplots_adjust(bottom=0.1, top=0.85, 
+                                left=0.15, right=0.925)
+            fit_fstr = mag_fstr[:(mag_fstr.rindex('.'))] + '_fit.png'
+            mysavefig(fig, dt64.strftime(dt64.ceil(st, day), fit_fstr),
+                      exif_tags)
 
     # Adjust the quiet day curve with the error obtained by fitting to
     # previous days.
@@ -383,6 +394,9 @@ parser.add_argument('-S', '--summary-dir',
                     default=None,
                     help='Base directory for summary plots',
                     metavar='PATH')
+parser.add_argument('--plot-fit', 
+                    action='store_true',
+                    help='Plot and save QDC fit')
 parser.add_argument('--show', 
                     action='store_true',
                     help='Show plots for final day')
