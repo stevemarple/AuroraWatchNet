@@ -11,7 +11,7 @@ var reloadTodayID = null;
 var network = null;
 var site = null;
 
-var imgIds = ['magnetometer', 'temperature', 'humidity',
+var imgIds = ['magnetometer', 'magnetometer-fit', 'temperature', 'humidity',
 	      'voltage', 'stackplot'];
 
 // Format strings for the various sites
@@ -68,9 +68,11 @@ function initialiseSiteDetails() {
   for (var i = 0; i < sites.length; ++i)
     siteDetails.aurorawatchnet[sites[i]] = {
     'magnetometer': '%Y/%m/' + sites[i] + '_%Y%m%d.png',
+    'magnetometer-fit': '%Y/%m/' + sites[i] + '_%Y%m%d_fit.png',
     'temperature': '%Y/%m/' + sites[i] + '_temp_%Y%m%d.png',
     'voltage': '%Y/%m/' + sites[i] + '_voltage_%Y%m%d.png',
     'rolling-magnetometer': 'rolling.png',
+    'rolling-magnetometer-fit': '%Y/%m/' + sites[i] + '_%Y%m%d_fit.png',
     'rolling-temperature': 'rolling_temp.png',
     'rolling-voltage': 'rolling_volt.png',
     };
@@ -196,13 +198,16 @@ function loadRollingPlots() {
   else {
     for (var i = 0; i < imgIds.length; ++i) {
       var s = imgIds[i];
-      var url = siteDetails[network][site]['rolling-' + s];
+      //var url = siteDetails[network][site]['rolling-' + s];
+      var fstr = siteDetails[network][site]['rolling-' + s];
       var elem = document.getElementById('img-' + s);
       if (elem == null)
 	continue;
-      if (typeof url == 'undefined')
+      //if (typeof url == 'undefined')
+      if (typeof fstr == 'undefined')
 	elem.style.visibility = 'hidden'; // No such img for site
       else {
+	var url = gaiaDate.strftime(gaiaDate.getUTCToday(), fstr)
 	elem.src = url + uniq;
 	elem.style.visibility = 'visible';
       }
