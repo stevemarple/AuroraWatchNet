@@ -221,25 +221,28 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
         # Cannot fit, so assume no errors in QDC
         errors = [0.0]
     else:
-        # Fit the QDC to the previous data
-        qdc_aligned, errors, fi = mag_qdc.align(\
-            fit_data, 
-            # fit=True,
-            fit=ap.data.Data.minimise_sign_error_fit,
-            #err_func=ap.data.sign_error,
-            # err_func=ap.data.leastsq_error,
-            plot_fit=args.plot_fit,
-            full_output=True)
-
-        if args.plot_fit:
-            fig = plt.gcf()
-            fig.set_figwidth(6.4)
-            fig.set_figheight(4.8)
-            fig.subplots_adjust(bottom=0.1, top=0.85, 
-                                left=0.15, right=0.925)
-            fit_fstr = mag_fstr[:(mag_fstr.rindex('.'))] + '_fit.png'
-            mysavefig(fig, dt64.strftime(dt64.ceil(st, day), fit_fstr),
-                      exif_tags)
+        try:
+            # Fit the QDC to the previous data
+            qdc_aligned, errors, fi = mag_qdc.align(\
+                fit_data, 
+                fit=ap.data.Data.minimise_sign_error_fit,
+                plot_fit=args.plot_fit,
+                full_output=True)
+        except Exception as e:
+            if args.verbose:
+                print('Could not fit: ' + str(e))
+            errors = [0.0]
+        else:
+            # Fitted ok, plot if necessary
+            if args.plot_fit:
+                fig = plt.gcf()
+                fig.set_figwidth(6.4)
+                fig.set_figheight(4.8)
+                fig.subplots_adjust(bottom=0.1, top=0.85, 
+                                    left=0.15, right=0.925)
+                fit_fstr = mag_fstr[:(mag_fstr.rindex('.'))] + '_fit.png'
+                mysavefig(fig, dt64.strftime(dt64.ceil(st, day), fit_fstr),
+                          exif_tags)
 
     # Adjust the quiet day curve with the error obtained by fitting to
     # previous days.
