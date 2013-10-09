@@ -98,7 +98,7 @@ def run_if_timeout_reached(func, timeout, detection_time, now, summary_dir,
 
     '''
     force_jobs = False
-    force_jobs = True
+    # force_jobs = True
 
     if name is None:
         name=func.func_name
