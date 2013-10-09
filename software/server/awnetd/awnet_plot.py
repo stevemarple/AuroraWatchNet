@@ -29,6 +29,32 @@ os.environ['TZ'] = 'UTC'
 time.tzset()
 
 
+def parse_datetime(s):
+    # Parse datetime relative to 'now' variable, which in test mode
+    # may not be the current time.
+    if s == 'tomorrow':
+        return tomorrow
+    elif s == 'now':
+        return now
+    elif s == 'today':
+        return today
+    elif s == 'yesterday':
+        return yesterday
+    else:
+        return np.datetime64(s).astype('M8[us]')
+
+
+def my_load_data(network, site, data_type, start_time, end_time, **kwargs):
+    r = ap.load_data(network, site, data_type, start_time, end_time, **kwargs)
+    if r is not None and args.test_mode:
+        # Remove any data after 'now' to emulate the correct behaviour
+        # when using historical data.
+        print(r)
+        r.data[:,r.sample_end_time > now] = np.nan
+        print(r)
+    return r
+
+
 def mysavefig(fig, filename, exif_tags=None):
     global args
     path = os.path.dirname(filename)
@@ -168,7 +194,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
         day. For rolling plots it is the end of the 24 hour period.
     
     rolling: flag to indicate if rolling plot should also be made. It
-        is not otherwise possible to idicentify rolling pltos which
+        is not otherwise possible to identify rolling plots which
         start at midnight.
 
     '''
@@ -189,7 +215,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     # Load the data to plot. For rolling plots load upto midnight so
     # that both the rolling plot and the current day plot can be
     # generated efficiently.
-    mag_data = ap.load_data(network, site, 'MagData', st, dt64.ceil(et, day),
+    mag_data = my_load_data(network, site, 'MagData', st, dt64.ceil(et, day),
                             channels=[channel])
 
     if mag_data is None or \
@@ -206,7 +232,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     qdc_fit_interval = 3 * day
     fit_et = dt64.ceil(st, day) # Could be doing a rolling plot
     fit_st = fit_et - qdc_fit_interval
-    fit_data = ap.load_data(network, site, 'MagData', fit_st, fit_et, 
+    fit_data = my_load_data(network, site, 'MagData', fit_st, fit_et, 
                             channels=[channel])
 
     # Load the latest QDC that is available.
@@ -379,11 +405,14 @@ cc3_by_nc_sa = 'This work is licensed under the Creative Commons ' + \
 parser = argparse.ArgumentParser(description\
                                      ='Plot AuroraWatch magnetometer data.')
 parser.add_argument('-s', '--start-time',
-                    help='Start time',
-                    metavar='DATETIME');
+                    help='Start time for archive plot mode',
+                    metavar='DATETIME')
 parser.add_argument('-e', '--end-time',
-                    help='End time',
-                    metavar='DATETIME');
+                    help='End time for archive plot mode',
+                    metavar='DATETIME')
+parser.add_argument('--now',
+                    help='Set current time for test mode',
+                    metavar='DATETIME')
 parser.add_argument('-v', '--verbose', action='store_true', 
                     default=0, help='Increase verbosity')
 parser.add_argument('-m', '--make-links', 
@@ -391,12 +420,15 @@ parser.add_argument('-m', '--make-links',
                     help='Make symbolic links')
 parser.add_argument('--rolling', 
                     action='store_true',
-                    help='Make rolling plots for today')
+                    help='Make rolling plots for today (live mode)')
+parser.add_argument('--test-mode',
+                    action='store_true',
+                    help='Test mode for plots and jobs')
 parser.add_argument('--sites', 
                     required=True,
                     help='Whitespace-separated list of sites (prefixed with network)',
                     metavar='"NETWORK1/SITE1 NETWORK2/SITE2 ..."')
-parser.add_argument('-S', '--summary-dir', 
+parser.add_argument('--summary-dir', 
                     default=None,
                     help='Base directory for summary plots',
                     metavar='PATH')
@@ -413,13 +445,33 @@ parser.add_argument('--stack-plot',
 args = parser.parse_args()
 ap.verbose = args.verbose
     
+# Use a consistent value for current time, process any --now option
+# first.
+if args.now:
+    now = parse_datetime(args.now)
+else:
+    now = np.datetime64('now', 'us')
 
-# Use a consistent value for current time
 day = np.timedelta64(24, 'h')
-now = np.datetime64('now', 'us')
 today = dt64.floor(now, day)
 yesterday = today - day
 tomorrow = today + day
+
+if args.rolling:
+    if args.start_time or args.end_time:
+        raise Exception('Cannot set start or end time for rolling plots')
+    end_time = dt64.ceil(now, np.timedelta64(1, 'h'))
+    start_time = end_time - day
+else:
+    if args.start_time is None:
+        start_time = today
+    else:
+        start_time = parse_datetime(args.start_time)
+
+    if args.end_time is None:
+        end_time = start_time + day
+    else:
+        end_time = parse_datetime(args.end_time)
 
 
 
@@ -439,30 +491,6 @@ for s in args.sites.upper().split():
     else:
         raise Exception('bad value for network/site (' + network_site)
 
-
-if args.rolling:
-    if args.start_time or args.end_time:
-        raise Exception('Cannot set start or end time for rolling plots')
-    end_time = dt64.ceil(now, np.timedelta64(1, 'h'))
-    start_time = end_time - day
-else:
-    if args.start_time is None or args.start_time == 'today': 
-        start_time = today
-    elif args.start_time == 'yesterday':
-        start_time = yesterday
-    else:
-        start_time = np.datetime64(args.start_time).astype('M8[h]')
-
-    if args.end_time is None:
-        end_time = start_time + day
-    elif args.end_time == 'today':
-        end_time = today
-    elif args.end_time == 'yesterday':
-        end_time = yesterday
-    elif args.end_time == 'tomorrow':
-        end_time = tomorrow
-    else:
-        end_time = np.datetime64(args.end_time).astype('M8[h]')
 
 
 t1 = start_time
@@ -569,7 +597,7 @@ while t1 < end_time:
                 print(e.message)
 
         if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
-            temp_data = ap.load_data(network_uc, site_uc, 'TemperatureData', 
+            temp_data = my_load_data(network_uc, site_uc, 'TemperatureData', 
                                      t1, t2_eod)
             if temp_data is not None:
                 temp_data.set_cadence(np.timedelta64(10, 'm'), 
@@ -589,7 +617,7 @@ while t1 < end_time:
 
 
         if has_data_of_type(network_uc, site_uc, 'VoltageData'):
-            voltage_data = ap.load_data(network_uc, site_uc, 'VoltageData', 
+            voltage_data = my_load_data(network_uc, site_uc, 'VoltageData', 
                                         t1, t2_eod)
             if voltage_data is not None:
                 voltage_data.set_cadence(np.timedelta64(10, 'm'), 
