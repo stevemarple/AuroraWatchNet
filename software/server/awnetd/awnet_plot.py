@@ -49,9 +49,7 @@ def my_load_data(network, site, data_type, start_time, end_time, **kwargs):
     if r is not None and args.test_mode:
         # Remove any data after 'now' to emulate the correct behaviour
         # when using historical data.
-        print(r)
         r.data[:,r.sample_end_time > now] = np.nan
-        print(r)
     return r
 
 
@@ -441,6 +439,9 @@ parser.add_argument('--show',
 parser.add_argument('--stack-plot',
                     action='store_true',
                     help='Generate stack plot(s)')
+parser.add_argument('--run-jobs',
+                    action='store_true',
+                    help='Run jobs')
 
 args = parser.parse_args()
 ap.verbose = args.verbose
@@ -474,6 +475,10 @@ else:
         end_time = parse_datetime(args.end_time)
 
 
+if args.run_jobs:
+    import aurorawatch_jobs
+else:
+    aurorawatch_jobs = None
 
 # Get names of all networks and sites to be processed. Dictionary used
 # to avoid duplicates.
@@ -542,40 +547,39 @@ while t1 < end_time:
             summary_dir = args.summary_dir
         else:
             summary_dir = '/tmp'
-        site_summary_dir = os.path.join(summary_dir, network_lc, site_lc)
 
-        mag_fstr = os.path.join(site_summary_dir, 
-                                '%Y/%m/' + site_lc + '_%Y%m%d.png')
+        if args.test_mode:
+            site_summary_dir = os.path.join(summary_dir, 'test',
+                                            network_lc, site_lc)
+        else:
+            site_summary_dir = os.path.join(summary_dir, network_lc, site_lc)
+
+        mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
+                                site_lc + '_%Y%m%d.png')
         rolling_magdata_filename = os.path.join(site_summary_dir, 
                                                 'rolling.png')
         
         stackplot_fstr = os.path.join(summary_dir, 'stackplots',
-                                      '%Y/%m/%Y%m%d.png')
+                                      '%Y', '%m', '%Y%m%d.png')
         rolling_stackplot_filename = os.path.join(summary_dir, 'stackplots',
                                                   'rolling.png')
 
         actplot_fstr = os.path.join(summary_dir, 'activity_plots',
-                                    '%Y/%m/%Y%m%d.png')
+                                    '%Y', '%m', '%Y%m%d.png')
         rolling_activity_filename = os.path.join(summary_dir, 
-                                                  'activity_plots',
-                                                  'rolling.png')
+                                                 'activity_plots',
+                                                 'rolling.png')
 
-        temp_fstr = os.path.join(site_summary_dir, 
-                                 '%Y/%m/' + site_lc + '_temp_%Y%m%d.png')
+        temp_fstr = os.path.join(site_summary_dir, '%Y', '%m',
+                                 site_lc + '_temp_%Y%m%d.png')
         rolling_tempdata_filename = os.path.join(site_summary_dir, 
                                                  'rolling_temp.png')
-        voltage_fstr = os.path.join(site_summary_dir, '%Y/%m/' + 
+        voltage_fstr = os.path.join(site_summary_dir, '%Y', '%m',
                                     site_lc + '_voltage_%Y%m%d.png')
         rolling_voltdata_filename = os.path.join(site_summary_dir, 
                                                  'rolling_volt.png')
 
-
-        # t1 = start_time
-        # while t1 < end_time:
-        #     plt.close('all')
-        #     t2 = t1 + day
-        #     t1_eod = dt64.ceil(t1, day) # t1 end of day
-        #     t2_eod = dt64.ceil(t2, day) # t2 end of day
+        md = None
         if has_data_of_type(network_uc, site_uc, 'MagData'):
             try:
                 md = make_aurorawatch_plot(network_uc, site_uc, t1, t2, 
@@ -596,6 +600,7 @@ while t1 < end_time:
                 raise
                 print(e.message)
 
+        temp_data = None
         if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
             temp_data = my_load_data(network_uc, site_uc, 'TemperatureData', 
                                      t1, t2_eod)
@@ -615,7 +620,7 @@ while t1 < end_time:
                                       dt64.strftime(t1_eod, temp_fstr),
                                       exif_tags)
 
-
+        voltage_data = None
         if has_data_of_type(network_uc, site_uc, 'VoltageData'):
             voltage_data = my_load_data(network_uc, site_uc, 'VoltageData', 
                                         t1, t2_eod)
@@ -634,8 +639,28 @@ while t1 < end_time:
                 make_voltage_plot(voltage_data.extract(start_time=t1_eod),
                                   dt64.strftime(t1_eod, voltage_fstr),
                                   exif_tags)
-
-
+        
+        if args.rolling and args.run_jobs:
+            # Jobs are only run for rolling (live) mode.
+            try:
+                if args.verbose:
+                    print('Running site job for ' + network_uc + '/' + site_uc)
+                aurorawatch_jobs.site_job(network=network_uc,
+                                          site=site_uc,
+                                          mag_data=mag_data,
+                                          temp_data=temp_data,
+                                          voltage_data=voltage_data,
+                                          now=now,
+                                          test_mode=args.test_mode,
+                                          verbose=args.verbose,
+                                          summary_dir=site_summary_dir)
+            except Exception as e:
+                raise
+                if args.verbose:
+                    print('Could not run job for ' + network_uc + '/' +
+                          site_uc + ': ' + str(e))
+                    
+        
     if args.stack_plot and len(mdl_day):
         site_ca = [] # site copyright/attribution details
         for n in range(len(mdl_day)):
@@ -659,6 +684,25 @@ while t1 < end_time:
                             exif_tags2)
             combined_activity_plot(act_rolling, rolling_activity_filename,
                                    exif_tags2)
+
+
+        if args.rolling and args.run_jobs:
+            try:
+                if args.verbose:
+                    print('Running activity job')
+                if args.test_mode:
+                    summary_dir2 = os.path.join(summary_dir, 'test')
+                else:
+                    summary_dir2 = summary_dir
+                aurorawatch_jobs.activity_job(mag_data_list=mdl_rolling,
+                                              activity_data_list=act_rolling,
+                                              test_mode=args.test_mode,
+                                              verbose=args.verbose,
+                                              summary_dir=summary_dir2)
+            except Exception as e:
+                if args.verbose:
+                    print('Could not run activity job for: ' + str(e))
+
             
     t1 = t2
     # End of time loop
