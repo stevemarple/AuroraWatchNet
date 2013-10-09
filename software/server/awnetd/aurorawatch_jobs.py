@@ -32,13 +32,16 @@ def site_job(network, site, now, summary_dir,
 
     if voltage_data is not None and \
             'Battery voltage' in voltage_data.channels:
-        lowbatt = 2.2
+        lowbatt = 2.35
         # Warn if battery nearly exhausted
         check_limits(voltage_data.extract(channels=['Battery voltage']),
                      [lowbatt, None], 
-                     print, np.timedelta64(12, 'h'),
+                     tweepypost, np.timedelta64(12, 'h'),
                      now, summary_dir, 
-                     func_args=['Low Battery (<' + str(lowbatt) + 'V)'], 
+                     func_args=['aurorawatchTest',
+                                'Low Battery (<' + str(lowbatt) + 'V) ' +
+                                network + '/' + site + 
+                                dt64.strftime(now, ' %Y-%m-%d %H:%M:%SZ')], 
                      func_kwargs={},
                      name='battery_voltage')
 
@@ -53,7 +56,7 @@ def touch(filename, amtime=None):
     if not os.path.exists(basedir):
         os.makedirs(basedir)
     with open(filename, 'a'):
-        os.utime(filename, None)
+        os.utime(filename, amtime)
 
 
 def check_limits(data, limits, func, timeout, now, summary_dir, 
@@ -126,3 +129,6 @@ def run_if_timeout_reached(func, timeout, detection_time, now, summary_dir,
     return r
 
 
+
+def tweepypost(username, mesg):
+    os.system('echo "' + mesg + '" | tweepypost -u aurorawatchTest -')
