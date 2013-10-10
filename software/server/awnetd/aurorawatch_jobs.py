@@ -2,7 +2,6 @@
 # This file defines custom jobs for AuroraWatchNet plotting.
 from __future__ import print_function
 
-import copy
 import logging
 import os.path
 
@@ -58,8 +57,9 @@ def site_job(network, site, now, status_dir,
             lower_limit=low_batt)
 
         if low_batt_time:
-            mesg = 'Low Battery (<' + str(low_batt) + 'V) ' + network \
-                + '/' + site + dt64.strftime(now, ' %Y-%m-%d %H:%M:%SZ')
+            mesg = 'Battery voltage low (<' + str(low_batt) + 'V) for ' \
+                + network + '/' + site \
+                + dt64.strftime(now, ' %Y-%m-%d %H:%M:%SUT')
             logging.debug(mesg)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
@@ -70,11 +70,12 @@ def site_job(network, site, now, status_dir,
                                        name='battery_voltage_tweet')
 
             if config.has_option('battery_voltage', 'facebook_cmd'):
-                fbcmd = config.get('battery_voltage', 'facebook_cmd').split()
+                fbcmd_opts = config.get('battery_voltage', 
+                                        'facebook_cmd').split()
                 run_if_timeout_reached(fbcmd, low_batt_timeout, 
                                        low_batt_time, 
                                        now, status_dir,
-                                       func_args=[fbcmd, mesg],
+                                       func_args=[fbcmd_opts, mesg],
                                        name='battery_voltage_facebook')
 
 
@@ -168,9 +169,10 @@ def email(sender, recipients, mesg):
 
 
 def fbcmd(cmd_options, mesg):
-    a = copy.copy(cmd_options)
+    a = ['fbcmd']
+    a.extend(cmd_options)
     a.append(mesg)
-    return subprocess.call(*a)
+    return subprocess.call(a)
 
 
 # Run initialisation code
