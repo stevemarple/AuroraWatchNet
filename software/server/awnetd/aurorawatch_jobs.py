@@ -2,9 +2,22 @@
 # This file defines custom jobs for AuroraWatchNet plotting.
 from __future__ import print_function
 
+import copy
+import logging
 import os.path
 
+import sys
+import subprocess
+
+if sys.version_info[0] >= 3:
+    import configparser
+    from configparser import SafeConfigParser
+else:
+    import ConfigParser
+    from ConfigParser import SafeConfigParser
+
 import numpy as np
+
 
 import auroraplot as ap
 import auroraplot.dt64tools as dt64
@@ -23,32 +36,56 @@ after successful completion.
 
 '''
 
-def site_job(network, site, now, summary_dir,
+def site_job(network, site, now, status_dir,
              mag_data=None, 
              temp_data=None, 
              voltage_data=None, 
-             test_mode=False, 
              verbose=False):
 
+    # Non-alert jobs should go here...
+
+    if not config.getboolean('alerts', 'enabled'):
+        logging.debug('alerts disabled')
+        return
+
+    # Warn if battery nearly exhausted
     if voltage_data is not None and \
             'Battery voltage' in voltage_data.channels:
-        lowbatt = 2.35
-        # Warn if battery nearly exhausted
-        check_limits(voltage_data.extract(channels=['Battery voltage']),
-                     [lowbatt, None], 
-                     tweepypost, np.timedelta64(12, 'h'),
-                     now, summary_dir, 
-                     func_args=['aurorawatchTest',
-                                'Low Battery (<' + str(lowbatt) + 'V) ' +
-                                network + '/' + site + 
-                                dt64.strftime(now, ' %Y-%m-%d %H:%M:%SZ')], 
-                     func_kwargs={},
-                     name='battery_voltage')
+        low_batt = float(config.get('battery_voltage', 'low_voltage'))
+        low_batt_timeout = np.timedelta64(24, 'h')
+        low_batt_time = limit_exceeded(\
+            voltage_data.extract(channels=['Battery voltage']),
+            lower_limit=low_batt)
+
+        if low_batt_time:
+            mesg = 'Low Battery (<' + str(low_batt) + 'V) ' + network \
+                + '/' + site + dt64.strftime(now, ' %Y-%m-%d %H:%M:%SZ')
+            logging.debug(mesg)
+            if config.has_option('battery_voltage', 'twitter_username'):
+                username = config.get('battery_voltage', 'twitter_username')
+                run_if_timeout_reached(tweet, low_batt_timeout, 
+                                       low_batt_time, 
+                                       now, status_dir,
+                                       func_args=[username, mesg],
+                                       name='battery_voltage_tweet')
+
+            if config.has_option('battery_voltage', 'facebook_cmd'):
+                fbcmd = config.get('battery_voltage', 'facebook_cmd').split()
+                run_if_timeout_reached(fbcmd, low_batt_timeout, 
+                                       low_batt_time, 
+                                       now, status_dir,
+                                       func_args=[fbcmd, mesg],
+                                       name='battery_voltage_facebook')
 
 
-def activity_job(mag_data_list, activity_data_list, test_mode, verbose, 
-                 summary_dir):
-    pass
+def activity_job(mag_data_list, activity_data_list, now, status_dir,
+                 verbose=False):
+    # Non-alert jobs should go here...
+    
+    if not config.getboolean('alerts', 'enabled'):
+        logging.debug('alerts disabled')
+        return
+    
 
 
 def touch(filename, amtime=None):
@@ -58,33 +95,28 @@ def touch(filename, amtime=None):
     with open(filename, 'a'):
         os.utime(filename, amtime)
 
-
-def check_limits(data, limits, func, timeout, now, summary_dir, 
-                 func_args=[], func_kwargs={}, name=None):
+def limit_exceeded(data, lower_limit=None, upper_limit=None):
     if data is None:
-        return
-    # Find latest value which is outside of limits
-    if limits[0] is not None and np.isfinite(limits[0]):
-        outside_limits = data.data < limits[0]
+        return None
+
+    if lower_limit is not None:
+        outside_limits = data.data < lower_limit
     else:
         outside_limits = np.zeros_like(data.data, dtype=bool)
 
-    if limits[1] is not None and np.isfinite(limits[1]):
+    if upper_limit is not None:    
         outside_limits = np.logical_or(outside_limits,
-                                       data.data > limits[1])
-    
+                                       data.data > upper_limit)
+
     if np.any(outside_limits):
         # Find the latest time data was outside of the limits
         tidx = np.where(outside_limits)[1][-1]
-        t = data.sample_start_time[tidx]
-        run_if_timeout_reached(func, timeout, t, now, summary_dir,
-                               func_args=func_args, 
-                               func_kwargs=func_kwargs, 
-                               name=name)
-        
+        return data.sample_start_time[tidx]
+    else:
+        return None
 
 
-def run_if_timeout_reached(func, timeout, detection_time, now, summary_dir, 
+def run_if_timeout_reached(func, timeout, detection_time, now, status_dir, 
                            func_args=[], func_kwargs={}, name=None):
     '''
     func: reference to function to call.
@@ -100,8 +132,6 @@ def run_if_timeout_reached(func, timeout, detection_time, now, summary_dir,
         work correctly.
 
     '''
-    force_jobs = False
-    # force_jobs = True
 
     if name is None:
         name=func.func_name
@@ -110,25 +140,67 @@ def run_if_timeout_reached(func, timeout, detection_time, now, summary_dir,
     # triggered the alert.
     rerun_time_s = dt64.dt64_to(detection_time - timeout, 's')
     
-    filename = os.path.join(summary_dir, name)
+    filename = os.path.join(status_dir, name)
     if not os.path.exists(filename):
         # Create the file, with an old time
         touch(filename, (0, 0))
-    elif rerun_time_s < os.path.getmtime(filename) and not force_jobs:
+    elif rerun_time_s < os.path.getmtime(filename) and not ignore_timeout:
         # Too recent
         return
     
     # Call the function
-    r = func(*func_args, **func_kwargs)
+    if func(*func_args, **func_kwargs):
+        return # Want zero return status
 
     # Must have completed, touch the file with the 'current'
     # time. This must honour the now value to enable testing with
     # archive data.
     now_s = dt64.dt64_to(now, 's')
     touch(filename, (now_s, now_s))
-    return r
 
 
 
-def tweepypost(username, mesg):
-    os.system('echo "' + mesg + '" | tweepypost -u aurorawatchTest -')
+def tweet(username, mesg):
+    return os.system('echo "' + mesg + '" | tweepypost -u ' + username + ' -')
+
+def email(sender, recipients, mesg):
+    pass
+
+
+def fbcmd(cmd_options, mesg):
+    a = copy.copy(cmd_options)
+    a.append(mesg)
+    return subprocess.call(*a)
+
+
+# Run initialisation code
+test_mode = False
+ignore_timeout = False
+def init(test, ignore):
+    global config
+    global test_mode
+    global ignore_timeout
+    test_mode = test
+    ignore_timeout = ignore
+
+    home = os.getenv('HOME')
+    assert home is not None, 'HOME environment variable not set'
+    
+    config = SafeConfigParser()
+    if test_mode:
+        config_filename = os.path.join(home, '.' + __name__ + '_test.ini')
+    else:
+        config_filename = os.path.join(home, '.' + __name__ + '.ini')
+    
+    config.add_section('alerts')
+    config.set('alerts', 'enabled', 'false')
+
+    config.add_section('battery_voltage')
+    config.set('battery_voltage', 'low_voltage', '2.35')
+    
+    logging.debug('Config filename: ' + config_filename)
+    files_read = config.read(config_filename)
+    logging.debug('Config files read: ' + ','.join(files_read))
+
+
+            

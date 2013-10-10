@@ -2,6 +2,7 @@
 import argparse    
 import copy
 import io
+import logging
 import os
 import sys
 import time
@@ -413,6 +414,9 @@ parser.add_argument('--now',
                     metavar='DATETIME')
 parser.add_argument('-v', '--verbose', action='store_true', 
                     default=0, help='Increase verbosity')
+parser.add_argument('--log-level', 
+                    help='Print debug information',
+                    metavar='LEVEL')
 parser.add_argument('-m', '--make-links', 
                     action='store_true',
                     help='Make symbolic links')
@@ -422,6 +426,9 @@ parser.add_argument('--rolling',
 parser.add_argument('--test-mode',
                     action='store_true',
                     help='Test mode for plots and jobs')
+parser.add_argument('--ignore-timeout',
+                    action='store_true',
+                    help='Ignore timeout when running jobs')
 parser.add_argument('--sites', 
                     required=True,
                     help='Whitespace-separated list of sites (prefixed with network)',
@@ -444,6 +451,8 @@ parser.add_argument('--run-jobs',
                     help='Run jobs')
 
 args = parser.parse_args()
+logging.basicConfig(level=args.log_level.upper())
+
 ap.verbose = args.verbose
     
 # Use a consistent value for current time, process any --now option
@@ -477,6 +486,7 @@ else:
 
 if args.run_jobs:
     import aurorawatch_jobs
+    aurorawatch_jobs.init(args.test_mode, args.ignore_timeout)
 else:
     aurorawatch_jobs = None
 
@@ -647,13 +657,13 @@ while t1 < end_time:
                     print('Running site job for ' + network_uc + '/' + site_uc)
                 aurorawatch_jobs.site_job(network=network_uc,
                                           site=site_uc,
+                                          now=now,
+                                          status_dir=site_summary_dir,
                                           mag_data=mag_data,
                                           temp_data=temp_data,
                                           voltage_data=voltage_data,
-                                          now=now,
-                                          test_mode=args.test_mode,
-                                          verbose=args.verbose,
-                                          summary_dir=site_summary_dir)
+                                          verbose=args.verbose)
+                                       
             except Exception as e:
                 raise
                 if args.verbose:
@@ -696,9 +706,9 @@ while t1 < end_time:
                     summary_dir2 = summary_dir
                 aurorawatch_jobs.activity_job(mag_data_list=mdl_rolling,
                                               activity_data_list=act_rolling,
-                                              test_mode=args.test_mode,
-                                              verbose=args.verbose,
-                                              summary_dir=summary_dir2)
+                                              now=now,
+                                              status_dir=summary_dir2,
+                                              verbose=args.verbose)
             except Exception as e:
                 if args.verbose:
                     print('Could not run activity job for: ' + str(e))
