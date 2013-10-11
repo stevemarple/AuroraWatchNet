@@ -219,7 +219,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     if mag_data is None or \
             not np.any(np.logical_not(np.isnan(mag_data.data))): 
         # not .np.any(etc) eliminates empty array or array of just nans
-        logging('No magnetic field data')
+        logging.info('No magnetic field data')
         return
 
     # Load up some data from previous days to and apply a
