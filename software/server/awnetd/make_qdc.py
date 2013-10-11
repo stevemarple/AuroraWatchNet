@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse    
+import logger
 import os
 import os.path
 import sys
@@ -41,9 +42,15 @@ parser.add_argument('-s', '--start-time',
 parser.add_argument('-e', '--end-time',
                     help='End time',
                     metavar='DATETIME');
-parser.add_argument('-v', '--verbose', 
-                    action='store_true', 
-                    help='Be verbose')
+parser.add_argument('--log-level', 
+                    choices=['debug', 'info', 'warning', 'error', 'critical'],
+                    default='warning',
+                    help='Control how much details is printed',
+                    metavar='LEVEL')
+parser.add_argument('--log-format',
+                    default='%(levelname)s:%(message)s',
+                    help='Set format of log messages',
+                    metavar='FORMAT')
 parser.add_argument('--sites', 
                     required=True,
                     help='Whitespace-separated list of networks and/or ' + \
@@ -110,8 +117,6 @@ for s in args.sites.upper().split():
         raise Exception('bad value for network/site (' + network_site)
 
 
-ap.verbose = args.verbose
-    
 
 for network_uc, site_uc in network_site.values():
     site_lc = site_uc.lower()

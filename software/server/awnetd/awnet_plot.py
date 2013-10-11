@@ -102,8 +102,7 @@ def mysavefig(fig, filename, exif_tags=None):
         f.close()
         buf.close()
 
-    if args.verbose:
-        print('saved to ' + filename)
+    logging.info('saved to ' + filename)
         
     # if not args.show:
     #     plt.close(fig) # Close to save memory
@@ -220,8 +219,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     if mag_data is None or \
             not np.any(np.logical_not(np.isnan(mag_data.data))): 
         # not .np.any(etc) eliminates empty array or array of just nans
-        if args.verbose:
-            print('No magnetic field data')
+        logging('No magnetic field data')
         return
 
     # Load up some data from previous days to and apply a
@@ -238,8 +236,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     mag_qdc = ap.magdata.load_qdc(network, site, et, 
                                   channels=[channel], tries=6)
     if mag_qdc is None:
-        if args.verbose:
-            print('No QDC')
+        logging.info('No QDC')
         return
 
     if fit_data is None:
@@ -254,8 +251,8 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
                 plot_fit=args.plot_fit,
                 full_output=True)
         except Exception as e:
-            if args.verbose:
-                print('Could not fit: ' + str(e))
+            logging.warn('Could not fit QDC')
+            logging.info(str(e))
             errors = [0.0]
         else:
             # Fitted ok, plot if necessary
@@ -412,12 +409,15 @@ parser.add_argument('-e', '--end-time',
 parser.add_argument('--now',
                     help='Set current time for test mode',
                     metavar='DATETIME')
-parser.add_argument('-v', '--verbose', action='store_true', 
-                    default=0, help='Increase verbosity')
 parser.add_argument('--log-level', 
+                    choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
-                    help='Print debug information',
+                    help='Control how much details is printed',
                     metavar='LEVEL')
+parser.add_argument('--log-format',
+                    default='%(levelname)s:%(message)s',
+                    help='Set format of log messages',
+                    metavar='FORMAT')
 parser.add_argument('-m', '--make-links', 
                     action='store_true',
                     help='Make symbolic links')
@@ -452,9 +452,9 @@ parser.add_argument('--run-jobs',
                     help='Run jobs')
 
 args = parser.parse_args()
-logging.basicConfig(level=args.log_level.upper())
-
-ap.verbose = args.verbose
+#logging.basicConfig(level=args.log_level.upper(), stream=sys.stdout)
+logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                    format=args.log_format)
     
 # Use a consistent value for current time, process any --now option
 # first.
@@ -654,22 +654,20 @@ while t1 < end_time:
         if args.rolling and args.run_jobs:
             # Jobs are only run for rolling (live) mode.
             try:
-                if args.verbose:
-                    print('Running site job for ' + network_uc + '/' + site_uc)
+                logging.info('Running site job for ' + network_uc + '/' \
+                                 + site_uc)
                 aurorawatch_jobs.site_job(network=network_uc,
                                           site=site_uc,
                                           now=now,
                                           status_dir=site_summary_dir,
                                           mag_data=mag_data,
                                           temp_data=temp_data,
-                                          voltage_data=voltage_data,
-                                          verbose=args.verbose)
+                                          voltage_data=voltage_data)
                                        
             except Exception as e:
+                logging.error('Could not run job for ' + network_uc + '/' +
+                              site_uc + ': ' + str(e))
                 raise
-                if args.verbose:
-                    print('Could not run job for ' + network_uc + '/' +
-                          site_uc + ': ' + str(e))
                     
         
     if args.stack_plot and len(mdl_day):
@@ -699,8 +697,7 @@ while t1 < end_time:
 
         if args.rolling and args.run_jobs:
             try:
-                if args.verbose:
-                    print('Running activity job')
+                logging.info('Running activity job')
                 if args.test_mode:
                     summary_dir2 = os.path.join(summary_dir, 'test')
                 else:
@@ -708,11 +705,9 @@ while t1 < end_time:
                 aurorawatch_jobs.activity_job(mag_data_list=mdl_rolling,
                                               activity_data_list=act_rolling,
                                               now=now,
-                                              status_dir=summary_dir2,
-                                              verbose=args.verbose)
+                                              status_dir=summary_dir2)
             except Exception as e:
-                if args.verbose:
-                    print('Could not run activity job for: ' + str(e))
+                logging.error('Could not run activity job for: ' + str(e))
 
             
     t1 = t2

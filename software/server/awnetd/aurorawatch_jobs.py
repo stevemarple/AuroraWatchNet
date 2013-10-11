@@ -26,11 +26,11 @@ import auroraplot.data
 '''
 Be very careful when running jobs to avoid them being run more often
 than intended. Use the modification time on an empty file to mark the
-last time it was run. If the disk is full the file can still be touch
-to indicate successful completion (unlike the case of writing the time
-to a file). If the file is missing create the empty file first before
-running the job - the ensures that the file will be present to update
-after successful completion.
+last time it was run. If the disk is full the file can still be
+touched to indicate successful completion (unlike the case of writing
+the time to a file). If the file is missing create the empty file
+first before running the job - this ensures that the file will be
+present to update after successful completion.
 
 
 '''
@@ -38,8 +38,7 @@ after successful completion.
 def site_job(network, site, now, status_dir,
              mag_data=None, 
              temp_data=None, 
-             voltage_data=None, 
-             verbose=False):
+             voltage_data=None):
 
     # Non-alert jobs should go here...
 
@@ -79,8 +78,7 @@ def site_job(network, site, now, status_dir,
                                        name='battery_voltage_facebook')
 
 
-def activity_job(mag_data_list, activity_data_list, now, status_dir,
-                 verbose=False):
+def activity_job(mag_data_list, activity_data_list, now, status_dir):
     # Non-alert jobs should go here...
     
     if not config.getboolean('alerts', 'enabled'):
