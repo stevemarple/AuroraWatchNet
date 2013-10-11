@@ -415,6 +415,7 @@ parser.add_argument('--now',
 parser.add_argument('-v', '--verbose', action='store_true', 
                     default=0, help='Increase verbosity')
 parser.add_argument('--log-level', 
+                    default='warning',
                     help='Print debug information',
                     metavar='LEVEL')
 parser.add_argument('-m', '--make-links', 
