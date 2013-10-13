@@ -487,7 +487,7 @@ else:
 
 if args.run_jobs:
     import aurorawatch_jobs
-    aurorawatch_jobs.init(args.test_mode, args.ignore_timeout)
+    # aurorawatch_jobs.init(args.test_mode, args.ignore_timeout)
 else:
     aurorawatch_jobs = None
 
@@ -660,6 +660,8 @@ while t1 < end_time:
                                           site=site_uc,
                                           now=now,
                                           status_dir=site_summary_dir,
+                                          test_mode=args.test_mode,
+                                          ignore_timeout=args.ignore_timeout,
                                           mag_data=mag_data,
                                           temp_data=temp_data,
                                           voltage_data=voltage_data)
@@ -705,7 +707,9 @@ while t1 < end_time:
                 aurorawatch_jobs.activity_job(mag_data_list=mdl_rolling,
                                               activity_data_list=act_rolling,
                                               now=now,
-                                              status_dir=summary_dir2)
+                                              status_dir=summary_dir2,
+                                              test_mode=args.test_mode,
+                                              ignore_timeout=args.ignore_timeout,)
             except Exception as e:
                 logging.error('Could not run activity job for: ' + str(e))
 

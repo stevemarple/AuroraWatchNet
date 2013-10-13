@@ -4,9 +4,12 @@ from __future__ import print_function
 
 import logging
 import os.path
-
+import pwd
 import sys
 import subprocess
+
+import smtplib
+from email.mime.text import MIMEText
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -35,11 +38,18 @@ present to update after successful completion.
 
 '''
 
-def site_job(network, site, now, status_dir,
+_ignore_timeout = False
+
+def site_job(network, site, now, status_dir, test_mode, 
+             ignore_timeout=False,
              mag_data=None, 
              temp_data=None, 
              voltage_data=None):
 
+    global _ignore_timeout
+    _ignore_timeout = ignore_timeout
+
+    config = read_config(test_mode, network=network, site=site)
     # Non-alert jobs should go here...
 
     if not config.getboolean('alerts', 'enabled'):
@@ -62,7 +72,7 @@ def site_job(network, site, now, status_dir,
             logging.debug(mesg)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
-                run_if_timeout_reached(tweet, low_batt_timeout, 
+                run_if_timeout_reached(send_tweet, low_batt_timeout, 
                                        low_batt_time, 
                                        now, status_dir,
                                        func_args=[username, mesg],
@@ -76,9 +86,25 @@ def site_job(network, site, now, status_dir,
                                        now, status_dir,
                                        func_args=[fbcmd_opts, mesg],
                                        name='battery_voltage_facebook')
+            if config.has_option('battery_voltage', 'email_to'):
+                subject = network + '/' + site + ' battery voltage low'
+                mesg2 = mesg + \
+                    '\n\nThis is an automatically generated message.\n' 
+                run_if_timeout_reached(send_email, low_batt_timeout, 
+                                       low_batt_time, 
+                                       now, status_dir,
+                                       func_args=[config, 
+                                                  'battery_voltage',
+                                                  subject, mesg2],
+                                       name='battery_voltage_email')
 
 
-def activity_job(mag_data_list, activity_data_list, now, status_dir):
+def activity_job(mag_data_list, activity_data_list, now, status_dir, 
+                 test_mode, ignore_timeout=False):
+    global _ignore_timeout
+    _ignore_timeout = ignore_timeout
+
+    config = read_config(test_mode, combined=True)
     # Non-alert jobs should go here...
     
     if not config.getboolean('alerts', 'enabled'):
@@ -86,13 +112,13 @@ def activity_job(mag_data_list, activity_data_list, now, status_dir):
         return
     
 
-
 def touch(filename, amtime=None):
     basedir = os.path.dirname(filename)
     if not os.path.exists(basedir):
         os.makedirs(basedir)
     with open(filename, 'a'):
         os.utime(filename, amtime)
+
 
 def limit_exceeded(data, lower_limit=None, upper_limit=None):
     if data is None:
@@ -142,9 +168,11 @@ def run_if_timeout_reached(func, timeout, detection_time, now, status_dir,
     filename = os.path.join(status_dir, name)
     if not os.path.exists(filename):
         # Create the file, with an old time
+        logging.debug('timeout file missing: ' + filename)
         touch(filename, (0, 0))
-    elif rerun_time_s < os.path.getmtime(filename) and not ignore_timeout:
+    elif rerun_time_s < os.path.getmtime(filename) and not _ignore_timeout:
         # Too recent
+        logging.debug('job ' + name + ' ran too recently, skipping')
         return
     
     # Call the function
@@ -159,11 +187,39 @@ def run_if_timeout_reached(func, timeout, detection_time, now, status_dir,
 
 
 
-def tweet(username, mesg):
+def send_tweet(username, mesg):
     return os.system('echo "' + mesg + '" | tweepypost -u ' + username + ' -')
 
-def email(sender, recipients, mesg):
-    pass
+def send_email(config, section, subject, mesg):
+    smtp_kwargs = {}
+    smtp_options = ['host', 'port', 'local_hostname', 'timeout']
+    for k in smtp_options:
+        if config.has_option('smtp', k):
+            smtp_kwargs[k] = config.get('smtp', k)
+
+    logging.debug('Sending email to ' + config.get(section, 'email_to'))
+    m = MIMEText(mesg)
+    m['Subject'] = subject
+    m['From'] = config.get(section, 'email_from')
+    m['To'] = config.get(section, 'email_to')
+
+    # Find section items which start with 'email_header' and add its
+    # value to as a header line. Some email list servers support an
+    # approval header.
+    for i in config.items(section):
+        if i[0].startswith('email_header'):
+            a = i[1].split(':', 1)
+            if len(a) > 1:
+                m.add_header(a[0], a[1]) # name:value pair
+            else:
+                m.add_header(a[0], None) # name only
+                
+    logging.debug(m.as_string())
+
+    s = smtplib.SMTP(**smtp_kwargs)
+    s.sendmail(config.get(section, 'email_from'), 
+               config.get(section, 'email_to').split(), m.as_string())
+    s.quit()
 
 
 def fbcmd(cmd_options, mesg):
@@ -173,34 +229,39 @@ def fbcmd(cmd_options, mesg):
     return subprocess.call(a)
 
 
-# Run initialisation code
-test_mode = False
-ignore_timeout = False
-def init(test, ignore):
-    global config
-    global test_mode
-    global ignore_timeout
-    test_mode = test
-    ignore_timeout = ignore
 
-    home = os.getenv('HOME')
-    assert home is not None, 'HOME environment variable not set'
-    
+            
+def read_config(test_mode, combined=False, network=None, site=None):
     config = SafeConfigParser()
-    if test_mode:
-        config_filename = os.path.join(home, '.' + __name__ + '_test.ini')
-    else:
-        config_filename = os.path.join(home, '.' + __name__ + '.ini')
-    
+
+    # Set some sensible defaults
     config.add_section('alerts')
     config.set('alerts', 'enabled', 'false')
 
-    config.add_section('battery_voltage')
-    config.set('battery_voltage', 'low_voltage', '2.35')
+    config.add_section('email')
+    # config.set('server', 'localhost')
     
-    logging.debug('Config filename: ' + config_filename)
-    files_read = config.read(config_filename)
-    logging.debug('Config files read: ' + ','.join(files_read))
 
+    path = [os.getenv('HOME'), '.' + __name__]
+    if test_mode:
+        path = os.path.join(os.getenv('HOME'), '.' + __name__, 'test')
+    else:
+        path = os.path.join(os.getenv('HOME'), '.' + __name__)
+        
+    if combined:
+        # Data combined from multiple sites
+        config_files = [os.path.join(path, 'common.ini'),
+                        os.path.join(path, 'combined.ini')]
+    else:
+        # Data from a single site
+        config.add_section('battery_voltage')
+        config.set('battery_voltage', 'low_voltage', '2.35')
 
-            
+        config_files = [os.path.join(path, 'common.ini'),
+                        os.path.join(path, network.lower() + '_' 
+                                     + site.lower() + '.ini')]
+
+    logging.debug('Config files: ' + ', '.join(config_files))
+    files_read = config.read(config_files)
+    logging.debug('Config files read: ' + ', '.join(files_read))
+    return config
