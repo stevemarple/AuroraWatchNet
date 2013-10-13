@@ -1,5 +1,43 @@
-#
 # This file defines custom jobs for AuroraWatchNet plotting.
+
+'''
+This module defines custom jobs for AuroraWatchNet plotting. It can be
+used to send emails, tweets or Facebook posts in response to importants
+events.
+
+The events which can cause actions are:
+    * low battery
+    * missing data (to be implemented)
+    * geomagnetic activity (to be implemented)
+    
+Each event can trigger one or more jobs to run. These jobs include
+sending emails or social media messages. Some events make sense only
+for a specific site, and are only supported by the site_jobs
+function. Detection of geomagnetic activity however makes most sense
+when performed on the combined activity dataset, and thus is supported
+by the activity_job function.
+
+The behaviour of this module can be conveniently modified by
+configparser .ini files. In the absence of any files no jobs are
+run. The .ini files are stored in the $HOME/.aurorawatch_jobs
+directory. A common.ini file can be used to define commonly used
+settings (such as SMTP server settings) whilst site-specific settings
+can be stored in the site config files, named <network>_<site>.ini
+where <network> is the site's network name in lower case and <site> is
+the site name, also in lower case.
+
+Alerts can be disabled by setting the "enabled" item in the "[alerts]"
+section to be false. It is suggested not to override this in the site
+configuration files (except to disable alerts) otherwise the global
+"kill-switch" behaviour is lost.
+
+This module supports a test mode, whose purpose is to allow the
+plotting and jobs to be tested on historic data. As it is not
+desirable to alert users of historical events a separate set of .ini
+files are used. They have the same names as previously but are located
+in the $HOME/.aurorawatch_jobs/test directory.
+
+'''
 from __future__ import print_function
 
 import logging
