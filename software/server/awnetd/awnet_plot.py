@@ -373,7 +373,8 @@ def combined_activity_plot(act, filename, exif_tags):
     fig.subplots_adjust(bottom=0.1, top=0.85, 
                         left=0.15, right=0.925)
     mysavefig(fig, filename, exif_tags)
-
+    return activity_data
+    
 def make_links(link_dir, link_data):
     for link in link_data:
         link_name = os.path.join(link_dir, link['name'])
@@ -452,7 +453,6 @@ parser.add_argument('--run-jobs',
                     help='Run jobs')
 
 args = parser.parse_args()
-#logging.basicConfig(level=args.log_level.upper(), stream=sys.stdout)
 logging.basicConfig(level=getattr(logging, args.log_level.upper()),
                     format=args.log_format)
     
@@ -693,25 +693,25 @@ while t1 < end_time:
         if args.rolling:
             make_stack_plot(mdl_rolling, rolling_stackplot_filename, 
                             exif_tags2)
-            combined_activity_plot(act_rolling, rolling_activity_filename,
-                                   exif_tags2)
+            combined_activity = \
+                combined_activity_plot(act_rolling, rolling_activity_filename,
+                                       exif_tags2)
 
-
-        if args.rolling and args.run_jobs:
-            try:
-                logging.info('Running activity job')
-                if args.test_mode:
-                    summary_dir2 = os.path.join(summary_dir, 'test')
-                else:
-                    summary_dir2 = summary_dir
-                aurorawatch_jobs.activity_job(mag_data_list=mdl_rolling,
-                                              activity_data_list=act_rolling,
-                                              now=now,
-                                              status_dir=summary_dir2,
-                                              test_mode=args.test_mode,
-                                              ignore_timeout=args.ignore_timeout,)
-            except Exception as e:
-                logging.error('Could not run activity job for: ' + str(e))
+            if args.run_jobs:
+                try:
+                    logging.info('Running activity job')
+                    if args.test_mode:
+                        summary_dir2 = os.path.join(summary_dir, 'test')
+                    else:
+                        summary_dir2 = summary_dir
+                    aurorawatch_jobs.activity_job(combined_activity=combined_activity,
+                                                  activity_data_list=act_rolling,
+                                                  now=now,
+                                                  status_dir=summary_dir2,
+                                                  test_mode=args.test_mode,
+                                                  ignore_timeout=args.ignore_timeout,)
+                except Exception as e:
+                    logging.error('Could not run activity job: ' + str(e))
 
             
     t1 = t2

@@ -26,10 +26,11 @@ can be stored in the site config files, named <network>_<site>.ini
 where <network> is the site's network name in lower case and <site> is
 the site name, also in lower case.
 
-Alerts can be disabled by setting the "enabled" item in the "[alerts]"
-section to be false. It is suggested not to override this in the site
-configuration files (except to disable alerts) otherwise the global
-"kill-switch" behaviour is lost.
+Alerts can be disabled by setting the "enabled" item in the
+"[all_alerts]" section to be false. It is suggested not to override
+this in the site configuration files (except to disable alerts)
+otherwise the global "kill-switch" behaviour is lost; instead comment
+out the enabled line so the common.inin version is used.
 
 This module supports a test mode, whose purpose is to allow the
 plotting and jobs to be tested on historic data. As it is not
@@ -90,7 +91,7 @@ def site_job(network, site, now, status_dir, test_mode,
     config = read_config(test_mode, network=network, site=site)
     # Non-alert jobs should go here...
 
-    if not config.getboolean('alerts', 'enabled'):
+    if not config.getboolean('all_alerts', 'enabled'):
         logging.debug('alerts disabled')
         return
 
@@ -110,9 +111,9 @@ def site_job(network, site, now, status_dir, test_mode,
             logging.debug(mesg)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
-                run_if_timeout_reached(send_tweet, low_batt_timeout, 
-                                       low_batt_time, 
+                run_if_timeout_reached(send_tweet, low_batt_timeout,
                                        now, status_dir,
+                                       detection_time=low_batt_time, 
                                        func_args=[username, mesg],
                                        name='battery_voltage_tweet')
 
@@ -120,8 +121,8 @@ def site_job(network, site, now, status_dir, test_mode,
                 fbcmd_opts = config.get('battery_voltage', 
                                         'facebook_cmd').split()
                 run_if_timeout_reached(fbcmd, low_batt_timeout, 
-                                       low_batt_time, 
                                        now, status_dir,
+                                       detection_time=low_batt_time, 
                                        func_args=[fbcmd_opts, mesg],
                                        name='battery_voltage_facebook')
             if config.has_option('battery_voltage', 'email_to'):
@@ -129,15 +130,15 @@ def site_job(network, site, now, status_dir, test_mode,
                 mesg2 = mesg + \
                     '\n\nThis is an automatically generated message.\n' 
                 run_if_timeout_reached(send_email, low_batt_timeout, 
-                                       low_batt_time, 
                                        now, status_dir,
+                                       detection_time=low_batt_time, 
                                        func_args=[config, 
                                                   'battery_voltage',
                                                   subject, mesg2],
                                        name='battery_voltage_email')
 
 
-def activity_job(mag_data_list, activity_data_list, now, status_dir, 
+def activity_job(combined_activity, activity_data_list, now, status_dir, 
                  test_mode, ignore_timeout=False):
     global _ignore_timeout
     _ignore_timeout = ignore_timeout
@@ -145,12 +146,118 @@ def activity_job(mag_data_list, activity_data_list, now, status_dir,
     config = read_config(test_mode, combined=True)
     # Non-alert jobs should go here...
     
-    if not config.getboolean('alerts', 'enabled'):
+    if not config.getboolean('all_alerts', 'enabled'):
         logging.debug('alerts disabled')
         return
-    
 
-def touch(filename, amtime=None):
+    aurora_alert(combined_activity, now, status_dir, ignore_timeout, config)
+
+
+def aurora_alert(activity, now, status_dir, ignore_timeout, config):
+    levels = {0: {'desc': 'No significant activity.',
+                  'explanation': 
+                  'Aurora is unlikey to be seen from anywhere in the UK.',
+                  'color': 'green'},
+              1: {'desc': 'AuroraWatch UK detected minor geomagnetic activity.',
+                  'explanation': 'Aurora is unlikely to be visible from the ' \
+                      + ' UK except perhaps the extreme north of Scotland.',
+                  'color': 'yellow'},
+              2: {'desc': 'AuroraWatch UK amber alert: possible aurora.',
+                  'explanation': 'Aurora is likely to be visible from ' \
+                      + 'Scotland, northern England and Northern Ireland.',
+                  'color': 'amber'},
+              3: {'desc': 'AuroraWatch UK red alert: aurora likely.',
+                  'explanation': 'It is likely that aurora will be visible ' \
+                      + 'from everywhere in the UK.',
+                  'color': 'red'},
+              }
+    
+    assert activity.thresholds.size == len(levels), \
+        'Incorrect number of activity thresholds'
+    assert activity.sample_start_time[-1] <= now \
+        and activity.sample_end_time[-1] >= now, \
+        'Last activity sample for wrong time'
+    assert np.all(activity.data >= 0), 'Activity data must be >= 0'
+    n = np.where(activity.data[0,-1] >= activity.thresholds)[0][-1]
+
+
+    logging.debug(activity.network + '/' + activity.site + ': ' + \
+                      levels[n]['desc'])
+    
+    
+    section_name = 'aurora_alert'
+    if n == 0:
+        # No significant activity
+        return
+
+    nowstr = dt64.strftime(now, '%Y-%m-%d %H:%M:%SUT')
+    tweet_timeout = facebook_timeout = email_timeout = np.timedelta64(12, 'h')
+
+    # Compute filename to use for timeout, and the names of any other
+    # files which must be updated.
+    tweet_files = []
+    facebook_files = []
+    email_files = []
+    for i in range(1, n+1):
+        tweet_files.append(section_name + '_tweet_' + levels[i]['color'])
+        facebook_files.append(section_name + '_facebook_' + levels[i]['color'])
+        email_files.append(section_name + '_email_' + levels[i]['color'])
+        
+
+    # Tweet
+    if config.has_option(section_name, 'twitter_username'):
+        twitter_username = config.get(section_name, 'twitter_username')
+        twitter_mesg = ' '.join([levels[n]['desc'], nowstr])
+        if n > 1 and len(twitter_mesg) < 130:
+            # Ensure enough room with some spare for followers to RT, MT etc.
+            twitter_mesg += ' #aurora'
+        run_if_timeout_reached(send_tweet, tweet_timeout, 
+                               now, status_dir,
+                               func_args=[twitter_username, twitter_mesg],
+                               name=tweet_files[-1], 
+                               also_update=tweet_files[:-1])
+    else:
+        logging.debug('Sending tweet not configured')
+
+    # Post to facebook
+    if config.has_option(section_name, 'facebook_cmd'):
+        facebook_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
+                                  'Alert issued', nowstr + '.', 
+                                  'For more information regarding',
+                                  'alert levels please see',
+                                  'http://aurorawatch.lancs.ac.uk/alerts',
+                                  '\n#aurora'])
+        fbcmd_opts = config.get(section_name, 'facebook_cmd').split()
+        run_if_timeout_reached(fbcmd, facebook_timeout, now, status_dir,
+                               func_args=[fbcmd_opts, facebook_mesg],
+                               name=facebook_files[-1],
+                               also_update=facebook_files[:-1])
+    else:
+        logging.debug('Facebook posting not configured')
+
+
+    # Email
+    if config.has_option(section_name, 'email_to'):
+        email_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
+                               nowstr, '\n\nThis is an automatically',
+                               'generated message.'])
+
+        subject = levels[n]['desc'][:-1] # Omit trailing period
+        run_if_timeout_reached(send_email, email_timeout, 
+                               now, status_dir,
+                               func_args=[config, section_name,
+                                          subject, email_mesg],
+                               name=email_files[-1],
+                               also_update=email_files[:-1])
+    else:
+        logging.debug('Sending email not configured')
+
+    # TODO: some handling for email lists, where there are separate
+    # lists for red and amber subscribers, and to include approved
+    # headers in a more generic way.
+
+
+def touch_file(filename, amtime=None):
     basedir = os.path.dirname(filename)
     if not os.path.exists(basedir):
         os.makedirs(basedir)
@@ -179,8 +286,9 @@ def limit_exceeded(data, lower_limit=None, upper_limit=None):
         return None
 
 
-def run_if_timeout_reached(func, timeout, detection_time, now, status_dir, 
-                           func_args=[], func_kwargs={}, name=None):
+def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None, 
+                           func_args=[], func_kwargs={}, name=None,
+                           also_update=[]):
     '''
     func: reference to function to call.
 
@@ -199,6 +307,10 @@ def run_if_timeout_reached(func, timeout, detection_time, now, status_dir,
     if name is None:
         name=func.func_name
 
+    if detection_time is None:
+        detection_time = now
+
+    logging.debug('Processing job ' + name)
     # When considering the timeout use the time of the last data which
     # triggered the alert.
     rerun_time_s = dt64.dt64_to(detection_time - timeout, 's')
@@ -207,7 +319,7 @@ def run_if_timeout_reached(func, timeout, detection_time, now, status_dir,
     if not os.path.exists(filename):
         # Create the file, with an old time
         logging.debug('timeout file missing: ' + filename)
-        touch(filename, (0, 0))
+        touch_file(filename, (0, 0))
     elif rerun_time_s < os.path.getmtime(filename) and not _ignore_timeout:
         # Too recent
         logging.debug('job ' + name + ' ran too recently, skipping')
@@ -221,12 +333,16 @@ def run_if_timeout_reached(func, timeout, detection_time, now, status_dir,
     # time. This must honour the now value to enable testing with
     # archive data.
     now_s = dt64.dt64_to(now, 's')
-    touch(filename, (now_s, now_s))
+    touch_file(filename, (now_s, now_s))
 
+    # Update any other files
+    for f in also_update:
+        touch_file(os.path.join(status_dir, f), (now_s, now_s))
 
 
 def send_tweet(username, mesg):
     return os.system('echo "' + mesg + '" | tweepypost -u ' + username + ' -')
+
 
 def send_email(config, section, subject, mesg):
     smtp_kwargs = {}
@@ -266,15 +382,13 @@ def fbcmd(cmd_options, mesg):
     a.append(mesg)
     return subprocess.call(a)
 
-
-
             
 def read_config(test_mode, combined=False, network=None, site=None):
     config = SafeConfigParser()
 
     # Set some sensible defaults
-    config.add_section('alerts')
-    config.set('alerts', 'enabled', 'false')
+    config.add_section('all_alerts')
+    config.set('all_alerts', 'enabled', 'false')
 
     config.add_section('email')
     # config.set('server', 'localhost')
