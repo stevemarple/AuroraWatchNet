@@ -160,7 +160,7 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
                   'color': 'green'},
               1: {'desc': 'AuroraWatch UK detected minor geomagnetic activity.',
                   'explanation': 'Aurora is unlikely to be visible from the ' \
-                      + ' UK except perhaps the extreme north of Scotland.',
+                      + 'UK except perhaps the extreme north of Scotland.',
                   'color': 'yellow'},
               2: {'desc': 'AuroraWatch UK amber alert: possible aurora.',
                   'explanation': 'Aurora is likely to be visible from ' \
