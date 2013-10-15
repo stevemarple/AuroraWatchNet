@@ -386,9 +386,13 @@ def make_links(link_dir, link_data):
         if os.path.islink(link_name) and \
                 os.readlink(link_name) == target:
             # Exists and is correct
+            logging.debug('link exists and is correct: ' + link_name +
+                          ' -> ' + target)
             continue
         if os.path.lexists(link_name):
+            logging.debug('link exists but is incorrect: ' + link_name)
             os.unlink(link_name)
+        logging.debug('creating link ' + link_name + ' -> ' + target)
         os.symlink(target, link_name)
 
 
@@ -750,7 +754,7 @@ if args.make_links:
     # Makes site links for each site listed
     for network_uc, site_uc in network_site.values():
         site_summary_dir = os.path.join(summary_dir, test_mode_str, 
-                                        network_uc, site_uc)
+                                        network_uc.lower(), site_uc.lower())
         link_data = [{'name': 'yesterday.png', 
                       'date': yesterday,
                       'fstr': mag_fstr}, 
@@ -773,14 +777,14 @@ if args.make_links:
  
     # Stack plots and combined activity links use a different base
     # directories
-    make_links(os.path.join(summary_dir, 'stackplots'),
+    make_links(os.path.join(summary_dir, test_mode_str, 'stackplots'),
                [{'name': 'yesterday.png', 
                  'date': yesterday,
                  'fstr': stackplot_fstr},               
                 {'name': 'today.png', 
                  'date': today,
                  'fstr': stackplot_fstr}])
-    make_links(os.path.join(summary_dir, 'activity_plots'),
+    make_links(os.path.join(summary_dir, test_mode_str, 'activity_plots'),
                [{'name': 'yesterday.png', 
                  'date': yesterday,
                  'fstr': actplot_fstr},               
