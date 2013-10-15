@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 import pyexiv2
 # import Image
 
@@ -391,6 +392,22 @@ def make_links(link_dir, link_data):
         os.symlink(target, link_name)
 
 
+# TODO: put in a common location and merge with aurorawatch_jobs.touch_file
+def touch_file(filename, amtime=None):
+    basedir = os.path.dirname(filename)
+    if not os.path.exists(basedir):
+        os.makedirs(basedir)
+    with open(filename, 'a'):
+        os.utime(filename, amtime)
+
+
+def clear_timeouts(status_dir):
+    if os.path.exists(status_dir):
+        for filename in os.listdir(status_dir):
+            # Set times back to 1970
+            touch_file(os.path.join(status_dir, filename), (0, 0))
+
+
 cc3_by_nc_sa = 'This work is licensed under the Creative Commons ' + \
     'Attribution-NonCommercial-ShareAlike 3.0 Unported License. ' + \
     'To view a copy of this license, visit ' + \
@@ -428,6 +445,9 @@ parser.add_argument('--rolling',
 parser.add_argument('--test-mode',
                     action='store_true',
                     help='Test mode for plots and jobs')
+parser.add_argument('--clear-timeouts',
+                    action='store_true',
+                    help='Mark jobs as not having run for a very long time')
 parser.add_argument('--ignore-timeout',
                     action='store_true',
                     help='Ignore timeout when running jobs')
@@ -436,7 +456,7 @@ parser.add_argument('--sites',
                     help='Whitespace-separated list of sites (prefixed with network)',
                     metavar='"NETWORK1/SITE1 NETWORK2/SITE2 ..."')
 parser.add_argument('--summary-dir', 
-                    default=None,
+                    default='/tmp',
                     help='Base directory for summary plots',
                     metavar='PATH')
 parser.add_argument('--plot-fit', 
@@ -468,6 +488,13 @@ today = dt64.floor(now, day)
 yesterday = today - day
 tomorrow = today + day
 
+# This can be used in os.path.join() to include the test directory
+# when needed.
+if args.test_mode:
+    test_mode_str = 'test'
+else:
+    test_mode_str = ''
+
 if args.rolling:
     if args.start_time or args.end_time:
         raise Exception('Cannot set start or end time for rolling plots')
@@ -490,6 +517,11 @@ if args.run_jobs:
     # aurorawatch_jobs.init(args.test_mode, args.ignore_timeout)
 else:
     aurorawatch_jobs = None
+
+
+if args.clear_timeouts:
+    clear_timeouts(os.path.join(args.summary_dir, test_mode_str, 
+                                'job_status'))
 
 # Get names of all networks and sites to be processed. Dictionary used
 # to avoid duplicates.
@@ -551,33 +583,26 @@ while t1 < end_time:
                                                          site_uc, 
                                                          'license'),
                                     'Attribution: ' + attribution])}
-                                    
-                                    
 
-        if args.summary_dir:
-            summary_dir = args.summary_dir
-        else:
-            summary_dir = '/tmp'
-
-        if args.test_mode:
-            site_summary_dir = os.path.join(summary_dir, 'test',
-                                            network_lc, site_lc)
-        else:
-            site_summary_dir = os.path.join(summary_dir, network_lc, site_lc)
+        summary_dir = args.summary_dir
+        site_summary_dir = os.path.join(summary_dir, test_mode_str,
+                                        network_lc, site_lc)
+        site_status_dir = os.path.join(site_summary_dir, 'job_status')
 
         mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
                                 site_lc + '_%Y%m%d.png')
         rolling_magdata_filename = os.path.join(site_summary_dir, 
                                                 'rolling.png')
         
-        stackplot_fstr = os.path.join(summary_dir, 'stackplots',
-                                      '%Y', '%m', '%Y%m%d.png')
-        rolling_stackplot_filename = os.path.join(summary_dir, 'stackplots',
-                                                  'rolling.png')
+        stackplot_fstr = os.path.join(summary_dir, test_mode_str,
+                                      'stackplots', '%Y', '%m', '%Y%m%d.png')
+        rolling_stackplot_filename = os.path.join(summary_dir, test_mode_str,
+                                                  'stackplots', 'rolling.png')
 
-        actplot_fstr = os.path.join(summary_dir, 'activity_plots',
+        actplot_fstr = os.path.join(summary_dir, test_mode_str, 
+                                    'activity_plots',
                                     '%Y', '%m', '%Y%m%d.png')
-        rolling_activity_filename = os.path.join(summary_dir, 
+        rolling_activity_filename = os.path.join(summary_dir, test_mode_str,
                                                  'activity_plots',
                                                  'rolling.png')
 
@@ -589,6 +614,9 @@ while t1 < end_time:
                                     site_lc + '_voltage_%Y%m%d.png')
         rolling_voltdata_filename = os.path.join(site_summary_dir, 
                                                  'rolling_volt.png')
+
+        if args.clear_timeouts and t1 == start_time:
+            clear_timeouts(site_status_dir)
 
         md = None
         if has_data_of_type(network_uc, site_uc, 'MagData'):
@@ -607,9 +635,7 @@ while t1 < end_time:
                         act_rolling.append(md[3])
 
             except Exception as e:
-                # except Warning as e:
-                raise
-                print(e.message)
+                traceback.format_exc()
 
         temp_data = None
         if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
@@ -659,7 +685,7 @@ while t1 < end_time:
                 aurorawatch_jobs.site_job(network=network_uc,
                                           site=site_uc,
                                           now=now,
-                                          status_dir=site_summary_dir,
+                                          status_dir=site_status_dir,
                                           test_mode=args.test_mode,
                                           ignore_timeout=args.ignore_timeout,
                                           mag_data=mag_data,
@@ -669,7 +695,8 @@ while t1 < end_time:
             except Exception as e:
                 logging.error('Could not run job for ' + network_uc + '/' +
                               site_uc + ': ' + str(e))
-                raise
+                traceback.format_exc()
+                
                     
         
     if args.stack_plot and len(mdl_day):
@@ -700,19 +727,20 @@ while t1 < end_time:
             if args.run_jobs:
                 try:
                     logging.info('Running activity job')
-                    if args.test_mode:
-                        summary_dir2 = os.path.join(summary_dir, 'test')
-                    else:
-                        summary_dir2 = summary_dir
-                    aurorawatch_jobs.activity_job(combined_activity=combined_activity,
-                                                  activity_data_list=act_rolling,
+                    status_dir = os.path.join(summary_dir, test_mode_str, 
+                                              'job_status')
+                    aurorawatch_jobs.activity_job(combined_activity=\
+                                                      combined_activity,
+                                                  activity_data_list=\
+                                                      act_rolling,
                                                   now=now,
-                                                  status_dir=summary_dir2,
+                                                  status_dir=status_dir,
                                                   test_mode=args.test_mode,
-                                                  ignore_timeout=args.ignore_timeout,)
+                                                  ignore_timeout=\
+                                                      args.ignore_timeout,)
                 except Exception as e:
                     logging.error('Could not run activity job: ' + str(e))
-
+                    raise
             
     t1 = t2
     # End of time loop
@@ -721,8 +749,8 @@ while t1 < end_time:
 if args.make_links:
     # Makes site links for each site listed
     for network_uc, site_uc in network_site.values():
-        site_summary_dir = os.path.join(summary_dir, network_uc.lower(),
-                                        site_uc.lower())
+        site_summary_dir = os.path.join(summary_dir, test_mode_str, 
+                                        network_uc, site_uc)
         link_data = [{'name': 'yesterday.png', 
                       'date': yesterday,
                       'fstr': mag_fstr}, 

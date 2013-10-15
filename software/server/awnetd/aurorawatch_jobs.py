@@ -2,41 +2,60 @@
 
 '''
 This module defines custom jobs for AuroraWatchNet plotting. It can be
-used to send emails, tweets or Facebook posts in response to importants
+used to send emails, tweets or Facebook posts in response to important
 events.
 
 The events which can cause actions are:
+    * geomagnetic activity
     * low battery
     * missing data (to be implemented)
-    * geomagnetic activity (to be implemented)
     
 Each event can trigger one or more jobs to run. These jobs include
 sending emails or social media messages. Some events make sense only
-for a specific site, and are only supported by the site_jobs
+for a specific site, and are only supported by the site_job()
 function. Detection of geomagnetic activity however makes most sense
 when performed on the combined activity dataset, and thus is supported
-by the activity_job function.
+by the activity_job() function.
 
 The behaviour of this module can be conveniently modified by
 configparser .ini files. In the absence of any files no jobs are
 run. The .ini files are stored in the $HOME/.aurorawatch_jobs
 directory. A common.ini file can be used to define commonly used
-settings (such as SMTP server settings) whilst site-specific settings
-can be stored in the site config files, named <network>_<site>.ini
-where <network> is the site's network name in lower case and <site> is
-the site name, also in lower case.
+settings (such as SMTP server settings) and is used for the site_job()
+and activity_job() functions. Settings common to all sites (nut not
+activity_job() can be stored in the all_sites.ini file, whilst
+site-specific settings can be stored in a site config file, named
+<network>_<site>.ini where <network> is the site's network name in
+lower case and <site> is the site name, also in lower case. Settings
+specific to activity_job() should be placed in combined.ini. Ini files
+for site_job() are read in the order common.ini, all_sites.ini and
+finally <network>_<site>.ini. In case of conflict the last read
+setting wins. For activity_job the ini files are read in the order
+common.ini, combined.ini.
 
 Alerts can be disabled by setting the "enabled" item in the
 "[all_alerts]" section to be false. It is suggested not to override
 this in the site configuration files (except to disable alerts)
-otherwise the global "kill-switch" behaviour is lost; instead comment
-out the enabled line so the common.inin version is used.
+otherwise the global "kill-switch" behaviour is lost.
 
-This module supports a test mode, whose purpose is to allow the
-plotting and jobs to be tested on historic data. As it is not
-desirable to alert users of historical events a separate set of .ini
-files are used. They have the same names as previously but are located
-in the $HOME/.aurorawatch_jobs/test directory.
+All jobs have a timeout setting to prevent them being called
+repeatedly. The job is only re-run if the timeout period has
+passed. Auroral activity jobs are re-run if the alert level has
+increased; corresponding jobs for the lower levels are then given the
+same timeout period.
+
+Timeouts are implemented by setting the modification time on an empty
+file. This approach ensures that the timeouts can be updated even if
+the disk is full. Te files are automatically created if missing; if a
+missing file cannot be created the job will not run. Timeouts can be
+cleared by the clear_timeouts() function which sets the modfication
+time to the unix epoch.
+
+This module supports a test mode, whose purpose is to allow the jobs
+to be tested on historic data. As it is not desirable to alert normal
+users of historical events a separate set of .ini files are used. They
+have the same names as previously but are located in the
+$HOME/.aurorawatch_jobs/test directory.
 
 '''
 from __future__ import print_function
@@ -44,6 +63,7 @@ from __future__ import print_function
 import logging
 import os.path
 import pwd
+import re
 import sys
 import subprocess
 
@@ -65,17 +85,6 @@ import auroraplot.dt64tools as dt64
 import auroraplot.data
 
 
-'''
-Be very careful when running jobs to avoid them being run more often
-than intended. Use the modification time on an empty file to mark the
-last time it was run. If the disk is full the file can still be
-touched to indicate successful completion (unlike the case of writing
-the time to a file). If the file is missing create the empty file
-first before running the job - this ensures that the file will be
-present to update after successful completion.
-
-
-'''
 
 _ignore_timeout = False
 
@@ -129,14 +138,18 @@ def site_job(network, site, now, status_dir, test_mode,
                 subject = network + '/' + site + ' battery voltage low'
                 mesg2 = mesg + \
                     '\n\nThis is an automatically generated message.\n' 
-                run_if_timeout_reached(send_email, low_batt_timeout, 
-                                       now, status_dir,
-                                       detection_time=low_batt_time, 
-                                       func_args=[config, 
-                                                  'battery_voltage',
-                                                  subject, mesg2],
-                                       name='battery_voltage_email')
 
+                # Run each email job separately in case of failure to
+                # send
+                for ejob in get_email_jobs(config, 'battery_voltage'):
+                    run_if_timeout_reached(send_email, low_batt_timeout, 
+                                           now, status_dir,
+                                           detection_time=low_batt_time, 
+                                           func_args=[config, 
+                                                      'battery_voltage',
+                                                      ejob, subject, mesg2],
+                                           name='battery_voltage_' + ejob)
+                    
 
 def activity_job(combined_activity, activity_data_list, now, status_dir, 
                  test_mode, ignore_timeout=False):
@@ -185,9 +198,12 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
                       levels[n]['desc'])
     
     
-    section_name = 'aurora_alert'
+    section_name = 'aurora_alert_' + levels[n]['color']
     if n == 0:
         # No significant activity
+        return
+    elif not config.has_section(section_name):
+        logging.debug('No [' + section_name + '] section found')
         return
 
     nowstr = dt64.strftime(now, '%Y-%m-%d %H:%M:%SUT')
@@ -199,9 +215,9 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
     facebook_files = []
     email_files = []
     for i in range(1, n+1):
-        tweet_files.append(section_name + '_tweet_' + levels[i]['color'])
-        facebook_files.append(section_name + '_facebook_' + levels[i]['color'])
-        email_files.append(section_name + '_email_' + levels[i]['color'])
+        tweet_files.append(section_name + '_tweet')
+        facebook_files.append(section_name + '_facebook')
+        email_files.append(section_name + '_') # Must append the ejob later
         
 
     # Tweet
@@ -236,21 +252,23 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
         logging.debug('Facebook posting not configured')
 
 
-    # Email
-    if config.has_option(section_name, 'email_to'):
-        email_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
-                               nowstr, '\n\nThis is an automatically',
-                               'generated message.'])
+    # Email. Leave to the send_email() function to determine if it is
+    # configured since there are many possible settings in the config
+    # file.
+    email_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
+                           nowstr, '\n\nThis is an automatically',
+                           'generated message.'])
 
-        subject = levels[n]['desc'][:-1] # Omit trailing period
+    subject = levels[n]['desc'].rstrip('.')
+
+    for ejob in get_email_jobs(config, section_name):
         run_if_timeout_reached(send_email, email_timeout, 
                                now, status_dir,
-                               func_args=[config, section_name,
+                               func_args=[config, section_name, ejob,
                                           subject, email_mesg],
-                               name=email_files[-1],
-                               also_update=email_files[:-1])
-    else:
-        logging.debug('Sending email not configured')
+                               name=email_files[-1] + ejob,
+                               also_update=map(lambda x: x + ejob, 
+                                               email_files[:-1]))
 
     # TODO: some handling for email lists, where there are separate
     # lists for red and amber subscribers, and to include approved
@@ -325,9 +343,14 @@ def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None,
         logging.debug('job ' + name + ' ran too recently, skipping')
         return
     
-    # Call the function
-    if func(*func_args, **func_kwargs):
-        return # Want zero return status
+    try:
+        # Call the function
+        if func(*func_args, **func_kwargs):
+            logging.warning('Job ' + name + ' returned non-zero exit status')
+            return # Want zero return status
+    except Exception as e:
+        logging.error('Job ' + name + ' failed with exception: ' + str(e))
+        return
 
     # Must have completed, touch the file with the 'current'
     # time. This must honour the now value to enable testing with
@@ -344,37 +367,55 @@ def send_tweet(username, mesg):
     return os.system('echo "' + mesg + '" | tweepypost -u ' + username + ' -')
 
 
-def send_email(config, section, subject, mesg):
+def get_email_jobs(config, section):
+    '''
+Return a list of the prefixes from the given section which are
+associated with sending emails.
+'''
+    
+    email_jobs  = {}
+    for i in config.items(section):
+        mo = re.match('(email\d*)_', i[0])
+        if mo:
+            email_jobs[mo.group(1)] = True
+
+    return sorted(email_jobs.keys())
+
+
+def send_email(config, section, ejob, subject, mesg):
+
+    logging.debug('Sending email to ' + config.get(section, ejob + '_to'))
+
     smtp_kwargs = {}
     smtp_options = ['host', 'port', 'local_hostname', 'timeout']
     for k in smtp_options:
         if config.has_option('smtp', k):
             smtp_kwargs[k] = config.get('smtp', k)
 
-    logging.debug('Sending email to ' + config.get(section, 'email_to'))
     m = MIMEText(mesg)
     m['Subject'] = subject
-    m['From'] = config.get(section, 'email_from')
-    m['To'] = config.get(section, 'email_to')
+    m['From'] = config.get(section, ejob + '_from')
+    m['To'] = config.get(section, ejob + '_to')
 
-    # Find section items which start with 'email_header' and add its
-    # value to as a header line. Some email list servers support an
-    # approval header.
+    # Find section items which start with 'email_header' (or similar)
+    # and add its value to as a header line. Some email list servers
+    # support an approval header.
     for i in config.items(section):
-        if i[0].startswith('email_header'):
+        if i[0].startswith(ejob + '_header'):
             a = i[1].split(':', 1)
             if len(a) > 1:
                 m.add_header(a[0], a[1]) # name:value pair
             else:
                 m.add_header(a[0], None) # name only
-                
+
     logging.debug(m.as_string())
 
     s = smtplib.SMTP(**smtp_kwargs)
-    s.sendmail(config.get(section, 'email_from'), 
-               config.get(section, 'email_to').split(), m.as_string())
+    s.sendmail(config.get(section, ejob + '_from'), 
+               config.get(section, ejob + '_to').split(), m.as_string())
     s.quit()
-
+    return 0
+    
 
 def fbcmd(cmd_options, mesg):
     a = ['fbcmd']
@@ -410,6 +451,7 @@ def read_config(test_mode, combined=False, network=None, site=None):
         config.set('battery_voltage', 'low_voltage', '2.35')
 
         config_files = [os.path.join(path, 'common.ini'),
+                        os.path.join(path, 'all_sites.ini'),
                         os.path.join(path, network.lower() + '_' 
                                      + site.lower() + '.ini')]
 
