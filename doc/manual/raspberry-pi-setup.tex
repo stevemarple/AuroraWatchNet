@@ -8,6 +8,9 @@ the instructions on the Raspberry Pi web site. \textbf{Copying
 
 \section{Configuring Raspbian}
 
+\helpbox{In the command window you can press the \keypress{Tab} key
+  to have Linux complete the command or filename.}
+
 Raspbian is most easily configured by booting the new image. If you
 are able to discover the IP address (for instance, by checking the
 DHCP tables of your home router) you can do this over the network
@@ -62,7 +65,9 @@ do this last. Choose \code{Finish} and then reboot.
 \section{Install missing software packages}
 As user \rootUser
 \begin{Cmd}
-apt-get install screen lsof python-pip
+apt-get install screen lsof python-pip ipython python-matplotlib
+
+dpkg -i ~pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
 
 \section{Installing the AuroraWatchNet server software}
