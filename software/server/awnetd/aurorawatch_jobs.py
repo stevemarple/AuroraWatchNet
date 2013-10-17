@@ -8,7 +8,7 @@ events.
 The events which can cause actions are:
     * geomagnetic activity
     * low battery
-    * missing data (to be implemented)
+    * missing data
     
 Each event can trigger one or more jobs to run. These jobs include
 sending emails or social media messages. Some events make sense only
@@ -108,7 +108,9 @@ def site_job(network, site, now, status_dir, test_mode,
     if act_data is not None:
         aurora_alert(act_data, False, now, status_dir, test_mode, 
                      ignore_timeout, config)
-
+        
+    warn_missing_data(mag_data, network, site, now, status_dir,
+                      test_mode, config)
 
     # Warn if battery nearly exhausted
     if voltage_data is not None and \
@@ -177,36 +179,23 @@ def activity_job(combined_activity, activity_data_list, now, status_dir,
         logging.debug('alerts disabled')
         return
 
-    aurora_alert(combined_activity, True, now, status_dir, test_mode,
-                 ignore_timeout, config)
+    if combined_activity is not None:
+        aurora_alert(combined_activity, True, now, status_dir, test_mode,
+                     ignore_timeout, config)
 
 
 def aurora_alert(activity, combined, now, status_dir, test_mode, 
                  ignore_timeout, config):
-    levels = {0: {'desc': 'No significant activity.',
-                  'explanation': 
-                  'Aurora is unlikey to be seen from anywhere in the UK.',
-                  'color': 'green'},
-              1: {'desc': 'AuroraWatch UK detected minor geomagnetic activity.',
-                  'explanation': 'Aurora is unlikely to be visible from the ' \
-                      + 'UK except perhaps the extreme north of Scotland.',
-                  'color': 'yellow'},
-              2: {'desc': 'AuroraWatch UK amber alert: possible aurora.',
-                  'explanation': 'Aurora is likely to be visible from ' \
-                      + 'Scotland, northern England and Northern Ireland.',
-                  'color': 'amber'},
-              3: {'desc': 'AuroraWatch UK red alert: aurora likely.',
-                  'explanation': 'It is likely that aurora will be visible ' \
-                      + 'from everywhere in the UK.',
-                  'color': 'red'},
-              }
-    
     assert activity.thresholds.size == 4, \
         'Incorrect number of activity thresholds'
     assert activity.sample_start_time[-1] <= now \
         and activity.sample_end_time[-1] >= now, \
         'Last activity sample for wrong time'
-    assert np.all(activity.data >= 0), 'Activity data must be >= 0'
+    assert np.all(np.logical_or(activity.data >= 0, np.isnan(activity.data))), \
+        'Activity data must be >= 0'
+    
+    if np.isnan(activity.data[0,-1]):
+        return
     n = np.where(activity.data[0,-1] >= activity.thresholds)[0][-1]
 
 
@@ -317,6 +306,77 @@ def limit_exceeded(data, lower_limit=None, upper_limit=None):
         return None
 
 
+def warn_missing_data(data, network, site, now, status_dir, test_mode, config):
+
+    section_name = 'missing_data'
+    missing_interval = np.timedelta64(1, 'h')
+    timeout = np.timedelta64(1, 'D')
+    
+    if not missing_interval:
+        return
+
+    if data is None:
+        t = None
+    else:
+        # Find last non-nan value
+        idx = np.nonzero(np.any(np.logical_not(np.isnan(data.data)), 
+                                 axis=0))[0]
+        if len(idx):
+            t = data.sample_start_time[idx[-1]]
+        else:
+            t = None
+    
+    if t is None:
+        # Data is entirely missing. Was expecting 24 hours of data,
+        # with a nominal end time of the end of the current hour.
+        t = dt64.ceil(now, np.timedelta64(1, 'h')) - np.timedelta64(1, 'D')
+
+
+    tstr = dt64.strftime(t, '%Y-%m-%d %H:%M:%SUT')
+    if t < now - missing_interval:
+        # Data is missing
+        logging.info(network + '/' + site + ' missing data')
+        if config.has_option(section_name, 'twitter_username'):
+            username = config.get(section_name, 'twitter_username')
+            mesg = expand_string(config.get(section_name, 'twitter_message'),
+                                 network, site, now, test_mode, 
+                                 missing_start_time=tstr,
+                                 missing_interval=str(missing_interval))   
+            run_if_timeout_reached(send_tweet, timeout,
+                                   now, status_dir,
+                                   func_args=[username, mesg],
+                                   name=section_name + '_tweet')
+
+        if config.has_option(section_name, 'facebook_cmd'):
+            fbcmd_opts = config.get(section_name, 
+                                    'facebook_cmd').split()
+            mesg = expand_string(config.get(section_name, 'facebook_message'),
+                                 network, site, now, test_mode, 
+                                 missing_start_time=tstr,
+                                 missing_interval=str(missing_interval)) 
+            run_if_timeout_reached(fbcmd, timeout, 
+                                   now, status_dir,
+                                   func_args=[fbcmd_opts, facebook_mesg],
+                                   name=section_name + '_facebook')
+
+
+
+        # Email. Leave to the send_email() function to determine if it
+        # is configured since there are many possible settings in the
+        # config file.  Run each email job separately in case of
+        # failure to send.
+        func_kwargs = {'missing_start_time': tstr,
+                       'missing_interval': str(missing_interval)}
+        for ejob in get_email_jobs(config, section_name):
+            run_if_timeout_reached(send_email, timeout, 
+                                   now, status_dir,
+                                   func_args=[config, section_name,
+                                              ejob, network, site, 
+                                              now, test_mode],
+                                   func_kwargs=func_kwargs,
+                                   name=section_name + '_' + ejob)
+
+            
 def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None, 
                            func_args=[], func_kwargs={}, name=None,
                            also_update=[]):
@@ -576,6 +636,17 @@ def read_config(test_mode, combined=False, network=None, site=None):
                    'detected very large geomagnetic disturbance {datetime}')
         config.set('aurora_alert_3', 'email_message', '{network}/{site} ' + 
                    'detected very large geomagnetic disturbance {datetime}')
+
+        config.add_section('missing_data')
+        # TODO: Add items for missing_interval and timeout
+        config.set('missing_data', 'twitter_message', '{network}/{site} ' +
+                   'missing data since {missing_start_time}.')
+        config.set('missing_data', 'facebook_message', '{network}/{site} ' +
+                   'missing data since {missing_start_time}.')
+        config.set('missing_data', 'email_subject', 
+                   '{network}/{site}: Missing data')
+        config.set('missing_data', 'email_message', '{network}/{site} ' +
+                   'missing data since {missing_start_time}.')
 
         config_files = [os.path.join(path, 'common.ini'),
                         os.path.join(path, 'all_sites.ini'),
