@@ -310,7 +310,7 @@ def make_voltage_plot(voltage_data, filename, exif_tags):
     voltage_data.plot()
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_ylim([0, 3.5])
+    ax.set_ylim([1.5, 3.5])
     fig.set_figwidth(6.4)
     fig.set_figheight(3)
     fig.subplots_adjust(bottom=0.175, top=0.75, 
@@ -693,6 +693,7 @@ while t1 < end_time:
                                           test_mode=args.test_mode,
                                           ignore_timeout=args.ignore_timeout,
                                           mag_data=mag_data,
+                                          act_data=None if md is None else md[3],
                                           temp_data=temp_data,
                                           voltage_data=voltage_data)
                                        

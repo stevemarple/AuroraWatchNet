@@ -66,6 +66,7 @@ import pwd
 import re
 import sys
 import subprocess
+import traceback
 
 import smtplib
 from email.mime.text import MIMEText
@@ -85,12 +86,12 @@ import auroraplot.dt64tools as dt64
 import auroraplot.data
 
 
-
 _ignore_timeout = False
 
 def site_job(network, site, now, status_dir, test_mode, 
              ignore_timeout=False,
              mag_data=None, 
+             act_data=None,
              temp_data=None, 
              voltage_data=None):
 
@@ -103,6 +104,11 @@ def site_job(network, site, now, status_dir, test_mode,
     if not config.getboolean('all_alerts', 'enabled'):
         logging.debug('alerts disabled')
         return
+    
+    if act_data is not None:
+        aurora_alert(act_data, False, now, status_dir, test_mode, 
+                     ignore_timeout, config)
+
 
     # Warn if battery nearly exhausted
     if voltage_data is not None and \
@@ -114,41 +120,49 @@ def site_job(network, site, now, status_dir, test_mode,
             lower_limit=low_batt)
 
         if low_batt_time:
-            mesg = 'Battery voltage low (<' + str(low_batt) + 'V) for ' \
-                + network + '/' + site \
-                + dt64.strftime(now, ' %Y-%m-%d %H:%M:%SUT')
-            logging.debug(mesg)
+            logging.debug('Low battery for ' + network + '/' + site)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
+                twitter_mesg = expand_string(config.get('battery_voltage', 
+                                                      'twitter_message'),
+                                     network, site, now, test_mode, 
+                                     low_voltage=low_batt)
+
                 run_if_timeout_reached(send_tweet, low_batt_timeout,
                                        now, status_dir,
                                        detection_time=low_batt_time, 
-                                       func_args=[username, mesg],
+                                       func_args=[username, twitter_mesg],
                                        name='battery_voltage_tweet')
+                
+                logging.debug('Low battery message: ' + twitter_mesg)
+
 
             if config.has_option('battery_voltage', 'facebook_cmd'):
                 fbcmd_opts = config.get('battery_voltage', 
                                         'facebook_cmd').split()
+                facebook_mesg = expand_string(config.get('battery_voltage', 
+                                                         'facebook_message'),
+                                              network, site, now, test_mode, 
+                                              low_voltage=low_batt)
                 run_if_timeout_reached(fbcmd, low_batt_timeout, 
                                        now, status_dir,
                                        detection_time=low_batt_time, 
-                                       func_args=[fbcmd_opts, mesg],
+                                       func_args=[fbcmd_opts, facebook_mesg],
                                        name='battery_voltage_facebook')
-            if config.has_option('battery_voltage', 'email_to'):
-                subject = network + '/' + site + ' battery voltage low'
-                mesg2 = mesg + \
-                    '\n\nThis is an automatically generated message.\n' 
 
-                # Run each email job separately in case of failure to
-                # send
-                for ejob in get_email_jobs(config, 'battery_voltage'):
-                    run_if_timeout_reached(send_email, low_batt_timeout, 
-                                           now, status_dir,
-                                           detection_time=low_batt_time, 
-                                           func_args=[config, 
-                                                      'battery_voltage',
-                                                      ejob, subject, mesg2],
-                                           name='battery_voltage_' + ejob)
+            # Email. Leave to the send_email() function to determine
+            # if it is configured since there are many possible
+            # settings in the config file.  Run each email job
+            # separately in case of failure to send.
+            for ejob in get_email_jobs(config, 'battery_voltage'):
+                run_if_timeout_reached(send_email, low_batt_timeout, 
+                                       now, status_dir,
+                                       detection_time=low_batt_time, 
+                                       func_args=[config, 'battery_voltage',
+                                                  ejob, network, site, 
+                                                  now, test_mode],
+                                       func_kwargs={'low_voltage': low_batt},
+                                       name='battery_voltage_' + ejob)
                     
 
 def activity_job(combined_activity, activity_data_list, now, status_dir, 
@@ -163,10 +177,12 @@ def activity_job(combined_activity, activity_data_list, now, status_dir,
         logging.debug('alerts disabled')
         return
 
-    aurora_alert(combined_activity, now, status_dir, ignore_timeout, config)
+    aurora_alert(combined_activity, True, now, status_dir, test_mode,
+                 ignore_timeout, config)
 
 
-def aurora_alert(activity, now, status_dir, ignore_timeout, config):
+def aurora_alert(activity, combined, now, status_dir, test_mode, 
+                 ignore_timeout, config):
     levels = {0: {'desc': 'No significant activity.',
                   'explanation': 
                   'Aurora is unlikey to be seen from anywhere in the UK.',
@@ -185,7 +201,7 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
                   'color': 'red'},
               }
     
-    assert activity.thresholds.size == len(levels), \
+    assert activity.thresholds.size == 4, \
         'Incorrect number of activity thresholds'
     assert activity.sample_start_time[-1] <= now \
         and activity.sample_end_time[-1] >= now, \
@@ -194,11 +210,11 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
     n = np.where(activity.data[0,-1] >= activity.thresholds)[0][-1]
 
 
-    logging.debug(activity.network + '/' + activity.site + ': ' + \
-                      levels[n]['desc'])
+    logging.debug('Activity level for ' + activity.network + '/' 
+                  + activity.site + ': ' + str(n))
     
     
-    section_name = 'aurora_alert_' + levels[n]['color']
+    section_name = 'aurora_alert_' + str(n) 
     if n == 0:
         # No significant activity
         return
@@ -211,22 +227,26 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
 
     # Compute filename to use for timeout, and the names of any other
     # files which must be updated.
+    job_base_name = section_name
+    if not combined:
+        job_base_name += '_' + activity.network.lower() + '_' \
+            + activity.site.lower()
     tweet_files = []
     facebook_files = []
     email_files = []
     for i in range(1, n+1):
-        tweet_files.append(section_name + '_tweet')
-        facebook_files.append(section_name + '_facebook')
-        email_files.append(section_name + '_') # Must append the ejob later
+        tweet_files.append(job_base_name + '_tweet')
+        facebook_files.append(job_base_name + '_facebook')
+        email_files.append(job_base_name + '_') # Must append the ejob later
         
 
     # Tweet
     if config.has_option(section_name, 'twitter_username'):
         twitter_username = config.get(section_name, 'twitter_username')
-        twitter_mesg = ' '.join([levels[n]['desc'], nowstr])
-        if n > 1 and len(twitter_mesg) < 130:
-            # Ensure enough room with some spare for followers to RT, MT etc.
-            twitter_mesg += ' #aurora'
+        twitter_mesg = expand_string(config.get(section_name, 
+                                                'twitter_message'),
+                                     activity.network, activity.site, now, 
+                                     test_mode)
         run_if_timeout_reached(send_tweet, tweet_timeout, 
                                now, status_dir,
                                func_args=[twitter_username, twitter_mesg],
@@ -237,12 +257,10 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
 
     # Post to facebook
     if config.has_option(section_name, 'facebook_cmd'):
-        facebook_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
-                                  'Alert issued', nowstr + '.', 
-                                  'For more information regarding',
-                                  'alert levels please see',
-                                  'http://aurorawatch.lancs.ac.uk/alerts',
-                                  '\n#aurora'])
+        facebook_mesg = expand_string(config.get(section_name, 
+                                                 'facebook_message'),
+                                      activity.network, activity.site, now,
+                                      test_mode)
         fbcmd_opts = config.get(section_name, 'facebook_cmd').split()
         run_if_timeout_reached(fbcmd, facebook_timeout, now, status_dir,
                                func_args=[fbcmd_opts, facebook_mesg],
@@ -255,17 +273,12 @@ def aurora_alert(activity, now, status_dir, ignore_timeout, config):
     # Email. Leave to the send_email() function to determine if it is
     # configured since there are many possible settings in the config
     # file.
-    email_mesg = ' '.join([levels[n]['desc'], levels[n]['explanation'], 
-                           nowstr, '\n\nThis is an automatically',
-                           'generated message.'])
-
-    subject = levels[n]['desc'].rstrip('.')
-
     for ejob in get_email_jobs(config, section_name):
         run_if_timeout_reached(send_email, email_timeout, 
                                now, status_dir,
-                               func_args=[config, section_name, ejob,
-                                          subject, email_mesg],
+                               func_args=[config, section_name, ejob, 
+                                          activity.network, activity.site, 
+                                          now, test_mode],
                                name=email_files[-1] + ejob,
                                also_update=map(lambda x: x + ejob, 
                                                email_files[:-1]))
@@ -350,6 +363,7 @@ def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None,
             return # Want zero return status
     except Exception as e:
         logging.error('Job ' + name + ' failed with exception: ' + str(e))
+        traceback.format_exc()
         return
 
     # Must have completed, touch the file with the 'current'
@@ -375,14 +389,15 @@ associated with sending emails.
     
     email_jobs  = {}
     for i in config.items(section):
-        mo = re.match('(email\d*)_', i[0])
+        mo = re.match('(email\d*)_to', i[0])
         if mo:
             email_jobs[mo.group(1)] = True
 
     return sorted(email_jobs.keys())
 
 
-def send_email(config, section, ejob, subject, mesg):
+# def send_email(config, section, ejob, subject, mesg):
+def send_email(config, section, ejob, network, site, now, test_mode, **kwargs):
 
     logging.debug('Sending email to ' + config.get(section, ejob + '_to'))
 
@@ -392,8 +407,29 @@ def send_email(config, section, ejob, subject, mesg):
         if config.has_option('smtp', k):
             smtp_kwargs[k] = config.get('smtp', k)
 
-    m = MIMEText(mesg)
-    m['Subject'] = subject
+
+    if config.has_option(section, ejob + '_message'):
+        mesg = config.get(section, ejob + '_message')
+    elif config.has_option(section, 'email_message'):
+        mesg = config.get(section, 'email_message')
+    else:
+        # mesg = 'Email message not set in config file'
+        raise Exception('Email message not set in config file for job [' + 
+                        section + '] ' + ejob)
+
+    m = MIMEText(expand_string(mesg, network, site, now, test_mode, **kwargs))
+
+    if config.has_option(section, ejob + '_subject'):
+        subject = config.get(section, ejob + '_subject')
+    elif config.has_option(section, 'email_subject'):
+        subject = config.get(section, 'email_subject')
+    else:
+        # subject = 'Subject not set in config file'
+        raise Exception('Subject not set in config file for job [' + 
+                        section + '] ' + ejob)
+
+    m['Subject'] = expand_string(subject, network, site, now, test_mode, 
+                                 **kwargs)
     m['From'] = config.get(section, ejob + '_from')
     m['To'] = config.get(section, ejob + '_to')
 
@@ -443,12 +479,103 @@ def read_config(test_mode, combined=False, network=None, site=None):
         
     if combined:
         # Data combined from multiple sites
+        config.add_section('aurora_alert_0')
+        config.set('aurora_alert_0', 'twitter_message', 
+                   'No significant activity {datetime}')
+        config.set('aurora_alert_0', 'facebook_message', 'No significant '  
+                   + 'activity, aurora is unlikely to be seen {datetime}.')
+        config.set('aurora_alert_0', 'email_subject', 
+                   'No significant activity {datetime}')
+        config.set('aurora_alert_0', 'email_message', 'No significant '  
+                   + 'activity, aurora is unlikely to be seen {datetime}.')
+
+        config.add_section('aurora_alert_1')
+        config.set('aurora_alert_1', 'twitter_message', 
+                   'Minor geomagnetic activity {datetime} #aurora')
+        config.set('aurora_alert_1', 'facebook_message', 
+                   'Minor geomagnetic activity {datetime} #aurora')
+        config.set('aurora_alert_1', 'email_subject', 
+                   'Minor geomagnetic activity {datetime}')
+        config.set('aurora_alert_1', 'email_message', 
+                   'Minor geomagnetic activity {datetime}')
+
+        config.add_section('aurora_alert_2')
+        config.set('aurora_alert_2', 'twitter_message', 
+                   'Amber alert, possible aurora {datetime} #aurora')
+        config.set('aurora_alert_2', 'facebook_message', 
+                   'Amber alert, possible aurora {datetime} #aurora')
+        config.set('aurora_alert_2', 'email_subject', 
+                   'Amber alert {datetime}')
+        config.set('aurora_alert_2', 'email_message', 
+                   'Amber alert, possible aurora {datetime}')
+
+        config.add_section('aurora_alert_3')
+        config.set('aurora_alert_3', 'twitter_message', 
+                   'Red alert, aurora likely {datetime} #aurora')
+        config.set('aurora_alert_3', 'facebook_message', 
+                   'Red alert, aurora likely {datetime} #aurora')
+        config.set('aurora_alert_3', 'email_subject', 
+                   'Red alert {datetime}')
+        config.set('aurora_alert_3', 'email_message', 
+                   'Red alert, aurora likely {datetime}')
+
         config_files = [os.path.join(path, 'common.ini'),
                         os.path.join(path, 'combined.ini')]
     else:
         # Data from a single site
         config.add_section('battery_voltage')
         config.set('battery_voltage', 'low_voltage', '2.35')
+        # batt_low_mesg = 'Battery voltage low (< {low_voltage!s}V) for ' + 
+        batt_low_mesg = 'Battery voltage low (< {low_voltage:.2f}V) for ' + \
+            '{network}/{site} {datetime}.'
+        config.set('battery_voltage', 'twitter_message', batt_low_mesg)
+        config.set('battery_voltage', 'facebook_message', batt_low_mesg)
+        config.set('battery_voltage', 'email_subject', 
+                   '{network}/{site}: Battery low')
+        config.set('battery_voltage', 'email_message', batt_low_mesg)
+
+        # Single sites should only warn of disturbance, only issue
+        # alerts for the combined data set where multiple sites are in
+        # use.
+        config.add_section('aurora_alert_0')
+        config.set('aurora_alert_0', 'twitter_message', 
+                   'No significant activity {datetime}')
+        config.set('aurora_alert_0', 'facebook_message', 'No significant '  
+                   + 'activity, aurora is unlikely to be seen {datetime}.')
+        config.set('aurora_alert_0', 'email_subject', 
+                   'No significant activity {datetime}')
+        config.set('aurora_alert_0', 'email_message', 'No significant '  
+                   + 'activity, aurora is unlikely to be seen {datetime}.')
+
+        config.add_section('aurora_alert_1')
+        config.set('aurora_alert_1', 'twitter_message', '{network}/{site} ' +
+                   'detected minor geomagnetic activity {datetime}')
+        config.set('aurora_alert_1', 'facebook_message', '{network}/{site} ' +
+                   'detected minor geomagnetic activity {datetime}')
+        config.set('aurora_alert_1', 'email_subject', '{network}/{site} ' + 
+                   'detected minor geomagnetic activity {datetime}')
+        config.set('aurora_alert_1', 'email_message', '{network}/{site} ' + 
+                   'detected minor geomagnetic activity {datetime}')
+
+        config.add_section('aurora_alert_2')
+        config.set('aurora_alert_2', 'twitter_message', '{network}/{site} ' +
+                   'detected large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_2', 'facebook_message', '{network}/{site} ' + 
+                   'detected large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_2', 'email_subject', '{network}/{site} ' + 
+                   'detected large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_2', 'email_message', '{network}/{site} ' +
+                   'detected large geomagnetic disturbance {datetime}')
+
+        config.add_section('aurora_alert_3')
+        config.set('aurora_alert_3', 'twitter_message', '{network}/{site} ' +
+                   'detected very large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_3', 'facebook_message', '{network}/{site} ' + 
+                   'detected very large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_3', 'email_subject', '{network}/{site} ' + 
+                   'detected very large geomagnetic disturbance {datetime}')
+        config.set('aurora_alert_3', 'email_message', '{network}/{site} ' + 
+                   'detected very large geomagnetic disturbance {datetime}')
 
         config_files = [os.path.join(path, 'common.ini'),
                         os.path.join(path, 'all_sites.ini'),
@@ -459,3 +586,17 @@ def read_config(test_mode, combined=False, network=None, site=None):
     files_read = config.read(config_files)
     logging.debug('Config files read: ' + ', '.join(files_read))
     return config
+
+
+def expand_string(s, network, site, now, test_mode, **kwargs):
+    d = kwargs.copy()
+    d.update({'network': network or '',
+              'site': site or '',
+              'date': dt64.strftime(now, '%Y-%m-%d'),
+              'datetime': dt64.strftime(now, '%Y-%m-%d %H:%M:%SUT'),
+              'time': dt64.strftime(now, '%H:%M:%SUT'),
+              'test_mode': ' (test mode) ' if test_mode else ''
+              })
+    
+    return s.format(**d)
+    
