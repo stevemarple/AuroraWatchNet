@@ -198,9 +198,9 @@ cloud_file = None
 def write_cloud_data(timestamp, data):
     global cloud_file
     global config
-    seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
+    unix_time = timestamp[0] + timestamp[1]/32768.0
     tmp_name = time.strftime(config.get('cloud', 'filename'),
-                            time.gmtime(seconds))
+                            time.gmtime(unix_time))
     if cloud_file is not None and tmp_name != cloud_file.name:
         # Filename has changed
         cloud_file.close()
@@ -228,7 +228,12 @@ def write_cloud_data(timestamp, data):
         if config.getboolean('cloud', 'dual_sensor'):
             tags.append('cloud_object2_temperature')
         tag_names.extend(['ambient_temperature', 'relative_humidity'])
-        cloud_file.write('{:.4f}'.format(seconds))
+
+        # Write the time
+        cloud_file.write(str(timestamp[0]))
+        # strip zero before decimal point 
+        cloud_file.write(str(timestamp[1]/32768.0).lstrip('0'))
+
         for tag_name in tag_names:
             if tag_name in data:
                 cloud_file.write(' {:.2f}'.format(data[tag_name]))
