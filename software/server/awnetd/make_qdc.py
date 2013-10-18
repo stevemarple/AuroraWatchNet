@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse    
-import logger
+import logging
 import os
 import os.path
 import sys
