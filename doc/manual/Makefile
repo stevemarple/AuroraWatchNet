@@ -13,7 +13,7 @@ doc : images makeabbrev
 .PHONY : clean
 clean:
 # .tpt: PDF thumbnails from thumbpdf
-	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux manual.out _region_.tex
+	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux manual.out manual.upa manual.abb manual.abr _region_.tex
 
 
 .PHONY : images
