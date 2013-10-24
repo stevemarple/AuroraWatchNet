@@ -31,7 +31,7 @@
 
 %% Including figures and other graphics
 \usepackage{graphicx}
-
+% \usepackage[rgb]{xcolor}
 %% Rotated images etc
 \usepackage{rotating}
 
@@ -88,7 +88,26 @@
 \usepackage{marvosym} % for \Info
 \usepackage{keystroke} % for keyboard symbols
 
-
+\usepackage{abbrev}
+\renewcommand{\abbrevname}{Abbreviations}
+\abbrev{\adc}{ADC}{analogue to digital converter}
+\abbrev{\cpu}{CPU}{central processing unit}
+\abbrev{\dhcp}{DHCP}{dynamic host configuration protocol}
+\abbrev{\dns}{DNS}{domain name system}
+\abbrev{\esd}{ESD}{electro-static discharge}
+\abbrev{\fet}{FET}{field-effect transistor}
+\abbrev{\gpu}{GPU}{graphics processing unit}
+\abbrev{\gui}{GUI}{graphical user interface}
+\abbrev{\ip}{IP}{internet protocol}
+\abbrev{\ntp}{NTP}{network time protocol}
+\abbrev{\pcb}{PCB}{printed circuit board}
+\abbrev{\rfi}{RFI}{radio-frequency interference}
+\abbrev{\rtc}{RTC}{real-time clock}
+\abbrev{\sd}{SD}{secure digital}
+\abbrev{\ssh}{SSH}{secure shell}
+\abbrev{\samnet}{SAMNET}{Sub-Auroral Magnetometer Network}
+\abbrev{\ut}{UT}{universal time}
+\abbrev{\utc}{UTC}{Coordinated universal time}
 % Load the underscore package as fixes the problem of copying and
 % pasting text with underscores; previously underscores were converted
 % to spaces, but they matter for code! Need to protect certain
@@ -103,15 +122,29 @@
 \usepackage[strings]{underscore}
 
 %% Include these packages last!
-\usepackage[bookmarksnumbered=true,
+% \usepackage[bookmarksnumbered=true,
+% bookmarksopen=true,
+% bookmarksopenlevel=0,
+% unicode=true,
+% pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
+
+\usepackage[%
+bookmarksnumbered=true,
 bookmarksopen=true,
 bookmarksopenlevel=0,
-colorlinks=true,
-linkcolor=blue,
-citecolor=blue,
-urlcolor=blue,
-unicode=true,
-pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
+unicode=true,colorlinks=false,
+allbordercolors={0 0 1},
+pdfborderstyle={/S/U/W 1}]{hyperref}
+
+% \usepackage[bookmarksnumbered=true,
+% bookmarksopen=true,
+% bookmarksopenlevel=0,
+% colorlinks=true,
+% linkcolor=blue,
+% citecolor=blue,
+% urlcolor=blue,
+% unicode=true,
+% pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 
 %% Attach files to PDF document. Set the default options we want.
 \usepackage{attachfile2}
@@ -119,6 +152,10 @@ pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 
 %% Upright quotes, essential for quoting for Matlab code!
 \usepackage{upquote}
+
+\usepackage{pdfcomment}
+\renewcommand{\insertabbrev}[2]{\pdftooltip{#1}{#2}}
+\makeabbrev
 
 %% A command for the return key
 \newcommand{\myreturn}{%
@@ -289,8 +326,11 @@ Please attribute this work as \documentAttribution
 \addcontentsline{toc}{chapter}{\listtablename}  
 \listoftables
 
+\newpage
+\phantomsection  
+\printabbrev
 
-\include{abbreviations}
+
 \mainmatter
 %% Allow for sloppy wordbreaking to avoid text spilling into the
 %% margin (eg as a result of \filename and other non-breaking text)

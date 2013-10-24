@@ -1,10 +1,12 @@
 PDFLATEX = pdflatex
 BIBTEX = bibtex
+MAKEABBREV = ./makeabbrev
 
 CP = cp -a
 .PHONY : doc
-doc : images
+doc : images makeabbrev
 	$(PDFLATEX) manual
+	$(MAKEABBREV) manual
 #	$(BIBTEX) installation-manual
 	$(PDFLATEX) manual
 
@@ -28,3 +30,4 @@ images/Calunium_v2_1_sch.pdf : ../../hardware/Calunium/hardware/pcb/Calunium_v2.
 images/system-overview.pdf : images/src/system-overview.odg
 	soffice --headless --draw --convert-to pdf --outdir images images/src/system-overview.odg
 
+makeabbrev : makeabbrev.c

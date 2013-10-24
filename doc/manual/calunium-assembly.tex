@@ -25,7 +25,7 @@ Fit components in order:
   lower value resistor is used to enable the green LED to be seen
   more clearly in daylight.
 \item R7 (\kohm{1}). Do not fit if using the DS1338-33 real-time
-  clock. Instead link between R7 and D2 at the end nearest the RTC
+  clock. Instead link between R7 and D2 at the end nearest the \rtc\
   battery, as indicated by the white line on the silkscreen. The wire
   will bypass both R7 and D2 which are not required for the DS1338-33.
 \item R4, R5 (\kohm{4.7}).
@@ -46,7 +46,7 @@ Fit components in order:
 \item X5 ($1 \times 6$ right-angle or vertical header for UART0).
 \item S1 (reset switch).
 \item Arduino headers. \todo[Add description]
-\item C17, C18 (\pF{15}). Do not fit if using DS1338-33 RTC. For
+\item C17, C18 (\pF{15}). Do not fit if using DS1338-33 \rtc. For
   Calunium verion 2.0 the capacitors must be fitted on the reverse
   side of the board (see \figurename~\ref{fig:calunium-rtc-caps-hack}
   as no specific mounting holes exist (error caused by using an
@@ -54,11 +54,11 @@ Fit components in order:
   capacitors).
 \item X1 (Molex power header). Ensure correct orientation, with the
   backplate closest to the Arduino headers.
-\item \todo[Add component name] (RTC battery holder).
+\item \todo[Add component name] (\rtc\ battery holder).
 \item Q1 (2N7000). This item is very sensitive to damage by
   electrostatic discharge!
-\item Battery (CR2032). Check that the battery backup pin (3) on the RTC
-  measures \volt{3.0}.
+\item Battery (CR2032). Check that the battery backup pin (3) on the
+  \rtc\ measures \volt{3.0}.
 \item \todo[Fit shunts to jumpers \ldots]
 \end{buildorder}
 Do not fit the ATmega1284P microcontroller until after testing the

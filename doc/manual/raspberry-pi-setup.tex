@@ -1,10 +1,10 @@
 \chapter{Raspberry Pi setup}
 
-\section{SD card creation}
+\section[SD card creation]{\sd\ card creation}
 
-Download the latest Raspbian image and copy to the SD card following
+Download the latest Raspbian image and copy to the \sd\ card following
 the instructions on the Raspberry Pi web site. \textbf{Copying
-  the compressed image to a FAT partition on the SD card will not work}.
+  the compressed image to a FAT partition on the \sd\ card will not work}.
 
 \section{Configuring Raspbian}
 
@@ -12,11 +12,11 @@ the instructions on the Raspberry Pi web site. \textbf{Copying
   to have Linux complete the command or filename.}
 
 Raspbian is most easily configured by booting the new image. If you
-are able to discover the IP address (for instance, by checking the
-DHCP tables of your home router) you can do this over the network
-using SSH. Otherwise you must use attach a keyboard and monitor to the
+are able to discover the \ip\ address (for instance, by checking the
+\dhcp\ tables of your home router) you can do this over the network
+using \ssh. Otherwise you must use attach a keyboard and monitor to the
 Raspberry Pi. If you are familiar with Linux it is also possible to
-edit the files by mounting the SD card on another Linux system.
+edit the files by mounting the \sd\ card on another Linux system.
 
 \subsection{/dev/ttyAMA0 serial port setup}
 
@@ -48,15 +48,15 @@ your system secure.}
 \subsubsection{Internationalisation options}
 \filename{cron} uses local time and the shift to and from daylight
 saving time complicates the \filename{cron} tables. Set the Raspberry
-Pi's timezone to UTC to avoid daylight saving.
+Pi's timezone to \utc\ to avoid daylight saving.
 
 Select \code{Internationalisation Options} and
 then \code{Change Timezone}. For geographic area select %
-\code{None of the above}, then select \code{UTC}. Select \code{OK}.
+\code{None of the above}, then select \code{\utc}. Select \code{OK}.
 
 \subsubsection{Advanced options}
 Select \code{Advanced Options} and then \code{Memory
-  Split}. Set the GPU memory to \code{16} (MB).
+  Split}. Set the \gpu\ memory to \code{16} (MB).
 
 \subsubsection{Expand Filesystem}
 Finally select \code{Expand Filesystem}. Although the first option
@@ -75,7 +75,9 @@ dpkg -i ~pi/python-numpy_1.7.1-3_armhf.deb
 \subsection{Install the Git repository}
 As user \piUser
 \begin{Cmd}
-git clone --recursive git://github.com/stevemarple/AuroraWatchNet.git
+git clone --recursive https://github.com/stevemarple/AuroraWatchNet.git 
+git clone --recursive https://github.com/stevemarple/auroraplot.git
+git clone --recursive https://github.com/stevemarple/Calunium.git
 mkdir \mytilde/bin
 cd \mytilde/bin
 ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
