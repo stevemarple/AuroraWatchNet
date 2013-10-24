@@ -1,36 +1,36 @@
 [submodule "software/magnetometer/libraries/CounterRTC"]
 	path = software/magnetometer/libraries/CounterRTC
-	url = git://github.com/stevemarple/CounterRTC.git
+	url = https://github.com/stevemarple/CounterRTC.git
 [submodule "software/magnetometer/libraries/RTCx"]
 	path = software/magnetometer/libraries/RTCx
-	url = git://github.com/stevemarple/RTCx.git
+	url = https://github.com/stevemarple/RTCx.git
 [submodule "software/magnetometer/libraries/CircularStack"]
 	path = software/magnetometer/libraries/CircularStack
-	url = git://github.com/stevemarple/CircularStack.git
+	url = https://github.com/stevemarple/CircularStack.git
 [submodule "software/magnetometer/libraries/MCP342x"]
 	path = software/magnetometer/libraries/MCP342x
-	url = git://github.com/stevemarple/MCP342x.git
+	url = https://github.com/stevemarple/MCP342x.git
 [submodule "software/magnetometer/libraries/AsyncDelay"]
 	path = software/magnetometer/libraries/AsyncDelay
-	url = git://github.com/stevemarple/AsyncDelay.git
+	url = https://github.com/stevemarple/AsyncDelay.git
 [submodule "software/magnetometer/libraries/MultiReadCircBuffer"]
 	path = software/magnetometer/libraries/MultiReadCircBuffer
-	url = git://github.com/stevemarple/MultiReadCircBuffer.git
+	url = https://github.com/stevemarple/MultiReadCircBuffer.git
 [submodule "software/magnetometer/libraries/Streaming"]
 	path = software/magnetometer/libraries/Streaming
-	url = git://github.com/stevemarple/Streaming.git
+	url = https://github.com/stevemarple/Streaming
 [submodule "software/magnetometer/libraries/RF12"]
 	path = software/magnetometer/libraries/RF12
-	url = git://github.com/stevemarple/RF12.git
+	url = https://github.com/stevemarple/RF12.git
 [submodule "software/magnetometer/libraries/RF12_Stream"]
 	path = software/magnetometer/libraries/RF12_Stream
-	url = git://github.com/stevemarple/RF12_Stream.git
+	url = https://github.com/stevemarple/RF12_Stream.git
 [submodule "software/magnetometer/libraries/CircBuffer"]
 	path = software/magnetometer/libraries/CircBuffer
-	url = git://github.com/stevemarple/CircBuffer.git
+	url = https://github.com/stevemarple/CircBuffer.git
 [submodule "hardware/RPi_RFM12B_ISP"]
 	path = hardware/RPi_RFM12B_ISP
-	url = git://github.com/stevemarple/RPi_RFM12B_ISP.git
+	url = https://github.com/stevemarple/RPi_RFM12B_ISP.git
 [submodule "software/magnetometer/libraries/SoftWire"]
 	path = software/magnetometer/libraries/SoftWire
 	url = https://github.com/stevemarple/SoftWire.git
