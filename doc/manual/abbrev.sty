@@ -1,0 +1,143 @@
+\ProvidesPackage{abbrev}
+                [10/8/1997 SRM]
+%%% $Log: abbrev.sty,v $
+%%% Revision 1.8  1998/11/22 20:51:44  marple
+%%% Oops! \noabbrev must take a command name if we are to allow users to
+%%% use it later. Not taking a command name is only OK if you can
+%%% guarantee it will never be used. Fixed.
+%%%
+%%% Revision 1.7  1998/11/22 18:48:52  marple
+%%% Added instructions for use. Commented out code not used in this
+%%% version. Added \noabbrev command.
+%%%
+%%% Revision 1.6  1998/11/22 17:38:21  marple
+%%% Changed theabbrev environment from table to parboxes with hspace in
+%%% between so that LaTeX can insert a page break when necessary.
+%%%
+%%% Revision 1.5  1998/11/22 17:17:59  marple
+%%% Removed abbrevi - can do abbreviation and index by simply including
+%%% \index short form of abbreviation. Just use \protect.
+%%%
+%%% Revision 1.4  1998/10/09 11:59:32  marple
+%%% Added a abbrevi command to abbreviate and index (in development).
+%%%
+%%% Revision 1.3  1997/08/23 01:04:14  ega070
+%%% working revision
+%%% \abbrev accepts optional first argument which is used for sorting the
+%%% abbreviations
+%%%
+%%% Revision 1.2  1997/08/10 23:41:39  ega070
+%%% removed some RCS info strings which confused LaTeX
+%%%
+%%% Revision 1.1  1997/08/10 21:44:56  ega070
+%%% Initial revision
+%%%
+
+%%% ABBREV PACKAGE COMMANDS
+%%%
+%%% \abbrev{\commandname}{abbreviation}{Explanation}
+%%% \abbrev[key]{\commandname}{abbreviation}{Explanation}
+%%%
+%%% \noabbrev{\commandname}{abbreviation}{Explanation}
+%%% \abbrev[key]{\commandname}{abbreviation}{Explanation}
+%%%
+%%%
+%%% HOW TO USE THE ABBREV PACKAGE
+%%%
+%%% The abbrev package is used for inserting abbreviations into an
+%%% abbreviation section in a document. The abbreviations are sorted
+%%% into alphabetical order (strictly speaking on an ASCII machine
+%%% into ASCII order) by the external program 'makeabbrev' (see
+%%% 'Running makeabbrev'). The simplest case is: 
+%%%
+%%% \abbrev{\cpu}{CPU}{central processing unit}
+%%%
+%%% which causes the command \cpu to be defined. Type \cpu wherever
+%%% you wish CPU to appear. If \cpu was used in the document then it
+%%% will be defined in the Abbreviations section, if not then it
+%%% won't. This means you can \include a file of your favourite
+%%% abbreviations and not worry about the ones you haven't used. By
+%%% defining the command as lower-case (providing it doesn't clash
+%%% with another command) saves you reaching for that caps lock key.
+%%%
+%%% If you are including symbols into the table of abbreviations then
+%%% you may want to tell makeabbrev a key to use for the alphabetical
+%%% sort. This is easily achieved by supplying an optional first
+%%% argument:
+%%%
+%%% \abbrev[N0]{\No}{\ensuremath{N_0}}{noise spectral density}
+%%%
+%%% Without the key 'N0' the entry is unlikely to appear in the
+%%% correct place. There may be times when you wish to include entries
+%%% into the table of abbreviations even when you don't actually use
+%%% it. (For instance if you define a command for a symbol and the
+%%% command takes arguments you cannot use \abbrev.) The abbrev
+%%% package defines the command \noabbrev. Again, an optional first
+%%% argument supplies the key used for sorting. Two examples are
+%%%
+%%% \noabbrev{\cpu}{CPU}{central processing unit}
+%%% \noabbrev[WWW]{\www}{W$^3$}{World-wide web}
+%%%
+%%%
+%%% RUNNING MAKEABBREV
+%%%
+%%% The makeabbrev program requires the name of the .abb file
+%%% containing the abbreviations. The .abb extension is optional. Eg.
+%%%
+%%% > latex mydoc
+%%% > makeabbrev mydoc
+%%%
+
+\message{abbrev,}
+\def\makeabbrev{%
+  \newwrite\@abbrevfile
+  \immediate\openout\@abbrevfile=\jobname.abb
+  \def\doabbrev{\@bsphack\begingroup
+             \@sanitize
+             \@wrabbrev}\typeout
+    {Writing abbrev file \jobname.abb}%
+  \let\makeabbrev\@empty
+}
+\@onlypreamble\makeabbrev
+\def\@wrabbrev#1#2#3#4{%
+  \protected@write\@abbrevfile{}%
+  {\string\abbreventry{#2}{#3}{#4}}%
+ \endgroup
+ \@esphack}
+%\def\abbrev#1{\@bsphack\begingroup \@sanitize\@abbrev}
+\def\doabbrev{\@bsphack\begingroup \@sanitize\@abbrev}
+\def\@doabbrev{\endgroup\@esphack}
+%%%%%\newcommand\abbrev[4][]{\newcommand#2{#3\doabbrev#2{#3}{#4}{#1}}}
+%%%%%\newcommand{\noabbrev}[4][]{\newcommand#2{#3\doabbrev#2{#3}{#4}{#1}}%
+%%%%%  \doabbrev#2{#3}{#4}{#1}}
+
+%% \insertabbrev receives abbreviation and full version
+\newcommand{\insertabbrev}[2]{#1}%
+\newcommand\abbrev[4][]{\newcommand#2{\insertabbrev{#3}{#4}\doabbrev#2{#3}{#4}{#1}}}
+\newcommand{\noabbrev}[4][]{\newcommand#2{\insertabbrev{#3}{#4}\doabbrev#2{#3}{#4}{#1}}%
+  \doabbrev#2{#3}{#4}{#1}}
+
+
+
+%% This is left over from first method, where the first use of an
+%% abbrev writes the expanded form (with short form in brackets),
+%% thereafter the abbreviation is used.
+%% \def\abbrevcaps#1{%
+%%   \ifnum\spacefactor>1000
+%%                                 %\MakeUppercase{#1}%
+%%   \uppercase{#1}%
+%%                                 %#1%
+%%   \else
+%%   #1%
+%%   \fi}
+
+
+\newcommand{\printabbrev}{\@input@{\jobname.abr}}
+\newenvironment{theabbrev}{\chapter{\abbrevname}}{}
+\newcommand{\abbrevname}{Abbreviations and Acronyms}
+\newcommand{\abbrevitem}[2]{%
+  \parbox[t]{1.5in}{\raggedright#1}%
+  \hspace{0.1in}
+  \parbox[t]{3.5in}{\raggedright#2}\\}
+\endinput
+
