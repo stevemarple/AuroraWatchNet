@@ -129,5 +129,25 @@ update-rc.d  awnetd defaults
 \end{Cmd}
 
 \subsection{Configure \protect\filename{ntp}}
-\todo[May not be necessary for most users, but all users should check
-that the time is correct]
+Check that the current time is correct by typing
+\begin{Cmd}
+  date --utc
+\end{Cmd}
+This will output the current date and time in \utc. If you aren't
+certain what the current time in \utc\ is then you can check at this
+web page, \url{https://www.google.co.uk/#q=utc+time}.
+
+If the time is incorrect you will need to configure the \ntp\
+server. As user \rootUser\ edit \filename{/etc/ntp.conf}:
+\begin{Cmd}
+  nano /etc/ntp.conf
+\end{Cmd}
+
+Find the lines which start \filename{server} and a insert \filename{#}
+at the beginning of the line to comment them out. Insert a similar
+line whihc begins with the word \filename{server} but with your own
+\ntp\ server hostname. Your network adminstrator should be able to
+provide this information. Finally restart \ntp; as user \rootUser
+\begin{Cmd}
+  /etc/init/ntp restart
+\end{Cmd}
