@@ -91,18 +91,27 @@ As user \piUser
 crontab -e
 \end{Cmd}
 
-In the \filename{nano} editor add the following lines: \todo[Add lines
-for data transfer]
+In the \filename{nano} editor add the following lines to periodically
+report that the Raspberry Pi is operating, which helps the AuroraWatch
+administrators monitor which stations are active. This reporting step can be
+omitted if you prefer.
 \begin{Cmd}
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
 \end{Cmd}
+
+
+Add the following lines to transfer data. \todo
+
 Save the file, \keystroke{CTRL}-\keystroke{x}, \keystroke{y},
 \myreturn.
 
 \subsection{Configure \protect\filename{ifplugd}}
 
-As user \rootUser
+Configure \filename{ifplugd} to report when the network interface has
+been assigned an \ip\ address, which helps the AuroraWatch
+administrators monitor which stations are active. This step can be
+omitted if you prefer. As user \rootUser
 \begin{Cmd}
 cd /etc/ifplugd/action.d
 ln -s /home/pi/AuroraWatchNet/software/server/bin/log_ip
