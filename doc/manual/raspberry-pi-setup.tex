@@ -65,7 +65,8 @@ do this last. Choose \code{Finish} and then reboot.
 \section{Install missing software packages}
 As user \rootUser
 \begin{Cmd}
-apt-get install screen lsof python-pip ipython python-matplotlib
+apt-get install screen lsof python-pip ipython python-matplotlib \textbackslash
+    python-scipy avahi-daemon
 
 dpkg -i {\mytilde}pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
@@ -78,6 +79,7 @@ As user \piUser
 git clone --recursive https://github.com/stevemarple/AuroraWatchNet.git 
 git clone --recursive https://github.com/stevemarple/auroraplot.git
 git clone --recursive https://github.com/stevemarple/Calunium.git
+git clone --recursive https://github.com/stevemarple/xboot.git
 mkdir \mytilde/bin
 cd \mytilde/bin
 ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
@@ -90,6 +92,20 @@ As user \piUser
 \begin{Cmd}
 crontab -e
 \end{Cmd}
+
+\subsection{Configure python}
+
+As user \piUser 
+
+\helpbox{The first line uses backticks, which on most keyboards can be
+  found on the key above TAB.}
+\begin{Cmd}
+  user_site=`python -m site --user-site`
+  mkdir -p \$user_site
+  cp \mytilde/auroraplot/examples/example_auroraplot_custom.py \textbackslash
+      \$user_site/auroraplot_custom.py
+\end{Cmd}
+
 
 In the \filename{nano} editor add the following lines to periodically
 report that the Raspberry Pi is operating, which helps the AuroraWatch

@@ -84,4 +84,54 @@ board power supplies.
   \end{figure}
 \end{landscape}
 
+\section{Testing the board}
+
 \section{Programming the firmware}
+
+These instructions assume you are using the Atmel AVR Dragon in \isp\
+mode but adapting them to suit your programmer should be
+straightforward; see the \filename{avrdude} manual page for further
+information.
+
+\subsection{Programming the bootloader}
+
+Power up the Calunium board and connect the programmer. Ensure the
+cable is correctly orientated at both ends. The bootloader can be
+compiled and programmed simply, as user \piUser: \todo[Check directory]
+\begin{Cmd}
+  cd /home/pi/xboot
+  make clean
+  make SHELL=bash calunium_8MHz_RC_ISP.conf.mk program
+\end{Cmd}
+\todo: ignore lock bit verification errors.
+
+If the bootloader is correctly programmed the green \led\ connected to
+D13 on the Calunium \pcb\ should flash at about \Hz{1}.
+
+\subsection{Programming the magnetometer firmware}
+Ensure that the shunt marked ``AUTO RST'' is fitted, and that the
+shunt marked ``FTDI PWR'' is omitted. Connect the FTDI cable and
+identify the USB device file; as user \piUser:
+\begin{Cmd}
+  dmesg | tail
+\end{Cmd}
+
+Look for a line containing text similar to
+\begin{Cmd}
+  FTDI USB Serial Device converter now attached to ttyUSB0
+\end{Cmd}
+For the case above the device file \filename{/dev/ttyUSB0}. Now
+program the microcontroller using the xboot bootloader. Replace
+\filename{/dev/ttyUSB0} with the device file one your system. As user
+\piUser:
+\begin{Cmd}
+  cd /home/pi/AuroraWatchNet/firmware/magnetometer
+  avrdude -p atmega1284p -b 38400 -c avr109 -P /dev/ttyUSB0 \textbackslash
+      -U flash:w:xrf_rf12-0.10a.bin:r
+\end{Cmd}
+
+
+\helpbox{Whilst it is possible to program the firmware using the AVR
+  Dragon alone this approach ensures that the xboot bootloader is
+  present and functions correctly, allowing the microcontroller
+  firmware to be updated over the radio link.}

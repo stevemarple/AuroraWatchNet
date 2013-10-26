@@ -1,4 +1,5 @@
 \documentclass[twoside,a4paper,openany,12pt]{book}
+
 %%\documentclass[twoside,a4paper,12pt]{article}
 %\documentclass[twoside,a4paper,openany,12pt]{report}
 
@@ -12,6 +13,9 @@
 
 %% Relative font sizes
 \usepackage{relsize}
+
+%% Use font with 8-bit encoding
+\usepackage[T1]{fontenc}
 
 %% Nicer fonts
 \usepackage{pslatex}
@@ -90,27 +94,8 @@
 
 \usepackage{abbrev}
 \renewcommand{\abbrevname}{Abbreviations}
-\abbrev{\adc}{ADC}{analogue to digital converter}
-\abbrev{\cpu}{CPU}{central processing unit}
-\abbrev{\dhcp}{DHCP}{dynamic host configuration protocol}
-\abbrev{\dns}{DNS}{domain name system}
-\abbrev{\esd}{ESD}{electro-static discharge}
-\abbrev{\fet}{FET}{field-effect transistor}
-\abbrev{\gpu}{GPU}{graphics processing unit}
-\abbrev{\gui}{GUI}{graphical user interface}
-\abbrev{\ip}{IP}{internet protocol}
-\abbrev{\ntp}{NTP}{network time protocol}
-\abbrev{\pcb}{PCB}{printed circuit board}
-\abbrev{\psu}{PSU}{power supply unit}
-\abbrev{\rfi}{RFI}{radio-frequency interference}
-\abbrev{\rtc}{RTC}{real-time clock}
-\abbrev{\sd}{SD}{secure digital}
-\abbrev{\ssh}{SSH}{secure shell}
-\abbrev{\samnet}{SAMNET}{Sub-Auroral Magnetometer Network}
-\abbrev{\ttl}{TTL}{transistor-transistor logic}
-\abbrev{\usb}{USB}{universal serial bus}
-\abbrev{\ut}{UT}{universal time}
-\abbrev{\utc}{UTC}{coordinated universal time}
+\input{abbreviations}
+
 % Load the underscore package as fixes the problem of copying and
 % pasting text with underscores; previously underscores were converted
 % to spaces, but they matter for code! Need to protect certain
@@ -205,10 +190,12 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 %%\newcommand{\dB}[1]{\mbox{\ensuremath{#1}\,dB}}
 \newcommand{\dB}[1]{\SI{#1}{dB}}
 \newcommand{\inch}[1]{\mbox{\ensuremath{#1}''}}
-\newcommand{\kHz}[1]{\mbox{\ensuremath{#1}\,kHz}}
+% \newcommand{\kHz}[1]{\mbox{\ensuremath{#1}\,kHz}}
 %\newcommand{\metre}[1]{\mbox{\ensuremath{#1}\,m}}
 \newcommand{\km}[1]{\mbox{\ensuremath{#1}\,km}}
 %% \newcommand{\MHz}[1]{\mbox{\ensuremath{#1}\,MHz}}
+\newcommand{\Hz}[1]{\SI{#1}{\hertz}}
+\newcommand{\kHz}[1]{\SI{#1}{\kilo\hertz}}
 \newcommand{\MHz}[1]{\SI{#1}{\mega\hertz}}
 \newcommand{\volt}[1]{\mbox{\ensuremath{#1}\,V}}
 \newcommand{\bit}[1]{\mbox{\ensuremath{#1}\,bit}}
@@ -231,6 +218,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newcommand{\eg}{e.g.}
 \newcommand{\etal}{\latin{et al.}}
 \newcommand{\etc}{etc.}
+
 %% Have warnings printed in light red box, with each item using a
 %% STOP sign as a bullet
 \newenvironment{warninglist}{%
