@@ -34,7 +34,7 @@ eeprom_data = bytearray('\xFF') * eeprom_size
 
 # Add command line options based on EEPROM settings
 for k in sorted(eeprom.keys()):
-    parser.add_argument('--' + k, 
+    parser.add_argument('--' + k.replace('_','-'), 
                         type=eeprom[k].get('type'),
                         choices=eeprom[k].get('choices'),
                         help=eeprom[k].get('help'),
