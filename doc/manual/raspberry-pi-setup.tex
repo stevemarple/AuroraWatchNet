@@ -62,14 +62,42 @@ Select \code{Advanced Options} and then \code{Memory
 Finally select \code{Expand Filesystem}. Although the first option
 do this last. Choose \code{Finish} and then reboot.
 
-\section{Install missing software packages}
+\subsection{Install missing software packages}
 As user \rootUser
 \begin{Cmd}
 apt-get install screen lsof python-pip ipython python-matplotlib \textbackslash
-    python-scipy avahi-daemon
+    python-scipy avahi-daemon dnsutils
 
 dpkg -i {\mytilde}pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
+
+\subsection{Remove swap file}
+To prolong the life of the \sd\ card a swap file is not used. As user
+\rootUser
+\begin{Cmd}
+apt-get remove dphys-swapfile  
+\end{Cmd}
+
+\subsection{Configure file system mount options}
+
+As user \rootUser
+\begin{Cmd}
+nano /etc/fstab  
+\end{Cmd}
+
+Find the line where the root file system is mounted, it will look
+similar to
+\begin{Cmd}
+/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+\end{Cmd}
+Change the mount options (\filename{defaults,noatime} in the example
+above) so that the mount options are now
+\filename{noatime,nodiratime}. The line should look similar to the one
+below.
+\begin{Cmd}
+/dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
+\end{Cmd}
+
 
 \section{Installing the AuroraWatchNet server software}
 
@@ -86,13 +114,6 @@ ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
 ln -s ../AuroraWatchNet/software/server/bin/log_ip
 \end{Cmd}
 
-\subsection{Configure \protect\filename{cron}}
-\label{sec:cron-configuration}
-As user \piUser
-\begin{Cmd}
-crontab -e
-\end{Cmd}
-
 \subsection{Configure python}
 
 As user \piUser 
@@ -100,13 +121,20 @@ As user \piUser
 \helpbox{The first line uses backticks, which on most keyboards can be
   found on the key above TAB.}
 \begin{Cmd}
-  user_site=`python -m site --user-site`
-  mkdir -p \$user_site
-  cp \mytilde/auroraplot/examples/example_auroraplot_custom.py \textbackslash
-      \$user_site/auroraplot_custom.py
-  ln -t \$user_site -s \mytilde/auroraplot
+user_site=`python -m site --user-site`
+mkdir -p \$user_site
+cp \mytilde/auroraplot/examples/example_auroraplot_custom.py \textbackslash
+    \$user_site/auroraplot_custom.py
+ln -t \$user_site -s \mytilde/auroraplot
 \end{Cmd}
 
+
+\subsection{Configure \protect\filename{cron}}
+\label{sec:cron-configuration}
+As user \piUser
+\begin{Cmd}
+crontab -e
+\end{Cmd}
 
 In the \filename{nano} editor add the following lines to periodically
 report that the Raspberry Pi is operating, which helps the AuroraWatch
@@ -157,7 +185,7 @@ update-rc.d  awnetd defaults
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing
 \begin{Cmd}
-  date --utc
+date --utc
 \end{Cmd}
 This will output the current date and time in \utc. If you aren't
 certain what the current time in \utc\ is then you can check at this
@@ -166,14 +194,15 @@ web page, \url{https://www.google.co.uk/#q=utc+time}.
 If the time is incorrect you will need to configure the \ntp\
 server. As user \rootUser\ edit \filename{/etc/ntp.conf}:
 \begin{Cmd}
-  nano /etc/ntp.conf
+nano /etc/ntp.conf
 \end{Cmd}
 
-Find the lines which start \filename{server} and a insert \filename{#}
-at the beginning of the line to comment them out. Insert a similar
-line whihc begins with the word \filename{server} but with your own
-\ntp\ server hostname. Your network adminstrator should be able to
-provide this information. Finally restart \ntp; as user \rootUser
+Find the line(s) which start \filename{server} and a insert
+\filename{#} at the beginning of the line(s) to comment it(them)
+out. Insert a similar line which begins with the word
+\filename{server} but is followed by your own \ntp\ server
+hostname. Your network adminstrator should be able to provide this
+information. Finally restart \ntp; as user \rootUser
 \begin{Cmd}
-  /etc/init/ntp restart
+/etc/init/ntp restart
 \end{Cmd}
