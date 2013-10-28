@@ -151,7 +151,7 @@ eeprom = {
         },
     'all_samples': {
         'address': 0x46,
-        'format': 'B'
+        'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
         },
