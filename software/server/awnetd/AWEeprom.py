@@ -144,6 +144,7 @@ eeprom = {
     'aggregate': {
         'address': 0x45,
         'format': 'B',
+        'type': safe_eval,
         'default': 1,
         'choices': [0, 1, 2],
         'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
@@ -151,6 +152,8 @@ eeprom = {
     'all_samples': {
         'address': 0x46,
         'format': 'B'
+        'type': safe_eval,
+        'choices': [0, 1],
         },
     'radio_local_id': {
         'address': 0x47,
