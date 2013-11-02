@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import auroraplot as ap
 import auroraplot.dt64tools as dt64
 import auroraplot.magdata 
+import auroraplot.tools
 import auroraplot.auroralactivity 
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.samnet
@@ -116,7 +117,8 @@ def has_data_of_type(network, site, data_type):
 def round_to(a, b, func=np.round):
     return func(a / b) * b
 
-def activity_plot(mag_data, mag_qdc, filename, exif_tags):
+def activity_plot(mag_data, mag_qdc, filename, exif_tags, 
+                  k_index_filename=None):
     assert np.all(mag_data.channels == mag_qdc.channels) \
         and len(mag_data.channels) == 1 \
         and len(mag_qdc.channels) == 1, \
@@ -173,7 +175,32 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags):
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
     mysavefig(fig, filename, exif_tags)
-    return activity
+    r = [activity]
+
+    if k_index_filename is not None:
+        if mag_data.network == 'AURORAWATCHNET':
+            # Filter
+            md_filt = ap.tools.sgolay_filt(mag_data,
+                                           np.timedelta64(630,'s'), 3)
+            md_filt.set_cadence(np.timedelta64(10, 'm'), inplace=True)
+        else:
+            md_filt = mag_data
+        k_index = ap.auroralactivity.KIndex(magdata=md_filt, 
+                                            magqdc=mag_qdc,
+                                            # TODO: define scale for each site
+                                            scale=530e-9)
+        k_index.plot()
+        fig = plt.gcf()
+        fig.set_figwidth(6.4)
+        fig.set_figheight(4.8)
+        fig.subplots_adjust(bottom=0.1, top=0.85, 
+                            left=0.15, right=0.925)
+        plt.ylabel('Local K index')
+        mysavefig(fig, k_index_filename, exif_tags)
+
+        r.append(k_index)
+
+    return r
  
 def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     '''
@@ -198,10 +225,10 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
 
     '''
 
-    global mag_fstr
+    # global mag_fstr
     global args
 
-    # Debug
+    # Export to global names for debugging
     global mag_data
     global mag_qdc
     global activity
@@ -281,17 +308,20 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     # plot simultaneously with a rolling plot.
     st2 = dt64.ceil(st, day)
     md_day = mag_data.extract(start_time=st2)
-    act = activity_plot(md_day, mag_qdc_adj,
-                        dt64.strftime(st2, mag_fstr), exif_tags)
-    r = [md_day, act]
+    act_ki = activity_plot(md_day, mag_qdc_adj,
+                           dt64.strftime(st2, mag_fstr), exif_tags,
+                           k_index_filename=dt64.strftime(st2, k_fstr))
+    r = [md_day]
+    r.extend(act_ki)
 
     if rolling:
         # Trim end time
         md_rolling = mag_data.extract(end_time=et)
-        act_rolling = activity_plot(md_rolling, mag_qdc_adj,
-                                    rolling_magdata_filename, exif_tags)
+        act_ki_rolling = activity_plot(md_rolling, mag_qdc_adj,
+                                       rolling_magdata_filename, exif_tags,
+                                       k_index_filename=rolling_k_filename)
         r.append(md_rolling)
-        r.append(act_rolling)
+        r.append(act_ki_rolling)
     return r
 
 
@@ -597,14 +627,14 @@ while t1 < end_time:
                                 site_lc + '_%Y%m%d.png')
         rolling_magdata_filename = os.path.join(site_summary_dir, 
                                                 'rolling.png')
-        
+
         stackplot_fstr = os.path.join(summary_dir, test_mode_str,
                                       'stackplots', '%Y', '%m', '%Y%m%d.png')
         rolling_stackplot_filename = os.path.join(summary_dir, test_mode_str,
                                                   'stackplots', 'rolling.png')
 
         actplot_fstr = os.path.join(summary_dir, test_mode_str, 
-                                    'activity_plots',
+                                    'activity_plots', 
                                     '%Y', '%m', '%Y%m%d.png')
         rolling_activity_filename = os.path.join(summary_dir, test_mode_str,
                                                  'activity_plots',
@@ -618,6 +648,11 @@ while t1 < end_time:
                                     site_lc + '_voltage_%Y%m%d.png')
         rolling_voltdata_filename = os.path.join(site_summary_dir, 
                                                  'rolling_volt.png')
+
+        k_fstr = os.path.join(site_summary_dir, '%Y', '%m', 
+                              site_lc + '_k_%Y%m%d.png')
+        rolling_k_filename = os.path.join(site_summary_dir,
+                                          'rolling_k.png')
 
         if args.clear_timeouts and t1 == start_time:
             clear_timeouts(site_status_dir)
@@ -635,8 +670,8 @@ while t1 < end_time:
                     copyright_list.append(copyright_)
                     attribution_list.append(attribution)
                     if args.rolling:
-                        mdl_rolling.append(md[2])
-                        act_rolling.append(md[3])
+                        mdl_rolling.append(md[3])
+                        act_rolling.append(md[4])
 
             except Exception as e:
                 traceback.format_exc()
@@ -693,7 +728,7 @@ while t1 < end_time:
                                           test_mode=args.test_mode,
                                           ignore_timeout=args.ignore_timeout,
                                           mag_data=mag_data,
-                                          act_data=None if md is None else md[3],
+                                          act_data=None if md is None else md[4],
                                           temp_data=temp_data,
                                           voltage_data=voltage_data)
                                        
@@ -765,6 +800,9 @@ if args.make_links:
                      {'name': 'yesterday_volt.png', 
                       'date': yesterday,
                       'fstr': voltage_fstr},               
+                     {'name': 'yesterday_k.png', 
+                      'date': yesterday,
+                      'fstr': k_fstr},               
                      {'name': 'today.png', 
                       'date': today,
                       'fstr': mag_fstr}, 
@@ -773,7 +811,11 @@ if args.make_links:
                       'fstr': temp_fstr}, 
                      {'name': 'today_volt.png', 
                       'date': today,
-                      'fstr': voltage_fstr},]
+                      'fstr': voltage_fstr},
+                     {'name': 'today_k.png', 
+                      'date': today,
+                      'fstr': k_fstr},               
+                     ]
         make_links(site_summary_dir, link_data)
  
     # Stack plots and combined activity links use a different base
