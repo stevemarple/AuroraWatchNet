@@ -321,7 +321,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
                                        rolling_magdata_filename, exif_tags,
                                        k_index_filename=rolling_k_filename)
         r.append(md_rolling)
-        r.append(act_ki_rolling)
+        r.extend(act_ki_rolling)
     return r
 
 
