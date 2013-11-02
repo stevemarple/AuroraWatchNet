@@ -182,7 +182,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
             # Filter
             md_filt = ap.tools.sgolay_filt(mag_data,
                                            np.timedelta64(630,'s'), 3)
-            md_filt.set_cadence(np.timedelta64(10, 'm'), inplace=True)
+            md_filt.set_cadence(np.timedelta64(5, 'm'), inplace=True)
         else:
             md_filt = mag_data
         k_index = ap.auroralactivity.KIndex(magdata=md_filt, 
