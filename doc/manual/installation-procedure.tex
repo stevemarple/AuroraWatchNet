@@ -1,0 +1,66 @@
+\chapter{Installation procedure}
+
+\section{Determining the maximum range for the radio link}
+
+The maximum range can be determined witht he following procedure:
+\begin{enumerate}
+\item Ensure that the Raspberry Pi is turned on and restart the
+  recording daemon (p.~\pageref{awnetd-restart}). Monitor the recording
+  process (p.~\pageref{monitor-daemon-output}).
+\item Disconnect the remote sensor \pcb\ from the FLC100 shield. Place
+  the remaining circuitry about \SI{5}{\metre} away from the Raspberry
+  Pi and connect the battery. Keep the two units at least
+  \SI{2}{\metre} apart at all times to prevent overloading the radio
+  receivers.
+\item The green \led\ on the Calunium \pcb\ will flash 3 times with a
+  frequency of about \Hz{1} (this indicates the bootloader is
+  operating). The \led\ will then turn off. 
+\item \label{item-led-flash} About a second later the \led\ should
+  light again, indicating the start of data transfer to the Raspberry
+  Pi. If an acknowledgement is received the \led\ will turn off. This
+  process should happen quickly, so that the \led\ flashes on
+  momentarily. Just after \led\ turns on the Raspberry Pi should
+  output the received data message, along with its response to the
+  sensor unit. If the \led\ remains on it indicates the
+  microcontroller has not received an acknowledgement; see
+  section~\ref{debugging-communication-errors}. 
+  
+  This step repeats itself following every data sampling operation,
+  normally every \SI{30}{\second}. The time interval can be reduced by
+  altering the sampling period
+  (section~\ref{sec-sampling-interval}). A functioing radio
+  communication link is required to alter the sampling period.
+\item Move the sensor unit to its intended location. Try to position
+  it at the same height as it will be when buried, approximately
+  \SI{10}{\centi\metre} above ground. Keep the radio antenna
+  vertical. If the \led\ continues to flash briefly every
+  \SI{30}{\second} the radio link is operating correctly. If not then
+  find another location.
+\item If the radio link appears to work at correctly at the desired
+  location then aim to find the maximum range by steadily increasing
+  the distance between the sensor unit and base unit. Remeber that the
+  link is only tested after each sampling period. If the \led\ remains
+  on move the sensor unit closer to the base unit and wait for the
+  link to re-establish, indicated by the \led\ switching off.
+\end{enumerate}
+
+\helpbox{To save power the \led\ indicates the link status only for
+  approximately 15 minutes after the power has been connected or the
+  reset button pressed. If the \led\ has stopped indicating the link
+  status press the reset button on the Calunium \pcb.}
+
+\subsection{Factors which alter the maximum range}
+The following factors can influence the range of the radio link:
+\begin{itemize}
+\item Obstructions. Try to find locations for the sensor unit and base
+  unit which have direct line of sight. It is acceptable for walls to
+  be in the path but note they will attenuate the signal. Avoid raised
+  ground whenever possible. Placing the base unit on the first or
+  second floor is likely to give improved range.
+\item Sources of radio noise. Some electrical equipment may cause
+  \rfi, which will reduce the range of the radio link. Try to keep
+  both the sensor unit and base unit away from other electrical
+  equipment, particularly those containing radio
+  transmitters. ``Smart'' electric meters can contain radio
+  transmitters which operate on the same \MHz{868} \ism\ radio band.
+\end{itemize}

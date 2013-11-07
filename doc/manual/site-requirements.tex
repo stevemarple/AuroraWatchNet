@@ -12,6 +12,11 @@ requirements (highest priority given first).
   the \emph{ferro-magnetic} materials iron, nickel and cobalt.
 \end{itemize}
 
+The FLC100 fluxgate magnetometer sensor is slightly sensitive to
+temperature variations. To ensure correct behaviour a stabilised
+temperature environment is required. This is obtained by burying the
+sensor.
+
 \section{Network requirements}
 
 The following network requirements are needed for the system to
@@ -19,7 +24,10 @@ operate fully:
 \begin{itemize}
 \item \dns\ resolution. This is normally provided
   as standard on most networks.
-\item Outgoing access on port 123 (\ntp).
+\item Outgoing access on port 80 (\http) and 443 (\https). Required
+  for software updates.
+\item Outgoing access on port 123 (\ntp), or access to a local \ntp\
+  server.
 \item Outgoing \ssh\ access (port 22).
 \end{itemize}
 
