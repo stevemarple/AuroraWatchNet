@@ -189,6 +189,10 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
                                             magqdc=mag_qdc,
                                             # TODO: define scale for each site
                                             scale=530e-9)
+        # Fix the start/end times to the data, not the 3h K index samples
+        k_index.start_time = md_filt.start_time
+        k_index.end_time = md_filt.end_time
+
         k_index.plot()
         fig = plt.gcf()
         fig.set_figwidth(6.4)
