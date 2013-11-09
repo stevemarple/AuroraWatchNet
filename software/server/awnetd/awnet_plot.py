@@ -65,8 +65,14 @@ def mysavefig(fig, filename, exif_tags=None):
 
     # Override labelling format
     for ax in fig.axes:
+        ax.grid(True)
         ax.xaxis.set_major_formatter(dt64.Datetime64Formatter(fmt='%H'))
-
+        if np.diff(ax.get_xlim()).astype('m8[' + dt64.get_plot_units(ax.xaxis) \
+                                             + ']') == np.timedelta64(24, 'h'):
+            ax.xaxis.set_major_locator(\
+                dt64.Datetime64Locator(interval=np.timedelta64(3, 'h'),
+                                       maxticks=10))
+            
         
     # TO DO: Update all site information with correct copyright,
     # license and attribution data. Temporarily set here as currently
