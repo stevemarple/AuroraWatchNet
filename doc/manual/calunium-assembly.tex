@@ -10,6 +10,16 @@ omitted to lower power consumption (\eg, power LED, USB controller).
 
 \section{Calunium version 2.0 and version 2.1}
 
+\begin{figure}
+  \centering
+  \includegraphics[keepaspectratio,width=\textwidth]{%
+    images/calunium-v2-1}
+  \caption[Completed Calunium v2.1]{Completed Calunium v2.1. %
+    \photoCredits{%
+      \href{http://www.flickr.com/photos/stevemarple/10786865096/}{%
+        \copyright Steve Marple. CC BY-SA 3.0.}}}
+  \label{fig:calunium-version-2.1}
+\end{figure}
 
 \subsection{Order of assembly}
 
@@ -36,7 +46,8 @@ Fit components in order:
 \item C3, C5, C7, C9, C12 (\nF{100}).
 \item C2, C8 (\uF{1}).
 \item D1, D2 (BAT85). Do not fit D2 if using the DS1338-33 real-time clock.
-\item LED1 (green LED). The cathode is nearest LED2.
+\item LED1 (green LED). The cathode is nearest LED2, see
+  figure~\ref{fig:calunium-led-orientation}.
 \item C6 (\uF{4.7}).
 \item ICSP header ($2 \times 3$ jumper block). See
   \figurename~\ref{fig:icsp-header}.
@@ -63,6 +74,29 @@ Fit components in order:
 \end{buildorder}
 Do not fit the ATmega1284P microcontroller until after testing the
 board power supplies.
+
+\begin{figure}
+  \centering
+  \includegraphics[keepaspectratio,width=10cm]{%
+    images/calunium-led-orientation}
+  \caption[LED orientation]{\led\ orientation. %
+    \photoCredits{%
+      \href{http://www.flickr.com/photos/stevemarple/10786846715/}{%
+        \copyright Steve Marple. CC BY-SA 3.0.}}}
+  \label{fig:led-orientation}
+\end{figure}
+\begin{figure}
+  \centering
+  \includegraphics[keepaspectratio,width=10cm]{%
+    images/calunium-rtc-caps-hack}
+  \caption[Real-time clock load capacitors (Calunium v~2.0)]{%
+    Real-time clock load capacitors (Calunium v~2.0). 
+    \photoCredits{%
+      \href{http://www.flickr.com/photos/stevemarple/10787041263/}{%
+        \copyright Steve Marple. CC BY-SA 3.0.}}}
+  \label{fig:calunium-rtc-caps-hack}
+\end{figure}
+
 
 \begin{landscape}
   \begin{figure}[p]
