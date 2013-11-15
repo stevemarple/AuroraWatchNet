@@ -205,7 +205,6 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
         fig.set_figheight(4.8)
         fig.subplots_adjust(bottom=0.1, top=0.85, 
                             left=0.15, right=0.925)
-        plt.ylabel('Local K index')
         mysavefig(fig, k_index_filename, exif_tags)
 
         r.append(k_index)
