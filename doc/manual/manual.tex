@@ -195,15 +195,13 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 %%\newcommand{\units}[2]{\mbox{\ensuremath{#1}\,#2}}
 %%\newcommand{\dB}[1]{\mbox{\ensuremath{#1}\,dB}}
 \newcommand{\dB}[1]{\SI{#1}{dB}}
-\newcommand{\inch}[1]{\mbox{\ensuremath{#1}''}}
-% \newcommand{\kHz}[1]{\mbox{\ensuremath{#1}\,kHz}}
-%\newcommand{\metre}[1]{\mbox{\ensuremath{#1}\,m}}
-\newcommand{\km}[1]{\mbox{\ensuremath{#1}\,km}}
-%% \newcommand{\MHz}[1]{\mbox{\ensuremath{#1}\,MHz}}
+%%\newcommand{\inch}[1]{\mbox{\ensuremath{#1}''}}
+\newcommand{\inch}[1]{\SI{#1}{''}}
 \newcommand{\Hz}[1]{\SI{#1}{\hertz}}
 \newcommand{\kHz}[1]{\SI{#1}{\kilo\hertz}}
 \newcommand{\MHz}[1]{\SI{#1}{\mega\hertz}}
-\newcommand{\volt}[1]{\mbox{\ensuremath{#1}\,V}}
+\newcommand{\volt}[1]{\SI{#1}{V}}
+  \newcommand{\voltOLD}[1]{\mbox{\ensuremath{#1}\,V}}
 \newcommand{\bit}[1]{\mbox{\ensuremath{#1}\,bit}}
 
 %%\newcommand{\degrees}[1]{\ensuremath{#1^\circ}}
@@ -343,8 +341,8 @@ Please attribute this work as \documentAttribution
 \part{Installation}
 
 \include{site-requirements}
-\include{installation-procedure}
 \include{raspberry-pi-setup}
+\include{installation-procedure}
 
 \part{Operation}
 \include{raspberry-pi-operation}

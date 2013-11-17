@@ -1,13 +1,15 @@
 \chapter{Site requirements}
 
-\section{Sensor requirements}
-The site for the sensor should be chosen with regard to the following
-requirements (highest priority given first).
+\section{Sensor unit requirements}
+The sensor unit should be located outside away from human
+distrubances. The site for the sensor unit should be chosen with
+regard to the following requirements, with the highest priority given
+first.
 
 \begin{itemize}
 \item Within range of the base unit.
 \item Away from moving metal objects, for example, trains (more than
-  \SI{50}{\metre}), cars (more than \SI{20}{\metre}).
+  \SI{50}{\metre}), cars (more than \SI{20}{\metre}) and garage doors.
 \item Away from static metal objects, in particular those containing
   the \emph{ferro-magnetic} materials iron, nickel and cobalt.
 \end{itemize}
@@ -17,7 +19,15 @@ temperature variations. To ensure correct behaviour a stabilised
 temperature environment is required. This is obtained by burying the
 sensor.
 
-\section{Network requirements}
+\section{Base unit requirements}
+
+The base unit (Raspberry Pi and radio module) requires mains power and
+a wired network connection. Wireless networking is also possible but
+has not been tested; follow the instructions on the Raspberry Pi
+website. The base unit should be located indoors and as close to the
+sensor unit as possible.
+
+\subsection{Network requirements}
 
 The following network requirements are needed for the system to
 operate fully:

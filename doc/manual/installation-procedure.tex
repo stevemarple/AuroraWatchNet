@@ -1,34 +1,48 @@
 \chapter{Installation procedure}
 
+\section{Base unit installation}
+
+Connect the Raspberry Pi to wired ethernet connection. Connect the
+keyboard, mouse and monitor (if using) before powering up the
+Raspberry Pi. Connect the Raspberry Pi to a \volt{5} power supply with
+an output current rating of at least \SI{700}{\milli A}. If you are
+not using a monitor connect to the Raspberry Pi using \ssh, the
+default hostname is \filename{raspberry.local}.
+
+
 \section{Determining the maximum range for the radio link}
 
-The maximum range can be determined witht he following procedure:
+Before installing the sensor unit first check the maximum range for
+radio communication. Note that this will vary according to many
+conditions and be sure to position the sensor well within the maximum
+range.
+
+The maximum range can be determined with the following procedure:
 \begin{enumerate}
 \item Ensure that the Raspberry Pi is turned on and restart the
   recording daemon (p.~\pageref{awnetd-restart}). Monitor the recording
   process (p.~\pageref{monitor-daemon-output}).
 \item Disconnect the remote sensor \pcb\ from the FLC100 shield. Place
   the remaining circuitry about \SI{5}{\metre} away from the Raspberry
-  Pi and connect the battery. Keep the two units at least
-  \SI{2}{\metre} apart at all times to prevent overloading the radio
-  receivers.
-\item The green \led\ on the Calunium \pcb\ will flash 3 times with a
-  frequency of about \Hz{1} (this indicates the bootloader is
-  operating). The \led\ will then turn off. 
+  Pi. Keep the two units at least \SI{2}{\metre} apart at all times to
+  prevent overloading the radio receivers.
+\item Connect the battery. The green \led\ on the Calunium \pcb\ will
+  flash 3 times with a frequency of about \Hz{1} to indicate that the
+  bootloader is waiting for data. The \led\ will then turn off.
 \item \label{item-led-flash} About a second later the \led\ should
   light again, indicating the start of data transfer to the Raspberry
   Pi. If an acknowledgement is received the \led\ will turn off. This
   process should happen quickly, so that the \led\ flashes on
-  momentarily. Just after \led\ turns on the Raspberry Pi should
+  momentarily. Just after the \led\ turns on the Raspberry Pi should
   output the received data message, along with its response to the
   sensor unit. If the \led\ remains on it indicates the
   microcontroller has not received an acknowledgement; see
-  section~\ref{debugging-communication-errors}. 
+  section~\ref{debugging-communication-errors}.
   
   This step repeats itself following every data sampling operation,
   normally every \SI{30}{\second}. The time interval can be reduced by
   altering the sampling period
-  (section~\ref{sec-sampling-interval}). A functioing radio
+  (section~\ref{sec-sampling-interval}). A functioning radio
   communication link is required to alter the sampling period.
 \item Move the sensor unit to its intended location. Try to position
   it at the same height as it will be when buried, approximately
@@ -36,9 +50,9 @@ The maximum range can be determined witht he following procedure:
   vertical. If the \led\ continues to flash briefly every
   \SI{30}{\second} the radio link is operating correctly. If not then
   find another location.
-\item If the radio link appears to work at correctly at the desired
+\item If the radio link appears to work correctly at the desired
   location then aim to find the maximum range by steadily increasing
-  the distance between the sensor unit and base unit. Remeber that the
+  the distance between the sensor unit and base unit. Remember that the
   link is only tested after each sampling period. If the \led\ remains
   on move the sensor unit closer to the base unit and wait for the
   link to re-establish, indicated by the \led\ switching off.
@@ -64,3 +78,9 @@ The following factors can influence the range of the radio link:
   transmitters. ``Smart'' electric meters can contain radio
   transmitters which operate on the same \MHz{868} \ism\ radio band.
 \end{itemize}
+
+
+\section{Installing the sensor unit}
+
+The sensor unit must be buried to a depth of \SI{0.85}{\metre}.
+
