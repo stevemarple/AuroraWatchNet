@@ -57,15 +57,31 @@ stability.
   manufacturer revealed that the shorter lead indicates the start of
   the winding. This arrangement is preferred to help minimise \rfi.
 \item Stacking connectors, five 8~way and one 10~way. Ensure they are
-  fitted flush to the \pcb.
+  fitted flush to the \pcb; solder one end first, then the other
+  end. Only when you are happy they are flush should you solder the
+  remaining pins.
 \item JP1, JP4 ($2 \times 3$ jumper).
 \item JP7, JP9 ($2 \times 3$ jumper).
 \item JP10, JP11 ($1 \times 4$ jumper).
 \item JP3 ($1 \times 2$ jumper).
 \item JP8 ($1 \times 2$ jumper).
 \item X2, RJ45 connector.
+\item Modify the \pcb\ by adding a link wire from the XRF ONSLEEP
+  status pin to D23. See figure~\ref{flc100-sleep-status-mod}.
 \item Q1, Q2, Q3, Q4, Q5 (2N7000).
 \end{buildorder}
+
+\begin{figure}
+  \centering
+  \includegraphics[keepaspectratio,width=10cm]{%
+    images/flc100-sleep-status-mod}
+  \caption[Modification to monitor sleep status of the XRF radio module]{%
+    Modification to monitor sleep status of the XRF radio module.
+    \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/10786910376/}}
+  \label{fig:flc100-sleep-status-mod}
+\end{figure}
+
 
 Fit shunts to JP10, JP11, JP3. Fit shunts to JP7 and JP9, to the two
 connectors furthest from the edge of the \pcb. \textbf{Do not fit the
