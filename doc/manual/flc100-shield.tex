@@ -29,10 +29,10 @@ stability.
   \centering
   \includegraphics[keepaspectratio,width=\textwidth]{%
     images/flc100-shield}
-  \caption[Completed FLC100 shield]{Completed FCL100 shield. %
-    \photoCredits{%
-      \href{http://www.flickr.com/photos/stevemarple/10787109594/}{%
-        \copyright Steve Marple. CC BY-SA 3.0.}}}
+  \caption[Completed FLC100 shield]{Completed FCL100 shield, except
+    for fitting shunts onto the jumpers. %
+    \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/10787109594/}}
   \label{fig:flc100-v1.0}
 \end{figure}
 
@@ -42,25 +42,46 @@ stability.
 \item R12 (\kohm{510}).
 \item R11 (\kohm{15}).
 \item R10 (\kohm{910}).
+\item \SI{2}{\milli\metre} 10~way connectors for RF1. Ensure they are
+  fitted flush to the \pcb.
 \item C15 (\uF{4.7}).
 \item C16 (\uF{10}).
 \item R1, R3, R4, R6, R8 (\kohm{10}).
 \item R2, R5, R7 (\kohm{100}).
-\item C2, C7, C9 (\nF{100}). \todo[check list]
+\item C2, C7, C9 (\nF{100}).
 \item C10 (\uF{4.7}).
 \item C8 (\uF{100}).
-\item L2 (\uH{4.7}). The shorter lead should be fitted
-  \todo[\ldots]. Although the orientation of inductors is normally
-  ignored communication with the manufacturer revealed that the
-  shorter lead indicates the start of the winding. This arrangement is
-  preferred to help minimise \rfi.
-\item
-\item
-\item
-\item
-\item
+\item L2 (\uH{4.7}). The shorter lead should be connected to pin~1,
+  which is the hole nearest the edge of the \pcb. Although the
+  orientation of inductors is normally ignored communication with the
+  manufacturer revealed that the shorter lead indicates the start of
+  the winding. This arrangement is preferred to help minimise \rfi.
+\item Stacking connectors, five 8~way and one 10~way. Ensure they are
+  fitted flush to the \pcb.
+\item JP1, JP4 ($2 \times 3$ jumper).
+\item JP7, JP9 ($2 \times 3$ jumper).
+\item JP10, JP11 ($1 \times 4$ jumper).
+\item JP3 ($1 \times 2$ jumper).
+\item JP8 ($1 \times 2$ jumper).
+\item X2, RJ45 connector.
 \item Q1, Q2, Q3, Q4, Q5 (2N7000).
 \end{buildorder}
+
+Fit shunts to JP10, JP11, JP3. Fit shunts to JP7 and JP9, to the two
+connectors furthest from the edge of the \pcb. \textbf{Do not fit the
+  shunts so that they bridge between JP7 and JP9}.
+
+If the microcontroller board has dedicated \itwoc\ connections (\eg
+Calunium v2.0 or later), then no shunts should be fitted to JP1 and
+JP4. If the microcontroller has \itwoc\ connections in the standard
+Arduino Mega positions (\eg, Calunium v1.0, Arduino Mega, Arduino Mega
+2560) then fit shunts to JP1 and JP4 to the two connectors closest to
+C10, otherwise fit shunts to JP1 and JP4 to the two connectors closest
+to the stacking connectors. \textbf{In no circumstances should the
+  shunts bridge between JP1 and JP4}.
+
+Leave JP8 open circuit. It is fitted only when the XRF1 radio module
+must be forced to use the default factory configuration.
 
 \begin{landscape}
   \begin{figure}[p]

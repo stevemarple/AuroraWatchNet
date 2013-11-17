@@ -33,6 +33,11 @@
 %% For landscape pages printed, but rotated on screen
 \usepackage{pdflscape}
 
+%% Allow linebreaks in all captions. Required by the \photoCredit
+%% command.
+\usepackage{caption}
+% \captionsetup{justification=justified}
+
 %% Including figures and other graphics
 \usepackage{graphicx}
 % \usepackage[rgb]{xcolor}
@@ -172,9 +177,15 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 %% hyperref doesn't see it as a hyperref!
 \DeclareUrlCommand\filename{\urlstyle{tt}}
 \newcommand{\email}[1]{\href{mailto:#1}{#1}}
-\newcommand{\ccThreeUrl}{http://creativecommons.org/licenses/by-sa/3.0/}
-\newcommand{\photoCredits}[1]{#1}
-%\def\photoCredits[#1]{#1}
+\newcommand{\ccBySaTwoUrl}{http://creativecommons.org/licenses/by-sa/2.0/}
+\newcommand{\ccBySaThreeUrl}{http://creativecommons.org/licenses/by-sa/3.0/}
+\newcommand{\ccBySaTwo}{\href{\ccBySaTwoUrl}{CC BY-SA 2.0}}
+\newcommand{\ccBySaThree}{\href{\ccBySaThreeUrl}{CC BY-SA 3.0}}
+%% Copyright, licence, URL.
+\newcommand{\photoCredit}[4][]{\\ %
+  \ifthenelse{\equal{#2}{}}{}{ \copyright~#2.}%
+  \ifthenelse{\equal{#3}{}}{}{ #3.}%
+  \ifthenelse{\equal{#4}{}}{}{ \href{#4}{#4}}}
 
 %% Environment variables. Like \filename but prepends a $
 \DeclareUrlCommand\envVar{\def\UrlLeft{\$}\urlstyle{tt}}
@@ -296,11 +307,11 @@ Lancaster University.}
 % \phantomsection  
 % % \thispagestyle{empty}
 \chapter{Licence}
-This document is made available under the \href{\ccThreeUrl}{Creative
+This document is made available under the \href{\ccBySaThreeUrl}{Creative
   Commons Attribution-ShareAlike 3.0 Unported Licence}.
 
 \begin{center}
-\href{\ccThreeUrl}{\includegraphics{images/by-sa}}
+\href{\ccBySaThreeUrl}{\includegraphics{images/by-sa}}
 \end{center}
 
 Please attribute this work as \documentAttribution

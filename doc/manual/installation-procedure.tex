@@ -1,5 +1,22 @@
 \chapter{Installation procedure}
 
+\subsection{Tools required}
+
+\begin{itemize}
+\item Spade.
+\item Fork.
+\item Small bucket or other container to remove soil from the bottom
+  of the hole.
+\item Compass.
+\end{itemize}
+
+The following items are optional but if they are available they may be
+useful for digging the hole.
+\begin{itemize}
+\item Soil auger.
+\item Post hole digger.
+\end{itemize}
+
 \section{Base unit installation}
 
 Connect the Raspberry Pi to wired ethernet connection. Connect the
@@ -11,7 +28,7 @@ default hostname is \filename{raspberry.local}.
 
 
 \section{Determining the maximum range for the radio link}
-
+\label{sec:find-maximum-range}
 Before installing the sensor unit first check the maximum range for
 radio communication. Note that this will vary according to many
 conditions and be sure to position the sensor well within the maximum
@@ -82,5 +99,23 @@ The following factors can influence the range of the radio link:
 
 \section{Installing the sensor unit}
 
-The sensor unit must be buried to a depth of \SI{0.85}{\metre}.
+The sensor unit must be should be buried to a depth of
+\SI{0.85}{\metre}. If it is buried deeper then the radio antenna may
+be too close to the ground and compromise the wireless communication
+range, if it is buried too shallow the unit will be more susceptible
+to temperature variations.
+
+After digging a suitable hole install the enclosure as vertical as
+possible and backfill the hole. Insert the wooden frame and rockwool
+into the enclosure. Using a compass align the north arrow on the
+wooden frame to point towards magnetic north. Connect the RJ45 cable
+to the FLC100 shield. Connect the power lead. Fit two D cell batteries
+into the battery holder and place on the wooden frame. Press the reset
+button and observe the green \led. It should flash 3 times to indicate
+the bootloader operation and then intermittently to indcate
+successful data transmission; see section~\ref{sec:find-maximum-range}.
+
+
+
+
 

@@ -25,24 +25,14 @@ number of walls between it and the sensor unit.
 
 \section{Sensor unit}
 
-\begin{figure}
-  \centering
-  \includegraphics[keepaspectratio,height=10cm]{images/sensor-unit}
-  \caption[Sensor unit]{%
-    Sensor unit. \photoCredits{%
-      \href{http://www.flickr.com/photos/stevemarple/8499204572/}{%
-        \copyright Steve Marple. CC BY-SA 3.0.}}}
-  \label{fig:sensor-unit}
-\end{figure}
-
-The sensor unit is contained inside a waterproof enclosure
-approximately \SI{1.1}{\metre} high which is partially buried to reduce
-temperature variations and to provide a stable foundation. The sensor
-itself is placed at the bottom of the enclosure, approximately
-\SI{0.85}{\metre} below ground. The microcontroller, radio module and
-battery are positioned in the top part of the enclosure, above ground
-level. Insulating material (\eg\ rockwool) is used to fill the space
-in-between.
+The sensor unit (figure~\ref{fig:sensor-unit}) is contained inside a
+waterproof enclosure approximately \SI{1.1}{\metre} high which is
+partially buried to reduce temperature variations and to provide a
+stable foundation. The sensor itself is placed at the bottom of the
+enclosure, approximately \SI{0.85}{\metre} below ground. The
+microcontroller, radio module and battery are positioned in the top
+part of the enclosure, above ground level. Insulating material (\eg\
+rockwool) is used to fill the space in-between.
 
 The
 \href{http://blog.stevemarple.co.uk/search/label/Calunium}{Calunium}
@@ -50,17 +40,39 @@ microcontroller board is based on the popular
 \href{http://arduino.cc}{Arduino} platform but uses the more powerful
 Atmel ATmega1284P microcontroller.
 
-\section{Base unit}
+\begin{figure}[!h]
+  \centering
+  \includegraphics[keepaspectratio,height=10cm]{images/sensor-unit}
+  \caption[Sensor unit]{%
+    Sensor unit. \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/8499204572/} 
+  }
+  \label{fig:sensor-unit}
+\end{figure}
 
 \begin{figure}
   \centering
-  \includegraphics[keepaspectratio,height=10cm]{images/base-unit}
-  \caption[Base unit]{%
-    Base unit. \photoCredits{%
-      \href{http://www.flickr.com/photos/stevemarple/10787215844/}{%
-        \copyright Steve Marple. CC BY-SA 3.0.}}}
-  \label{fig:base-unit}
+  \includegraphics[keepaspectratio,width=\textwidth]{%
+    images/calunium-v2-1}
+  \caption[Calunium microcontroller PCB]{%
+    Calunium microcontroller \pcb. %
+    \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/10786865096/}}
+  \label{fig:calunium}
 \end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[keepaspectratio,width=\textwidth]{%
+    images/flc100-shield}
+  \caption[FLC100 shield]{The FLC100 shield fits onto the Calunium
+    microcontroller \pcb. \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/10787109594/}}
+  \label{fig:flc-100-shield}
+\end{figure}
+
+\clearpage
+\section{Base unit}
 
 The base unit is a \href{http://www.raspberrypi.org/‎}{Raspberry Pi}
 single-board computer with a radio transceiver unit. The Ethernet
@@ -70,3 +82,11 @@ the network with Secure Shell (\ssh) a display and keyboard are not
 needed. The Raspberry Pi runs the Raspbian linux distribution. The
 receiving software is written in Python.
 
+\begin{figure}[!h]
+  \centering
+  \includegraphics[keepaspectratio,height=10cm]{images/base-unit}
+  \caption[Base unit]{%
+    Base unit. \photoCredit{Steve Marple}{\ccBySaTwo}{%
+      http://www.flickr.com/photos/stevemarple/10787215844/}}
+  \label{fig:base-unit}
+\end{figure}
