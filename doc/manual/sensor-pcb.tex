@@ -64,8 +64,8 @@ Fit components in order:
       pliers are used to support the other side of the \pcb.}
     \label{fig:flc100-step-3}
   \end{figure}
-\item IC1 (MAXMCP3424).
-\item IC2 (MAX619).
+\item IC1 (MCP3424).
+\item IC2 (MAX619) if using the \soic\ option.
 \item R1, R2, R3 (\kohm{10}).
 \item R4 (\kohm{100}).
 \item R5 (\kohm{4.7}).
@@ -74,11 +74,14 @@ Fit components in order:
 \item C6, C7 (\nF{220}).
 \item C3, C4 (\uF{4.7}).
 \item D1 (BAT85).
+\item \ic\ socket for IC2 if using the \dip\ option.
 \item SENS2 (LM61).
 \item JP5 and JP7 (fit as $2\times3$ male header).
 \item X1 (RJ45 vertical jack).
+\item Fit IC2 (MAX619) into its \ic\ socket if using the \dip\ option.
 \item Q1 (2N7000). This item is very sensitive to damage by
-  electrostatic discharge!
+  electrostatic discharge! This item must be fitted close to the \pcb\
+  to avoid fouling the FLC100 which is fitted over it.
 \item SENS1. Gently fit the FLC100 sensor into the turned-pin
   sockets. Apply pressure only on the circuit boards, not the
   components or coil.
