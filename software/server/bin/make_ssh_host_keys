@@ -2,6 +2,6 @@
 
 echo "Making host keys in current directory"
 
-ssh-keygen -N '' -t rsa -f ssh_host_rsa_key
-ssh-keygen -N '' -t dsa -f ssh_host_dsa_key
-ssh-keygen -N '' -t ecdsa -f ssh_host_ecdsa_key
+ssh-keygen -h -N '' -t rsa -f ssh_host_rsa_key
+ssh-keygen -h -N '' -t dsa -f ssh_host_dsa_key
+ssh-keygen -h -N '' -t ecdsa -f ssh_host_ecdsa_key
