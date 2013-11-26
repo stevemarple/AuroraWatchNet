@@ -20,9 +20,9 @@
 # are the same then no upload for that file is required. If the local
 # file is larger but the corresponding part on the server matches
 # (based on the MD5 sum) then only the additional data is uploaded,
-# otherwise the entire file is uploaded. This approach reduces the
-# data transfer when a daily file should be transferred at regular
-# intervals (10 minutes or less).
+# otherwise the entire file is uploaded. This approach greatly reduces
+# the data transferred when an updating daily file is transferred at
+# regular intervals (10 minutes or less).
 
 import argparse
 import hashlib
