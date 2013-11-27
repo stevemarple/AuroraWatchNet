@@ -194,7 +194,7 @@ try:
     site = config.get('magnetometer', 'site').upper()
     site_lc = site.lower()
 except Exception as e:
-    print('Bad config file ' + config_file + ': ' + str(e))
+    logging.error('Bad config file ' + config_file + ': ' + str(e))
     raise
 
 
@@ -245,16 +245,16 @@ elif method in ('http', 'https'):
     # consecutive files for each file type, assuming that only minute,
     # hourly or daily variations are allowed.
     interval = datetime.timedelta(days=1)
-    now_p1h = now + datetime.timedelta(hours=1)
-    now_p1m = now + datetime.timedelta(minutes=1)
+    today_p1h = today + datetime.timedelta(hours=1)
+    today_p1m = today + datetime.timedelta(minutes=1)
     file_type_data = {}
     for ft in args.file_types.split():
         file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
                               'interval': datetime.timedelta(days=1)}
-        now_file = now.strftime(file_type_data[ft]['fstr'])
+        today_file = today.strftime(file_type_data[ft]['fstr'])
         for i in (datetime.timedelta(minutes=1), 
                   datetime.timedelta(hours=1)):
-            if now_file != (now+i).strftime(file_type_data[ft]['fstr']):
+            if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
                 file_type_data[ft]['interval'] = i
                 break
     
@@ -273,6 +273,7 @@ elif method in ('http', 'https'):
         interval = file_type_data[ft]['interval']
         t = start_time
         while t < end_time:
+            logging.debug('time: ' str(t))
             file_name = t.strftime(fstr)
             if os.path.exists(file_name):
                 response = http_upload(file_name, url)
