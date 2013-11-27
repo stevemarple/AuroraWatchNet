@@ -70,7 +70,7 @@ def head_request(file_name, url):
         return response
     except:
         return None
-        
+    
 
 def http_upload(file_name, url):
     logging.debug('Uploading ' + file_name)
@@ -135,6 +135,9 @@ parser.add_argument('--log-format',
                     default='%(levelname)s:%(message)s',
                     help='Set format of log messages',
                     metavar='FORMAT')
+parser.add_argument('--method',
+                    choices=['rsync', 'http', 'https'],
+                    help='Select upload method')
 
 # rsync options
 rsync_grp = parser.add_argument_group('rsync', 'options for rsync uploads')
@@ -198,7 +201,11 @@ except Exception as e:
     raise
 
 
-method = config.get('upload', 'method')
+if args.method:
+    method = args.method
+else:
+    method = config.get('upload', 'method')
+
 logging.debug('Upload method: ' + method)
 if method == 'rsync':
     # Upload by rsync, use SSH tunnelling.
@@ -249,6 +256,10 @@ elif method in ('http', 'https'):
     today_p1m = today + datetime.timedelta(minutes=1)
     file_type_data = {}
     for ft in args.file_types.split():
+        if not config.has_option(ft, 'filename') or \
+                not config.get(ft, 'filename'):
+            # This type not defined in config file
+            break
         file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
                               'interval': datetime.timedelta(days=1)}
         today_file = today.strftime(file_type_data[ft]['fstr'])
