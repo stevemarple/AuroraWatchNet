@@ -273,7 +273,7 @@ elif method in ('http', 'https'):
         interval = file_type_data[ft]['interval']
         t = start_time
         while t < end_time:
-            logging.debug('time: ' str(t))
+            logging.debug('time: ' + str(t))
             file_name = t.strftime(fstr)
             if os.path.exists(file_name):
                 response = http_upload(file_name, url)
