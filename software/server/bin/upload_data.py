@@ -209,7 +209,13 @@ else:
 logging.debug('Upload method: ' + method)
 if method == 'rsync':
     # Upload by rsync, use SSH tunnelling.
-    cmd = ['rsync', '--archive']
+    cmd = ['rsync', 
+           '--archive', # Preserve everything
+           '--no-perms', # Use file mode permissions
+           # Don't transfer empty files, important since filesystem
+           # corruption can cause files to have zero size which would
+           # then destroy data on the server.
+           '--min-size=1']
     # Options
     if args.verbose:
         cmd.append('--verbose')
