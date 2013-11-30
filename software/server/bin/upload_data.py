@@ -139,8 +139,24 @@ parser.add_argument('--method',
                     choices=['rsync', 'http', 'https'],
                     help='Select upload method')
 
+parser.add_argument('-s', '--start-time', 
+                    help='Start time for data transfer (inclusive)',
+                    metavar='DATETIME')
+parser.add_argument('-e', '--end-time',
+                    help='End time for data transfer (exclusive)',
+                    metavar='DATETIME')
+parser.add_argument('--file-types',
+                    default='awnettextdata awpacket',
+                    help='List of file types to upload',
+                    metavar='TYPE1, TYPE2, ...')
+
 # rsync options
 rsync_grp = parser.add_argument_group('rsync', 'options for rsync uploads')
+
+rsync_grp.add_argument('--all',
+                       action='store_true',
+                       default=False,
+                       help='rsync all non-empty files in dataset')
 rsync_grp.add_argument('-n', '--dry-run',
                        action='store_true',
                        default=False,
@@ -150,19 +166,6 @@ rsync_grp.add_argument('-v', '--verbose',
                        action='store_true',
                        help='Be verbose')
 
-# http(s) options
-http_grp = parser.add_argument_group('HTTP(S)', 'options for HTTP(S) uploads')
-
-http_grp.add_argument('-s', '--start-time', 
-                      help='Start time for data transfer (inclusive)',
-                      metavar='DATETIME')
-http_grp.add_argument('-e', '--end-time',
-                      help='End time for data transfer (exclusive)',
-                      metavar='DATETIME')
-http_grp.add_argument('--file-types',
-                      default='awnettextdata awpacket',
-                      help='List of file types to upload',
-                      metavar='TYPE1, TYPE2, ...')
 
 args = parser.parse_args()
 logging.basicConfig(level=getattr(logging, args.log_level.upper()),
@@ -206,9 +209,18 @@ if args.method:
 else:
     method = config.get('upload', 'method')
 
+if args.all and method != 'rsync':
+    logging.error('--all can only be used with --method=rsync')
+    exit(1)
+
 logging.debug('Upload method: ' + method)
 if method == 'rsync':
     # Upload by rsync, use SSH tunnelling.
+
+    if args.start_time is None and args.end_time is None:
+        end_time = tomorrow
+        start_time = end_time - datetime.timedelta(days=3)
+    
     cmd = ['rsync', 
            '--archive', # Preserve everything
            '--no-perms', # Use file mode permissions
@@ -223,11 +235,56 @@ if method == 'rsync':
     if args.dry_run:
         cmd.append('--dry-run')
 
-    src_dir = os.path.join(os.sep, 'data', 'aurorawatchnet', site_lc)
 
-    # Append src directory. Trailing slash is important, it means the
-    # contents of the directory.
-    cmd.append(src_dir + os.sep)
+    if args.all:
+        if args.start_time is not None:
+            logging.error('--start-time cannot be specified with --all')
+            exit(1)
+        if args.end_time is not None:
+            logging.error('--end-time cannot be specified with --all')
+            exit(1)
+
+        # Append src directory. Trailing slash is important, it means the
+        # contents of the directory.
+        src_dir = os.path.join(os.sep, 'data', 'aurorawatchnet', site_lc)
+        cmd.append(src_dir + os.sep)
+    else:
+        file_list = []
+        # Find list of files to upload
+        file_type_data = {}
+        for ft in args.file_types.split():
+            if not config.has_option(ft, 'filename') or \
+                    not config.get(ft, 'filename'):
+                # This type not defined in config file
+                break
+            file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
+                                  'interval': datetime.timedelta(days=1)}
+            today_file = today.strftime(file_type_data[ft]['fstr'])
+            for i in (datetime.timedelta(minutes=1), 
+                      datetime.timedelta(hours=1)):
+                if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
+                    file_type_data[ft]['interval'] = i
+                    break
+
+        for ft in file_type_data.keys():
+            fstr = file_type_data[ft]['fstr']
+            interval = file_type_data[ft]['interval']
+            t = start_time
+            while t < end_time:
+                logging.debug('time: ' + str(t))
+                file_name = t.strftime(fstr)
+                if os.path.exists(file_name):
+                    logging.debug('Found ' + file_name)
+                    file_list.append(file_name)
+                else:
+                    logging.debug('Missing ' + file_name)
+                t += interval
+        if len(file_list) == 0:
+            logging.info('No files to transfer')
+            exit(0)
+
+        cmd.extend(file_list)
+
 
     # Use the SSH config file to define an entry for "awn-data". It will
     # look similar to:
@@ -237,6 +294,7 @@ if method == 'rsync':
     # User monty
     cmd.append('awn-data:/data/aurorawatchnet/' + site_lc)
 
+    logging.info('cmd: ' + ' '.join(cmd))
     if args.verbose:
         print(' '.join(cmd))
 
@@ -258,8 +316,6 @@ elif method in ('http', 'https'):
     # consecutive files for each file type, assuming that only minute,
     # hourly or daily variations are allowed.
     interval = datetime.timedelta(days=1)
-    today_p1h = today + datetime.timedelta(hours=1)
-    today_p1m = today + datetime.timedelta(minutes=1)
     file_type_data = {}
     for ft in args.file_types.split():
         if not config.has_option(ft, 'filename') or \
