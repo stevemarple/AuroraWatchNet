@@ -166,3 +166,75 @@ program the microcontroller using the xboot bootloader. Replace
   Dragon alone this approach ensures that the xboot bootloader is
   present and functions correctly, allowing the microcontroller
   firmware to be updated over the radio link.}
+
+\subsection[Generating the EEPROM settings]{Generating the \eeprom\
+  settings}
+
+Correct operation requires that the settings and the \hmac-\mdfive\
+key used for signing messages are uploaded to the EEPROM in the
+ATmega1284P microcontroller. To generate the \eeprom\ image use the
+\filename{generate_eeprom_image} program, as user \piUser:
+\begin{Cmd}[fontsize=\small]
+/home/pi/AuroraWatchNet/software/server/awnetd/generate_eeprom_image.py \
+\textbackslash
+--file /home/pi/eeprom --site-id XX --sampling-interval-16th-s 480 \
+\textbackslash
+--max-message-no-ack 60 --max-messages-led 30 --num-samples 15 \
+\textbackslash
+--aggregate 1 --all-samples 0 --radio-type 0 --radio-xrf-channel 25 \
+\textbackslash
+--mcp7941x-cal 0 --use-sd 0
+\end{Cmd}
+Replace \filename{XX} with the site ID for your site. AuroraWatch UK
+maintains a list of unique site IDs; zero can be used for testing.
+
+These settings will cause the magnetometer to make measurements every
+\SI{30}{\second}. 
+
+\helpbox{Some settings are defined in terms of samples, rather than
+  time. If the sample interval is altered the effective interval for
+  these settings will also change. If the number of messages without an
+  acknowledgement exceeds that defined by
+  \filename{--max-message-no-ack} (60 in the above example) then the
+  microcontroller is rebooted in the hope of recovering
+  communication. Similarly, the number of messages before the \led\ is
+  switched off (see section \ref{sec:find-maximum-range}) is defined
+  by \filename{--max-messages-led} (30 in the example above).
+
+  These settings are defined by number of messages to avoid problems
+  should the system time be automatically corrected. }
+
+\helpbox{The \filename{generate_eeprom_image.py} program generates a
+  new random \hmac-\mdfive\ key each time it is run. Use the
+  \filename{--hmac-key} option to preserve a previous \hmac-\mdfive\ key
+  setting.}
+
+
+\subsection[Uploading the EEPROM settings]{Uploading the \eeprom\
+  settings}
+
+The \eeprom\ settings defined in the previous section can be uploaded
+directly, using \isp\ or \jtag\ programmers, or indirectly via the
+\filename{xboot} bootloader. The upload can be performed as user
+\piUser, but if problems accessing the programmer device file is
+experienced it can be uploaded as user \rootUser.
+
+To upload using the AVR Dragon in \isp\ mode:
+\begin{Cmd}
+avrdude -P usb -p atmega1284p -c dragon_isp \textbackslash
+-U eeprom:w:/home/pi/eeprom.bin:r 
+\end{Cmd}
+
+To upload using the AVR Dragon in \jtag\ mode:
+\begin{Cmd}
+avrdude -P usb -p atmega1284p -c dragon_jtag \textbackslash
+-U eeprom:w:/home/pi/eeprom.bin:r 
+\end{Cmd}
+
+To upload via the \filename{xboot} bootloader:
+\begin{Cmd}
+avrdude -p atmega1284p -P /dev/ttyUSB0 -c avr109 -b 38400 \textbackslash
+-U eeprom:w:/home/pi/eeprom.bin:r 
+\end{Cmd}
+If the FTDI adaptor is connected to a different device file substitute
+\filename{/dev/ttyUSB0} with the correct device file.

@@ -292,12 +292,14 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newcommand{\documentAttribution}{``AuroraWatchNet magnetometer manual. Steve Marple, Lancaster
   University. 2013.''} 
 
+\input{gitlog}
 \begin{document}
 
 \title{AuroraWatchNet magnetometer manual}
 \author{Steve Marple, \\
 Lancaster University.}
-\date{\today}
+\date{\gitCommitDate\\
+  \small{Commit: \gitCommit}}
 \maketitle
 \thispagestyle{empty}
 \frontmatter

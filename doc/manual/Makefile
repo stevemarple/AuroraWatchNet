@@ -4,7 +4,7 @@ MAKEABBREV = ./makeabbrev
 
 CP = cp -a
 .PHONY : doc
-doc : images makeabbrev
+doc : images makeabbrev gitlog.tex
 	$(PDFLATEX) manual
 	$(MAKEABBREV) manual
 #	$(BIBTEX) installation-manual
@@ -31,3 +31,7 @@ images/system-overview.pdf : images/src/system-overview.odg
 	soffice --headless --draw --convert-to pdf --outdir images images/src/system-overview.odg
 
 makeabbrev : makeabbrev.c
+
+.PHONY : gitlog.tex
+gitlog.tex :
+	git log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' . > $@
