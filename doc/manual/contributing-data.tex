@@ -4,7 +4,7 @@
 
 Data contributed to AuroraWatch UK will be combined with other
 magnetometer data for the purpose of generating AuroraWatch UK or
-other auroral-related alerts. In future the alerts data is likely to
+other auroral-related alerts. In future the alerts data are likely to
 be made available via a public \api\ under the
 \href{\ccByNcSaFourUrl}{Creative Commons
   Attribution-NonCommercial-ShareAlike 4.0} license. Ideally you will
@@ -17,11 +17,10 @@ attribution requirements).
   attribution, and\slash or non-commercial clauses, but if it includes
   the share-alike clause you must also dual-license it to AuroraWatch
   UK under the \href{\ccByNcSaFourUrl}{Creative Commons
-    Attribution-NonCommercial-ShareAlike 4.0} license (or grant
-  AuroraWatch UK permission to share it under that license, which is
-  effectively, the same as dual-licensing). This is because the
-  share-alike clause restricts others from imposing additional
-  restrictions.}
+    Attribution-NonCommercial-ShareAlike 4.0} license. This is because
+  the share-alike clause restricts others from imposing additional
+  restrictions. The alternative is to grant AuroraWatch UK permission
+  to share data derived from your data under the \ccByNcSaFour. }
 
 The magnetic field data collected by AuroraWatch UK magnetometers will
 be made publically available under the
@@ -31,17 +30,87 @@ embargo period (24 to 48 hours). If your magnetometer data is also
 licensed as \ccByNcSaFour\ then AuroraWatch UK will share your data in
 the same way.
 
-\section{Methos to upload data}
+\section{Methods to upload data}
 Two methods to upload data are supported, using
 \href{\rsyncUrl}{rsync} through an \ssh\ tunnel, or by \http. Rsync
-contains an algorithm to efficiently transfer difference in files, and
-thus is ideal for transferring the real-time data files. \ssh\ is used
-to provide a secure connection method. However, \ssh\ access may not
-be possible on some networks (\eg, school networks). 
+contains an algorithm to efficiently transfer only the differences
+btween the local and remote files and thus is ideal for transferring
+the real-time data files. \ssh\ is used to provide a secure connection
+method. However, \ssh\ access may not be possible on some networks
+(\eg, school networks). For cases when rsync cannot be used a \http\
+upload method is available which emulates some of the behaviour of
+rsync; whenever possible only the latest additions to a file are
+uploaded.
 
-For cases when rsync cannot be used a \http\ upload method is
-available. This emulates some of the behaviour of rsync; whenever
-possible only the latest additions to a file are uploaded.
+The upload method is normally defined in \filename{/etc/awnet.ini}
+configuration file, in the \filename{[upload]} section.
 
+\subsection{Rsync uploads}
 
+As user \rootUser\ edit \filename{/etc/awnet.ini}. At the end of the
+file add the \filename{[upload]} section if it is missing, it should
+appear as
+\begin{Code}
+[upload]
+method = rsync
+\end{Code}
 
+As user \piUser\ create the keys for public key authentication:
+\begin{Cmd}
+ssh-keygen -t dsa
+\end{Cmd}
+When prompted for the filename to save the key press \myreturn\ to
+accept the default. When prompted for the passphrase press \myreturn\
+for an empty passphrase. Keep the private key
+(\filename{/home/pi/.ssh/id_dsa}) secret, send the public key
+(\filename{/home/pi/.ssh/id_dsa.pub}) to AuroraWatch UK.
+
+Create the \ssh\ config file to define hostname and user used for data
+transfer. As user \piUser\ edit the file
+\filename{/home/pi/.ssh/config}, it should look similar to
+\begin{Code}
+Host awn-data
+Hostname uploadhost
+User uploaduser
+\end{Code}
+You will need to obtain the upload hostname and username from
+AuroraWatch UK.
+
+Insert an instruction the the \filename{crontab} file to upload the
+data as regular intervals. As user \piUser:
+\begin{Cmd}
+crontab -e
+\end{Cmd}
+Add the following lines:
+\begin{Code}
+### rsync upload
+*/3 * * * * nice /home/pi/bin/upload_data.py > /dev/null 2>&1
+\end{Code}
+
+\subsection{HTTP uploads}
+As user \rootUser\ edit \filename{/etc/awnet.ini}. At the end of the
+file add the \filename{[upload]} section if it is missing, it should
+appear as
+\begin{Code}
+[upload]
+method = http
+url = upload_URL
+realm = upload_realm
+password = upload_password
+\end{Code}
+You will need to obtain the upload \URL, realm and password from
+AuroraWatch UK.
+
+Insert an instruction the the \filename{crontab} file to upload the
+data as regular intervals. As user \piUser:
+\begin{Cmd}
+crontab -e
+\end{Cmd}
+Add the following lines:
+\begin{Code}[fontsize=\small]
+### HTTP upload
+# Upload text data for today at regular intervals
+*/5 * * * * nice /home/pi/bin/upload_data.py -s today --file-types awnettextdata
+# Make several attempts to upload all files from yesterday
+5 */6 * * * nice /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
+\end{Code}
