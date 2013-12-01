@@ -1,0 +1,47 @@
+\chapter{Contributing data to AuroraWatch UK}
+
+\section{Use of data by AuroraWatch UK }
+
+Data contributed to AuroraWatch UK will be combined with other
+magnetometer data for the purpose of generating AuroraWatch UK or
+other auroral-related alerts. In future the alerts data is likely to
+be made available via a public \api\ under the
+\href{\ccByNcSaFourUrl}{Creative Commons
+  Attribution-NonCommercial-ShareAlike 4.0} license. Ideally you will
+also license the magnetometer data under the
+\href{\ccByNcSaFourUrl}{Creative Commons
+  Attribution-NonCommercial-ShareAlike 4.0} license (but with your own
+attribution requirements).
+
+\helpbox{You may choose a more permissive license, such as without the
+  attribution, and\slash or non-commercial clauses, but if it includes
+  the share-alike clause you must also dual-license it to AuroraWatch
+  UK under the \href{\ccByNcSaFourUrl}{Creative Commons
+    Attribution-NonCommercial-ShareAlike 4.0} license (or grant
+  AuroraWatch UK permission to share it under that license, which is
+  effectively, the same as dual-licensing). This is because the
+  share-alike clause restricts others from imposing additional
+  restrictions.}
+
+The magnetic field data collected by AuroraWatch UK magnetometers will
+be made publically available under the
+\href{\ccByNcSaFourUrl}{Creative Commons
+  Attribution-NonCommercial-ShareAlike 4.0} license, with a short
+embargo period (24 to 48 hours). If your magnetometer data is also
+licensed as \ccByNcSaFour\ then AuroraWatch UK will share your data in
+the same way.
+
+\section{Methos to upload data}
+Two methods to upload data are supported, using
+\href{\rsyncUrl}{rsync} through an \ssh\ tunnel, or by \http. Rsync
+contains an algorithm to efficiently transfer difference in files, and
+thus is ideal for transferring the real-time data files. \ssh\ is used
+to provide a secure connection method. However, \ssh\ access may not
+be possible on some networks (\eg, school networks). 
+
+For cases when rsync cannot be used a \http\ upload method is
+available. This emulates some of the behaviour of rsync; whenever
+possible only the latest additions to a file are uploaded.
+
+
+

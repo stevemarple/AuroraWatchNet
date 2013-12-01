@@ -179,8 +179,18 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newcommand{\email}[1]{\href{mailto:#1}{#1}}
 \newcommand{\ccBySaTwoUrl}{http://creativecommons.org/licenses/by-sa/2.0/}
 \newcommand{\ccBySaThreeUrl}{http://creativecommons.org/licenses/by-sa/3.0/}
+
+\newcommand{\ccBySaFourUrl}{http://creativecommons.org/licenses/by-sa/4.0/}
+\newcommand{\ccByNcSaFourUrl}{%
+  http://creativecommons.org/licenses/by-nc-sa/4.0/}
+
 \newcommand{\ccBySaTwo}{\href{\ccBySaTwoUrl}{CC BY-SA 2.0}}
 \newcommand{\ccBySaThree}{\href{\ccBySaThreeUrl}{CC BY-SA 3.0}}
+
+\newcommand{\ccBySaFour}{\href{\ccBySaFourUrl}{CC BY-SA 4.0}}
+\newcommand{\ccByNcSaFour}{\href{\ccByNcSaFourUrl}{CC BY-NC-SA 4.0}}
+
+\newcommand{\rsyncUrl}{http://rsync.samba.org/}
 %% Copyright, licence, URL.
 \newcommand{\photoCredit}[4][]{\\ %
   \ifthenelse{\equal{#2}{}}{}{ \copyright~#2.}%
@@ -356,6 +366,7 @@ Please attribute this work as \documentAttribution
 \include{site-requirements}
 \include{raspberry-pi-setup}
 \include{installation-procedure}
+\include{contributing-data}
 
 \part{Operation}
 \include{raspberry-pi-operation}
