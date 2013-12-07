@@ -22,6 +22,11 @@ public:
   virtual bool reset(void);
   virtual void poll(void);
 
+  virtual void messageStart(void);
+  virtual void messageEnd(void);
+  virtual size_t messageWriteSize(void);
+  virtual void checkForResponse(void);
+
 private:
   RF12_Stream &stream;
 

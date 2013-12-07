@@ -25,12 +25,13 @@
 #define EEPROM_USE_SD 0x39
 #define EEPROM_USE_SD_SIZE 1
 
-// Radio type
-#define EEPROM_RADIO_TYPE 0x3A
-#define EEPROM_RADIO_TYPE_SIZE 1
+// Comms type
+#define EEPROM_COMMS_TYPE 0x3A
+#define EEPROM_COMMS_TYPE_SIZE 1
 
-#define EEPROM_RADIO_TYPE_XRF 0
-#define EEPROM_RADIO_TYPE_RFM12B 1
+#define EEPROM_COMMS_TYPE_XRF 0
+#define EEPROM_COMMS_TYPE_RFM12B 1
+#define EEPROM_COMMS_TYPE_W5100_UDP 2
 
 // Radio band, meaning dependent on radio type
 #define EEPROM_RADIO_XRF_BAND 0x3B

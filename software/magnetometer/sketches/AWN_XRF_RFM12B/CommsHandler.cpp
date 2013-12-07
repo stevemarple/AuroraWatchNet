@@ -97,10 +97,18 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
     if (bytesSent == 0 && verbosity)
       AWPacket::printPacket(messageBuffer, messageLen, console);
     
-    if (commsPtr->write(messageBuffer[bytesSent]))
-      ++bytesSent;
+    if (bytesSent == 0)
+      commsPtr->messageStart();
+    
+    {
+      size_t bytesToSend = commsPtr->messageWriteSize();
+      if (bytesToSend == 0)
+	bytesToSend = messageLen;
+      bytesSent += commsPtr->write(messageBuffer + bytesSent, bytesToSend);
+    }
     
     if (bytesSent == messageLen) {
+      commsPtr->messageEnd();
       responseLen = 0;
       responseTimeout.start(responseTimeout_ms, AsyncDelay::MILLIS);
       responsePacketLen = 65535; // Use maximum value until we know

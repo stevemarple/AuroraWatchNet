@@ -740,16 +740,9 @@ void setup(void)
   console.flush();
 
   // Select radio; use W5100_UDP if radioType not set.
-  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_TYPE);
+  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
 
-  // ****************************************************
-  radioType = EEPROM_RADIO_TYPE_W5100_UDP;
-  //radioType = EEPROM_RADIO_TYPE_XRF;
-  console << "******************************************\n"
-	  << "Forcing radio to be EEPROM_RADIO_TYPE_W5100_UDP\n"
-	  << "******************************************\n";
-  // ****************************************************
-  if (radioType == EEPROM_RADIO_TYPE_W5100_UDP || radioType == 0xFF) {
+  if (radioType == EEPROM_COMMS_TYPE_W5100_UDP || radioType == 0xFF) {
     uint8_t macAddress[6] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
     IPAddress localIP(192,168,1,210);
     IPAddress remoteIP(192,168,1,200);
@@ -762,6 +755,7 @@ void setup(void)
     // TODO: Output IP addresses and ports
     console << "Using Ethernet (W5100 UDP)" << endl;
     commsHandler.setCommsInterface(&w5100udp);
+    useLed = true;
   }
   else {
     commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
@@ -959,8 +953,9 @@ void loop(void)
       ++messageCount;
       // DEBUG: message queued, turn on LED
       if (useLed) {
-	if (messageCount >=
-	    eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED))
+	uint8_t maxMessages
+	  = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
+	if (maxMessages && messageCount >= maxMessages)
 	  useLed = false;
 	digitalWrite(ledPin, useLed);
       }
@@ -1009,8 +1004,9 @@ void loop(void)
       ++messageCount;
       // Message queued, turn on LED
       if (useLed) {
-	if (messageCount >=
-	    eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED))
+	uint8_t maxMessages
+	  = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
+	if (maxMessages && messageCount >= maxMessages)
 	  useLed = false;
 	digitalWrite(ledPin, useLed);
       }

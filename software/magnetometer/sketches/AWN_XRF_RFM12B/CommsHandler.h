@@ -20,15 +20,6 @@ public:
   
   inline CommsHandler(void* stackBuffer, uint16_t stackBufferLen);
 
-  // Returns true when ready to use. 
-  // bool xrfPowerOn(void);
-
-  // Returns true when powered off
-  // bool xrfPowerOff(void);
-
-  // Returns true when reset completed
-  // bool xrfReset(void);
-
   void setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin); 
 
   inline void setKey(uint8_t *k, uint8_t len);
