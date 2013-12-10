@@ -25,6 +25,7 @@
 # regular intervals (10 minutes or less).
 
 import argparse
+import copy
 import hashlib
 import logging
 import os
@@ -123,6 +124,24 @@ def http_upload(file_name, url):
 
     
 
+def get_file_type_data():
+    file_type_data = {}
+    for ft in args.file_types.split():
+        if not config.has_option(ft, 'filename') or \
+                not config.get(ft, 'filename'):
+            # This type not defined in config file
+            break
+        file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
+                              'interval': datetime.timedelta(days=1)}
+        today_file = today.strftime(file_type_data[ft]['fstr'])
+        for i in (datetime.timedelta(minutes=1), 
+                  datetime.timedelta(hours=1)):
+            if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
+                file_type_data[ft]['interval'] = i
+                break
+    return file_type_data
+
+
 parser = argparse.ArgumentParser(description=\
                                      'Upload AuroraWatch magnetometer data.')
 
@@ -215,7 +234,13 @@ if args.all and method != 'rsync':
 
 logging.debug('Upload method: ' + method)
 if method == 'rsync':
-    # Upload by rsync, use SSH tunnelling.
+    # Upload by rsync, use SSH tunnelling. Assume that the SSH config
+    # file to defines an entry for "awn-data". It should look similar
+    # to:
+    #
+    # Host awn-data
+    # Hostname machine.lancs.ac.uk
+    # User monty
 
     if args.start_time is None and args.end_time is None:
         end_time = tomorrow
@@ -248,57 +273,69 @@ if method == 'rsync':
         # contents of the directory.
         src_dir = os.path.join(os.sep, 'data', 'aurorawatchnet', site_lc)
         cmd.append(src_dir + os.sep)
+
+        # Use the SSH config file to define an entry for
+        # "awn-data". It will look similar to:
+        #
+        # Host awn-data
+        # Hostname machine.lancs.ac.uk
+        # User monty
+        cmd.append('awn-data:/data/aurorawatchnet/' + site_lc)
+        logging.info('cmd: ' + ' '.join(cmd))
+        if args.verbose:
+            print(' '.join(cmd))
+            
+        subprocess.call(cmd)
+            
     else:
-        file_list = []
         # Find list of files to upload
-        file_type_data = {}
-        for ft in args.file_types.split():
-            if not config.has_option(ft, 'filename') or \
-                    not config.get(ft, 'filename'):
-                # This type not defined in config file
-                break
-            file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
-                                  'interval': datetime.timedelta(days=1)}
-            today_file = today.strftime(file_type_data[ft]['fstr'])
-            for i in (datetime.timedelta(minutes=1), 
-                      datetime.timedelta(hours=1)):
-                if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
-                    file_type_data[ft]['interval'] = i
-                    break
+        file_type_data = get_file_type_data()
+        # file_type_data = {}
+        # for ft in args.file_types.split():
+        #     if not config.has_option(ft, 'filename') or \
+        #             not config.get(ft, 'filename'):
+        #         # This type not defined in config file
+        #         break
+        #     file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
+        #                           'interval': datetime.timedelta(days=1)}
+        #     today_file = today.strftime(file_type_data[ft]['fstr'])
+        #     for i in (datetime.timedelta(minutes=1), 
+        #               datetime.timedelta(hours=1)):
+        #         if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
+        #             file_type_data[ft]['interval'] = i
+        #             break
 
-        for ft in file_type_data.keys():
-            fstr = file_type_data[ft]['fstr']
-            interval = file_type_data[ft]['interval']
-            t = start_time
-            while t < end_time:
-                logging.debug('time: ' + str(t))
-                file_name = t.strftime(fstr)
-                if os.path.exists(file_name):
-                    logging.debug('Found ' + file_name)
-                    file_list.append(file_name)
-                else:
-                    logging.debug('Missing ' + file_name)
-                t += interval
-        if len(file_list) == 0:
-            logging.info('No files to transfer')
-            exit(0)
-
-        cmd.extend(file_list)
-
-
-    # Use the SSH config file to define an entry for "awn-data". It will
-    # look similar to:
-    #
-    # Host awn-data
-    # Hostname machine.lancs.ac.uk
-    # User monty
-    cmd.append('awn-data:/data/aurorawatchnet/' + site_lc)
-
-    logging.info('cmd: ' + ' '.join(cmd))
-    if args.verbose:
-        print(' '.join(cmd))
-
-    subprocess.call(cmd)
+        # Upload to a daily directory
+        t = start_time
+        while t < end_time:
+            t_next_day = t + datetime.timedelta(days=1)
+            file_list = []
+            # Find matching files, at their intervals
+            for ft in file_type_data.keys():
+                fstr = file_type_data[ft]['fstr']
+                interval = file_type_data[ft]['interval']
+                t2 = t
+                while t2 < t_next_day:
+                    logging.debug('time: ' + str(t2))
+                    file_name = t2.strftime(fstr)
+                    if os.path.exists(file_name):
+                        logging.debug('Found ' + file_name)
+                        file_list.append(file_name)
+                    else:
+                        logging.debug('Missing ' + file_name)
+                    t2 += interval
+            if len(file_list) == 0:
+                logging.info('No files to transfer')
+            else:
+                cmd2 = copy.copy(cmd)
+                cmd2.extend(file_list)
+                cmd2.append('awn-data:/data/aurorawatchnet/' 
+                            + site_lc + t.strftime('/%Y/%m'))
+                logging.info('cmd: ' + ' '.join(cmd2))
+                if args.verbose:
+                    print(' '.join(cmd2))
+                subprocess.call(cmd2)
+            t = t_next_day
 
 elif method in ('http', 'https'):
     # Upload using HTTP POST. Enable a HTTPS method although not
@@ -315,22 +352,8 @@ elif method in ('http', 'https'):
     # Store details for each file type. Compute the interval between
     # consecutive files for each file type, assuming that only minute,
     # hourly or daily variations are allowed.
-    interval = datetime.timedelta(days=1)
-    file_type_data = {}
-    for ft in args.file_types.split():
-        if not config.has_option(ft, 'filename') or \
-                not config.get(ft, 'filename'):
-            # This type not defined in config file
-            break
-        file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
-                              'interval': datetime.timedelta(days=1)}
-        today_file = today.strftime(file_type_data[ft]['fstr'])
-        for i in (datetime.timedelta(minutes=1), 
-                  datetime.timedelta(hours=1)):
-            if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
-                file_type_data[ft]['interval'] = i
-                break
-    
+
+    file_type_data = get_file_type_data()
     username = 'awn-' + site_lc
     password = config.get('upload', 'password')
     realm = config.get('upload', 'realm')
