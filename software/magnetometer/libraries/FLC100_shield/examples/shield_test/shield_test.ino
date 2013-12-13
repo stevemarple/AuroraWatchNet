@@ -21,6 +21,7 @@ uint8_t xrfSleepState = 0;
 uint8_t xrfResetState = 1;
 uint8_t adcPowerState = 1;
 
+uint8_t xrfOnIndicator = 23;
 void setup(void)
 {
   Serial.begin(9600);
@@ -36,7 +37,7 @@ void setup(void)
   pinMode(FLC100_POWER, OUTPUT);
   digitalWrite(FLC100_POWER, adcPowerState);
   
-  pinMode(22, INPUT); // XRF On indicator
+  pinMode(xrfOnIndicator, INPUT); // XRF On indicator
   // Turn on 5V supply so that the ADC can be probed
   adcPowerState = 1;
   digitalWrite(FLC100_POWER, adcPowerState);
@@ -142,7 +143,7 @@ void loop(void)
     Serial.print("XRF reset: ");
     Serial.println(xrfResetState ? '1' : '0');
     Serial.print("XRF is on: ");
-    Serial.println(digitalRead(22) ? '1' : '0');
+    Serial.println(digitalRead(xrfOnIndicator) ? '1' : '0');
 
     Serial.print("Vin: ");
     Serial.print((3.3 * analogRead(BATTERY_ADC)) / 1024);
