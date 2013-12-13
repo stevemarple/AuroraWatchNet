@@ -122,10 +122,14 @@ void loop(void)
       buffer[bufPos++] = c; 
   }
 
-  while (Serial1.available())
-    Serial.print((char)Serial1.read());
+  while (Serial1.available()) {
+    char c = Serial1.read();
+    Serial.print(c);
+    if (c == '\r') 
+      Serial.print('\n');
+  }
   
-  if (millis() - last > 2000) {
+  if (millis() - last > 8000) {
     last = millis();
     Serial.println("--------------");
     Serial.print("ADC power: ");
