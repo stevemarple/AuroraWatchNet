@@ -91,4 +91,27 @@
 #define EEPROM_MCP7941X_CAL 0x4b
 #define EEPROM_MCP7941X_CAL_SIZE 1
 
+// MCU operating voltage, needed for ADC calculations
+#define EEPROM_MCU_VOLTAGE_MV 0x4c
+#define EEPROM_MCU_VOLTAGE_MV_SIZE 2
+
+// Divider network for Vin
+#define EEPROM_VIN_DIVIDER 0x4e
+#define EEPROM_VIN_DIVIDER_SIZE 1
+
+// 0x4f: reserved for possible numerator definition in the Vin divider
+// network
+
+#define EEPROM_LOCAL_IP_ADDRESS 0x50
+#define EEPROM_LOCAL_IP_ADDRESS_SIZE 4
+
+#define EEPROM_REMOTE_IP_ADDRESS 0x54
+#define EEPROM_REMOTE_IP_ADDRESS_SIZE 4
+
+#define EEPROM_LOCAL_IP_PORT 0x58
+#define EEPROM_LOCAL_IP_PORT_SIZE 2
+
+#define EEPROM_REMOTE_IP_PORT 0x5a
+#define EEPROM_REMOTE_IP_PORT_SIZE 2
+
 #endif
