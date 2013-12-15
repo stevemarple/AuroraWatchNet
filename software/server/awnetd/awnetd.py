@@ -38,6 +38,10 @@ def read_config_file(config_file):
     config.set('daemon', 'group', 'nogroup')
     config.set('daemon', 'connection', 'serial')
 
+    config.add_section('controlsocket')
+    # ord('A') = 65, ord('W') = 87 
+    config.set('controlsocket', 'port', '6587')
+
     config.add_section('serial')
     config.set('serial', 'port', '/dev/ttyACM0')
     config.set('serial', 'baudrate', '9600')
@@ -248,6 +252,27 @@ def write_cloud_data(timestamp, data):
         cloud_file.write('\n')
     
     
+def open_control_socket():
+    if config.has_option('controlsocket', 'filename'):
+        if os.path.exists(config.get('controlsocket', 'filename')):
+            os.remove(config.get('controlsocket', 'filename'))
+        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        control_socket.bind(config.get('controlsocket', 'filename'))
+        # control_socket.setblocking(False)
+        control_socket.listen(1)
+    else:
+        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # ord('A') = 65, ord('W') = 87 
+        control_socket.bind(('localhost', 
+                             int(config.get('controlsocket', 'port'))))
+        control_socket.setblocking(False)
+        control_socket.listen(0)
+    return control_socket
+
+
 # Process any CR or LF terminated messages which are in the buffer    
 def handle_control_message(buf, pending_tags):
     r = []
@@ -558,8 +583,8 @@ elif config.get('daemon', 'connection') == 'ethernet':
     device_socket.bind((local_ip, local_port))
     device_socket.setblocking(False)
     # device_socket.listen(3)
-    # TODO: define properly
-    control_socket = None
+    control_socket = open_control_socket()
+
 else:
     if args.read_only:
         device = open(device_filename, 'rb', 0)
@@ -606,23 +631,9 @@ elif device:
             debug_print(3, 'ATDN')
             debug_print(3, readline_with_timeout(device, 1))
             debug_print(2, '... done')
+            
+        control_socket = open_control_socket()
 
-        if config.has_option('controlsocket', 'filename'):
-            if os.path.exists(config.get('controlsocket', 'filename')):
-                os.remove(config.get('controlsocket', 'filename'))
-            control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            control_socket.bind(config.get('controlsocket', 'filename'))
-            # control_socket.setblocking(False)
-            control_socket.listen(1)
-        else:
-            control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-            # ord('A') = 65, ord('W') = 87 
-            control_socket.bind(('localhost', 6587))
-            control_socket.setblocking(False)
-            control_socket.listen(0)
     else:
         # Plain files should be opened read-only
         device.close()
