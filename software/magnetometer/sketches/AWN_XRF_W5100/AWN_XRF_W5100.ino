@@ -36,7 +36,7 @@
 #include "xbootapi.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "xrf_w5100-0.01a";
+  "xrf_w5100-0.02a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -744,16 +744,24 @@ void setup(void)
 
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP || radioType == 0xFF) {
     uint8_t macAddress[6] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-    IPAddress localIP(192,168,1,210);
-    IPAddress remoteIP(192,168,1,200);
-    uint16_t localPort = 6588;
-    uint16_t remotePort = 6588;
+    uint8_t tmp[4];
+    eeprom_read_block(tmp, (void*)EEPROM_LOCAL_IP_ADDRESS,
+		      EEPROM_LOCAL_IP_ADDRESS_SIZE);
+    IPAddress localIP(tmp);
+    eeprom_read_block(tmp, (void*)EEPROM_REMOTE_IP_ADDRESS,
+		      EEPROM_REMOTE_IP_ADDRESS_SIZE);
+    IPAddress remoteIP(tmp);
+    uint16_t localPort
+      = eeprom_read_word((const uint16_t*)EEPROM_LOCAL_IP_PORT);
+    uint16_t remotePort
+      = eeprom_read_word((const uint16_t*)EEPROM_REMOTE_IP_PORT);
+    console << "Using Ethernet (W5100 UDP)\nLocal: "
+	    << localIP << ':' << localPort << "\nRemote: "
+	    << remoteIP << ':' << remotePort << endl;
     w5100udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
 		   10, 4);
     disableJTAG();
     ledPin = 17; // JTAG TDO
-    // TODO: Output IP addresses and ports
-    console << "Using Ethernet (W5100 UDP)" << endl;
     commsHandler.setCommsInterface(&w5100udp);
     useLed = true;
   }
