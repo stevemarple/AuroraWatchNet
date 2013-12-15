@@ -755,11 +755,21 @@ while running:
                     
 
                     for tag_name in pending_tags:
-                        AW_Message.put_data(response, 
-                                            AW_Message.tag_data[tag_name]['id'],
-                                            pending_tags[tag_name])
+                        if tag_name != 'reboot':
+                            AW_Message.put_data(response, 
+                                                AW_Message.tag_data[tag_name] \
+                                                    ['id'],
+                                                pending_tags[tag_name])
                         # del pending_tags[tag]
-                        
+                    
+                            
+                    # Send the reboot command last
+                    if pending_tags.has_key('reboot'):
+                        AW_Message.put_data(response, 
+                                            AW_Message.tag_data['reboot']['id'],
+                                            pending_tags['reboot'])
+                    
+
                     # Add padding to round up to a multiple of block size
                     padding_length = (comms_block_size - 
                                      ((AW_Message.get_packet_length(response) +
