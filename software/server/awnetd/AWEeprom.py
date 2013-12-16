@@ -188,4 +188,48 @@ eeprom = {
         'help': 'MCP7941x calibration value',
         'metavar': 'NUMBER'
         },
+    'mcu_voltage_mv': {
+        'address': 0x4c,
+        'format': '<H',
+        'default': 3300,
+        'help': 'MCU operating voltage (mV)',
+        'metavar': 'NUMBER'
+        },
+    'vin_divider': {
+        'address': 0x4e,
+        'format': 'B',
+        'default': 1,
+        'help': 'Input voltage divider',
+        'metavar': 'NUMBER'
+        },
+    # 0x4f: reserved for possible numerator definition in the Vin
+    # divider network
+    'local_ip_address': {
+        'address': 0x50,
+        'format': '4B',
+        'default': [192, 168, 1, 240],
+        'help': 'Local IP address',
+        'metavar': 'IP_ADDRESS'
+        },
+    'remote_ip_address': {
+        'address': 0x54,
+        'format': '4B',
+        'default': [192, 168, 1, 241],
+        'help': 'Remote IP address',
+        'metavar': 'IP_ADDRESS'
+        },
+    'local_ip_port': {
+        'address': 0x58,
+        'format': '<H',
+        'default': 6588,
+        'help': 'Local IP port',
+        'metavar': 'NUMBER'
+        },
+    'remote_ip_port': {
+        'address': 0x58,
+        'format': '<H',
+        'default': 6588,
+        'help': 'Remote IP port',
+        'metavar': 'NUMBER'
+        },
     }
