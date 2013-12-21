@@ -165,7 +165,8 @@ parser.add_argument('-e', '--end-time',
                     help='End time for data transfer (exclusive)',
                     metavar='DATETIME')
 parser.add_argument('--file-types',
-                    default='awnettextdata awpacket',
+                    # aurorawatchrealtime deprecated for new sites
+                    default='awnettextdata awpacket aurorawatchrealtime',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 
