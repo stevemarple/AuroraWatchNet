@@ -796,10 +796,21 @@ while t1 < end_time:
 
 
 if args.make_links:
+    logging.debug('making links')
     # Makes site links for each site listed
     for network_uc, site_uc in network_site.values():
+        site_lc = site_uc.lower()
         site_summary_dir = os.path.join(summary_dir, test_mode_str, 
-                                        network_uc.lower(), site_uc.lower())
+                                        network_uc.lower(), site_lc)
+
+        mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
+                                site_lc + '_%Y%m%d.png')
+        temp_fstr = os.path.join(site_summary_dir, '%Y', '%m',
+                                 site_lc + '_temp_%Y%m%d.png')
+        voltage_fstr = os.path.join(site_summary_dir, '%Y', '%m',
+                                    site_lc + '_voltage_%Y%m%d.png')
+        k_fstr = os.path.join(site_summary_dir, '%Y', '%m', 
+                              site_lc + '_k_%Y%m%d.png')
         link_data = [{'name': 'yesterday.png', 
                       'date': yesterday,
                       'fstr': mag_fstr}, 
