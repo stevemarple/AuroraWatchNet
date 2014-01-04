@@ -5,7 +5,11 @@
 # use based on the site name, which is extracted from the awnet.ini
 # config file. Authentication is granted based on the presence on an
 # SSH public key on the server, and the corresponding private key on
-# the uploading computer.
+# the uploading computer. For more security the rrsync script provided
+# with rsync can be used. This requires the authorized_keys file to
+# restrict the command which runs for a given SSH public key. It is
+# recommended to modify the rrsync script to disable the -L and
+# --copy-links options.
 #
 # For cases when SSH access is not available provide an option to
 # transfer using HTTP (also HTTPS although the server does not
