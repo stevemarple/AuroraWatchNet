@@ -76,14 +76,14 @@ def mysavefig(fig, filename, exif_tags=None):
         
     # TO DO: Update all site information with correct copyright,
     # license and attribution data. Temporarily set here as currently
-    # all are CC3 BY-NC-SA.
+    # all are CC4 BY-NC-SA.
     if exif_tags is None:
         exif_tags = {
             'Exif.Image.Copyright':  \
                 'This work is licensed under the Creative Commons ' + \
-                'Attribution-NonCommercial-ShareAlike 3.0 Unported ' + \
+                'Attribution-NonCommercial-ShareAlike 4.0 Unported ' + \
                 'License. To view a copy of this license, visit ' + \
-                'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
+                'http://creativecommons.org/licenses/by-nc-sa/4.0/'
             }
         
     
@@ -451,10 +451,10 @@ def clear_timeouts(status_dir):
             touch_file(os.path.join(status_dir, filename), (0, 0))
 
 
-cc3_by_nc_sa = 'This work is licensed under the Creative Commons ' + \
-    'Attribution-NonCommercial-ShareAlike 3.0 Unported License. ' + \
+cc4_by_nc_sa = 'This work is licensed under the Creative Commons ' + \
+    'Attribution-NonCommercial-ShareAlike 4.0 Unported License. ' + \
     'To view a copy of this license, visit ' + \
-    'http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_GB.'
+    'http://creativecommons.org/licenses/by-nc-sa/4.0/'
         
 # ==========================================================================
 
@@ -599,7 +599,7 @@ while t1 < end_time:
     act_rolling = []
 
     # Get copyright and attribution data for all sites. License had
-    # better be CC3-BY-NC-SA for all since we are combining them.
+    # better be CC4-BY-NC-SA for all since we are combining them.
     copyright_list = []
     attribution_list = []
 
@@ -758,7 +758,7 @@ while t1 < end_time:
                            '    ')
             
         exif_tags2 = {'Exif.Image.Copyright': \
-                          ' '.join(site_ca) + '    License: ' + cc3_by_nc_sa}
+                          ' '.join(site_ca) + '    License: ' + cc4_by_nc_sa}
         make_stack_plot(mdl_day, dt64.strftime(mdl_day[0].start_time, 
                                                stackplot_fstr),
                         exif_tags2)

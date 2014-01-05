@@ -5,7 +5,11 @@
 # use based on the site name, which is extracted from the awnet.ini
 # config file. Authentication is granted based on the presence on an
 # SSH public key on the server, and the corresponding private key on
-# the uploading computer.
+# the uploading computer. For more security the rrsync script provided
+# with rsync can be used. This requires the authorized_keys file to
+# restrict the command which runs for a given SSH public key. It is
+# recommended to modify the rrsync script to disable the -L and
+# --copy-links options.
 #
 # For cases when SSH access is not available provide an option to
 # transfer using HTTP (also HTTPS although the server does not
@@ -62,6 +66,16 @@ def parse_datetime(s):
         return yesterday
     else:
         return datetime.datetime.strptime(s, '%Y-%m-%d')
+
+    
+def make_remote_rsync_directory(remote_host, remote_dir):
+    logging.debug('Calling rsync to make remote directory, ' 
+                  + remote_host + ':' + remote_dir)
+    cmd = ['rsync', '/dev/null', remote_host + ':' + remote_dir + '/']
+    if args.verbose:
+        print(' '.join(cmd))
+    subprocess.call(cmd)
+
 
 def head_request(file_name, url):
     request = urllib2.Request(url + file_name)
@@ -155,7 +169,7 @@ parser.add_argument('--log-format',
                     help='Set format of log messages',
                     metavar='FORMAT')
 parser.add_argument('--method',
-                    choices=['rsync', 'http', 'https'],
+                    choices=['rsync', 'rrsync', 'http', 'https'],
                     help='Select upload method')
 
 parser.add_argument('-s', '--start-time', 
@@ -229,20 +243,26 @@ if args.method:
 else:
     method = config.get('upload', 'method')
 
-if args.all and method != 'rsync':
-    logging.error('--all can only be used with --method=rsync')
+if args.all and method not in ['rsync', 'rrsync']:
+    logging.error('--all can only be used with rsync and rrsync methods')
     exit(1)
 
 logging.debug('Upload method: ' + method)
-if method == 'rsync':
+if method in ['rsync', 'rrsync']:
     # Upload by rsync, use SSH tunnelling. Assume that the SSH config
-    # file to defines an entry for "awn-data". It should look similar
+    # file defines an entry for "awn-data". It should look similar
     # to:
     #
     # Host awn-data
     # Hostname machine.lancs.ac.uk
     # User monty
-
+    remote_host = 'awn-data'
+    if method == 'rrsync':
+        # rrsync script in use on remote host. Assume that the target
+        # directory for this site is correctly enforced.
+        remote_site_dir = ''
+    else:
+        remote_site_dir = '/data/aurorawatchnet/' + site_lc
     if args.start_time is None and args.end_time is None:
         end_time = tomorrow
         start_time = end_time - datetime.timedelta(days=3)
@@ -260,8 +280,7 @@ if method == 'rsync':
 
     if args.dry_run:
         cmd.append('--dry-run')
-
-
+        
     if args.all:
         if args.start_time is not None:
             logging.error('--start-time cannot be specified with --all')
@@ -274,14 +293,7 @@ if method == 'rsync':
         # contents of the directory.
         src_dir = os.path.join(os.sep, 'data', 'aurorawatchnet', site_lc)
         cmd.append(src_dir + os.sep)
-
-        # Use the SSH config file to define an entry for
-        # "awn-data". It will look similar to:
-        #
-        # Host awn-data
-        # Hostname machine.lancs.ac.uk
-        # User monty
-        cmd.append('awn-data:/data/aurorawatchnet/' + site_lc)
+        cmd.append(remote_host + ':' + remote_site_dir)
         logging.info('cmd: ' + ' '.join(cmd))
         if args.verbose:
             print(' '.join(cmd))
@@ -291,22 +303,9 @@ if method == 'rsync':
     else:
         # Find list of files to upload
         file_type_data = get_file_type_data()
-        # file_type_data = {}
-        # for ft in args.file_types.split():
-        #     if not config.has_option(ft, 'filename') or \
-        #             not config.get(ft, 'filename'):
-        #         # This type not defined in config file
-        #         break
-        #     file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
-        #                           'interval': datetime.timedelta(days=1)}
-        #     today_file = today.strftime(file_type_data[ft]['fstr'])
-        #     for i in (datetime.timedelta(minutes=1), 
-        #               datetime.timedelta(hours=1)):
-        #         if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
-        #             file_type_data[ft]['interval'] = i
-        #             break
 
         # Upload to a daily directory
+        last_year = None
         t = start_time
         while t < end_time:
             t_next_day = t + datetime.timedelta(days=1)
@@ -328,10 +327,21 @@ if method == 'rsync':
             if len(file_list) == 0:
                 logging.info('No files to transfer')
             else:
+                target_dir = remote_site_dir + t.strftime('/%Y/%m')
+                # Ensure yearly directory is made, unless we have
+                # already made it. The monthly data will get made on demand.
+                if last_year != t.year:
+                    make_remote_rsync_directory(remote_host, 
+                                                os.path.dirname(target_dir))
+                    last_year = t.year
+
                 cmd2 = copy.copy(cmd)
                 cmd2.extend(file_list)
-                cmd2.append('awn-data:/data/aurorawatchnet/' 
-                            + site_lc + t.strftime('/%Y/%m'))
+                # Use trailing slash to signal to the remote rsync
+                # that the target is a directory (it can't work this
+                # out if only one file is to be transferred and the
+                # target directory is missing).
+                cmd2.append(remote_host + ':' + target_dir + '/')
                 logging.info('cmd: ' + ' '.join(cmd2))
                 if args.verbose:
                     print(' '.join(cmd2))
