@@ -3,6 +3,7 @@
 import argparse
 import binascii
 from curses import ascii 
+import logging
 import math
 import os
 import re
@@ -251,7 +252,50 @@ def write_cloud_data(timestamp, data):
                 cloud_file.write(' nan')
         cloud_file.write('\n')
     
-    
+aw_log_file = None   
+def write_log_file(timestamp, message_tags, fstr, is_response_message=False):
+    '''Write important information to a log file.'''
+
+    # Generate the lines to write before attempting to open the file
+    # to avoid creating empty files.
+    lines = []
+
+    tags_to_log = ['time_adjustment', 'reboot_flags', 'reboot', 
+    #tags_to_log = ['reboot_flags', 'reboot', 
+                   'current_firmware', 'read_eeprom', 'eeprom_contents']
+    for tag_name in tags_to_log:
+        if tag_name in message_tags:
+            for tag_payload in message_tags[tag_name]:
+                tag_repr, data_repr, data_len = \
+                    AW_Message.decode_tag_payload(tag_name, tag_payload)
+                # TODO: add decode_tag_data() function to AW_Message
+                # lines.append(tag_name + ' '.join(map(hex, message_tags[tag_name])))
+                # lines.append(tag_name + ' '  + repr(message_tags[tag_name]))
+                lines.append(tag_name + ' ' + data_repr)
+
+    # TODO
+    # if ('upgrade_firmware' in message_tags and first_page):
+    #    lines.append('firmware upgrade')
+
+    if lines:
+        seconds = timestamp[0] + timestamp[1]/32768.0
+        us_str = '%06d' % (int((seconds * 1e6) % 1e6)) # microseconds fraction
+        ts = time.strftime('%Y-%m-%dT%H:%M:%S.' + us_str + '+0000', 
+                       time.gmtime(seconds))
+        if is_response_message:
+            prefix = ts + ' R '
+        else:
+            prefix = ts + ' M '
+        global aw_log_file
+        try:
+            aw_log_file = get_file_for_time(timestamp, aw_log_file, fstr)
+            for s in lines:
+                aw_log_file.write(prefix)
+                aw_log_file.write(s)
+                aw_log_file.write('\n')
+        except Exception as e:
+            logging.exception('Could not write to log file')
+
 def open_control_socket():
     if config.has_option('controlsocket', 'filename'):
         if os.path.exists(config.get('controlsocket', 'filename')):
@@ -545,6 +589,8 @@ parser.add_argument('--no-acknowledge', action='store_false',
                     help="Don't transmit acknowledgement")
 parser.add_argument('--read-only', action='store_true',
                     help='Open device file read-only (implies --no-acknowledge)')
+parser.add_argument('--ignore-digest', action='store_true',
+                    help='Ignore HMAC-MD5 digest')
 parser.add_argument('--device', metavar='FILE', help='Device file')
 parser.add_argument('-v', '--verbose', dest='verbosity', action='count', 
                      default=0, help='Increase verbosity')
@@ -552,6 +598,10 @@ parser.add_argument('-v', '--verbose', dest='verbosity', action='count',
 args = parser.parse_args()
 if args.read_only:
     args.acknowledge = False
+
+# Do not ignore digest when acknowledgements are required
+if args.ignore_digest and args.acknowledge:
+    print('--ignore-digest requires --no-acknowledge or --read-only')
 
 read_config_file(args.config_file)
 if site_ids:
@@ -717,7 +767,9 @@ while running:
 #            else:
 #                print(hex(ord(s)))
     
-            message = AW_Message.validate_packet(buf, hmac_key)
+            message = AW_Message.validate_packet(buf, hmac_key, 
+                                                 args.ignore_digest)
+
             if message is not None:
                 if (device and device.isatty()) or device_socket:
                     message_time = time.time()
@@ -809,7 +861,16 @@ while running:
                                               str(message_tags[tag_name][0]))
                             data[tag_name] = comp[1];
                     write_aurorawatch_realtime_data(timestamp, data)
-                
+
+                # Keep logfile of important events
+                if config.has_option('logfile', 'filename'):
+                    write_log_file(timestamp, message_tags, 
+                                   config.get('logfile', 'filename'))
+                    # if response is not None:
+                    #     write_log_file(timestamp, response, 
+                    #                    config.get('logfile', 'filename'),
+                    #                    is_response_message=True)
+
                 if (config.has_option('cloud', 'filename') and
                     not AW_Message.is_response_message(message)):
                     data = {}
