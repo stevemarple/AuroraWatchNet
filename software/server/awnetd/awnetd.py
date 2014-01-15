@@ -293,6 +293,7 @@ def write_log_file(timestamp, message_tags, fstr, is_response_message=False):
                 aw_log_file.write(prefix)
                 aw_log_file.write(s)
                 aw_log_file.write('\n')
+                aw_log_file.flush()
         except Exception as e:
             logging.exception('Could not write to log file')
 
