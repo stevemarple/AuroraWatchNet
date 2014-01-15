@@ -180,7 +180,8 @@ parser.add_argument('-e', '--end-time',
                     metavar='DATETIME')
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
-                    default='awnettextdata awpacket aurorawatchrealtime',
+                    default='awnettextdata awpacket aurorawatchrealtime ' \
+                        + 'logfile',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 
