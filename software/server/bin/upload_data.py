@@ -144,7 +144,7 @@ def get_file_type_data():
         if not config.has_option(ft, 'filename') or \
                 not config.get(ft, 'filename'):
             # This type not defined in config file
-            break
+            continue
         file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
                               'interval': datetime.timedelta(days=1)}
         today_file = today.strftime(file_type_data[ft]['fstr'])
