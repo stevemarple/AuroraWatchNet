@@ -6,6 +6,7 @@ from curses import ascii
 import logging
 import math
 import os
+import re
 import select
 import socket
 import struct
@@ -36,14 +37,23 @@ def read_config_file(config_file):
     config.set('daemon', 'pidfile', '/tmp/test.pid')
     config.set('daemon', 'user', 'nobody')
     config.set('daemon', 'group', 'nogroup')
-    
+    config.set('daemon', 'connection', 'serial')
+
+    config.add_section('controlsocket')
+    # ord('A') = 65, ord('W') = 87 
+    config.set('controlsocket', 'port', '6587')
+
     config.add_section('serial')
     config.set('serial', 'port', '/dev/ttyACM0')
-    # config.set('serial', 'port', '/tmp/data')
     config.set('serial', 'baudrate', '9600')
     config.set('serial', 'blocksize', '12')
     config.set('serial', 'setup', '')
     
+    # For ethernet
+    config.add_section('ethernet')
+    config.set('ethernet', 'local_port', '6588')
+    config.set('ethernet', 'local_ip', '')
+
 #    config.add_section('magnetometer')
 #    config.set('magnetometer', 'datatransferdelay', '2')
 
@@ -245,7 +255,7 @@ def write_cloud_data(timestamp, data):
 aw_log_file = None   
 def write_log_file(timestamp, message_tags, fstr, is_response_message=False):
     '''Write important information to a log file.'''
-    
+
     # Generate the lines to write before attempting to open the file
     # to avoid creating empty files.
     lines = []
@@ -283,8 +293,29 @@ def write_log_file(timestamp, message_tags, fstr, is_response_message=False):
                 aw_log_file.write(prefix)
                 aw_log_file.write(s)
                 aw_log_file.write('\n')
+                aw_log_file.flush()
         except Exception as e:
             logging.exception('Could not write to log file')
+
+def open_control_socket():
+    if config.has_option('controlsocket', 'filename'):
+        if os.path.exists(config.get('controlsocket', 'filename')):
+            os.remove(config.get('controlsocket', 'filename'))
+        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        control_socket.bind(config.get('controlsocket', 'filename'))
+        # control_socket.setblocking(False)
+        control_socket.listen(1)
+    else:
+        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # ord('A') = 65, ord('W') = 87 
+        control_socket.bind(('localhost', 
+                             int(config.get('controlsocket', 'port'))))
+        control_socket.setblocking(False)
+        control_socket.listen(0)
+    return control_socket
 
 
 # Process any CR or LF terminated messages which are in the buffer    
@@ -589,72 +620,78 @@ else:
 
 if device_filename == '-':
     device = os.sys.stdin
+    device_socket = None
+    args.acknowledge = False # Cannot send acknowledgements
+
+elif config.get('daemon', 'connection') == 'ethernet':
+    # Connect via ethnernet
+    device = None
+    local_port = int(config.get('ethernet', 'local_port'))
+    local_ip = config.get('ethernet', 'local_ip')
+    device_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+    # device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#    device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    device_socket.bind((local_ip, local_port))
+    device_socket.setblocking(False)
+    # device_socket.listen(3)
+    control_socket = open_control_socket()
+
 else:
     if args.read_only:
         device = open(device_filename, 'rb', 0)
     else:
         device = open(device_filename, 'a+b', 0)
+    device_socket = None
 
 if device_filename == '-':
     control_socket = None
     
-elif device.isatty():
-    if args.verbosity:
-        print('Reading from ' + device_filename)
-    tty.setraw(device, termios.TCIOFLUSH)
-    term_attr = termios.tcgetattr(device)
-    term_attr[4] = term_attr[5] = get_termios_baud_rate(config.get('serial', 
-                                                          'baudrate'))
-    termios.tcsetattr(device, termios.TCSANOW, term_attr)
+elif device:
+    if device.isatty():
+        if args.verbosity:
+            print('Reading from ' + device_filename)
+        tty.setraw(device, termios.TCIOFLUSH)
+        term_attr = termios.tcgetattr(device)
+        term_attr[4] = term_attr[5] = get_termios_baud_rate(config.get('serial', 
+                                                              'baudrate'))
+        termios.tcsetattr(device, termios.TCSANOW, term_attr)
 
-    # Discard any characters already present in the device
-    termios.tcflush(device, termios.TCIOFLUSH)
+        # Discard any characters already present in the device
+        termios.tcflush(device, termios.TCIOFLUSH)
 
 
-    device_setup_cmds = config.get('serial', 'setup').split(';')
-    if len(device_setup_cmds):
-        debug_print(2, 'Setup device... ')
-        device.flush()
-        time.sleep(1)
-        device.write('+++')
-        device.flush()
-        time.sleep(1.2)
-        termios.tcflush(device, termios.TCIFLUSH)
-        
-        # print(readline_with_timeout(device, 1))
-        for cmd in device_setup_cmds:
-            device.write(cmd)
-            device.write('\r')
-            debug_print(3, cmd)
+        device_setup_cmds = config.get('serial', 'setup').split(';')
+        if len(device_setup_cmds):
+            debug_print(2, 'Setup device... ')
+            device.flush()
+            time.sleep(1)
+            device.write('+++')
+            device.flush()
+            time.sleep(1.2)
+            termios.tcflush(device, termios.TCIFLUSH)
+
+            # print(readline_with_timeout(device, 1))
+            for cmd in device_setup_cmds:
+                device.write(cmd)
+                device.write('\r')
+                debug_print(3, cmd)
+                debug_print(3, readline_with_timeout(device, 1))
+
+            device.write('ATDN\r')
+            device.flush()
+            debug_print(3, 'ATDN')
             debug_print(3, readline_with_timeout(device, 1))
-        
-        device.write('ATDN\r')
-        device.flush()
-        debug_print(3, 'ATDN')
-        debug_print(3, readline_with_timeout(device, 1))
-        debug_print(2, '... done')
+            debug_print(2, '... done')
+            
+        control_socket = open_control_socket()
 
-    if config.has_option('controlsocket', 'filename'):
-        if os.path.exists(config.get('controlsocket', 'filename')):
-            os.remove(config.get('controlsocket', 'filename'))
-        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        control_socket.bind(config.get('controlsocket', 'filename'))
-        # control_socket.setblocking(False)
-        control_socket.listen(1)
     else:
-        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
-        # ord('A'_ = 65, ord('W') = 87 
-        control_socket.bind(('localhost', 6587))
-        control_socket.setblocking(False)
-        control_socket.listen(0)
-else:
-    # Plain files should be opened read-only
-    device.close()
-    device = open(device_filename, 'r', 0)
-    control_socket = None
+        # Plain files should be opened read-only
+        device.close()
+        device = open(device_filename, 'r', 0)
+        control_socket = None
+        args.acknowledge = False
+
         
 control_socket_conn = None
 control_buffer = None
@@ -662,8 +699,12 @@ control_buffer = None
 # Pending tags are persistent and are removed when acknowledged
 pending_tags = {}
 
-# select_list = [device, control_socket]
-select_list = [device]
+select_list = []
+if device is not None:
+    select_list.append(device)
+if device_socket is not None:
+    select_list.append(device_socket)
+
 if control_socket is not None:
     select_list.append(control_socket)
     
@@ -699,23 +740,39 @@ while running:
     for fd in inputready:
         # print('FD: ' + str(fd)) 
 
-        if fd == device:
-            s = fd.read(1)
+        if fd in [device, device_socket]:
+            if fd == device:
+                # Serial/file device, read and process one byte at a time
+                s = device.read(1)
+            else:
+                # Network device. Read all data from the packet. Don't
+                # carry over data from old packets because
+                # validate_packet() only gets called once and old data
+                # is not currently removed fast enough. Ensure that
+                # the start of the packet is put into the start of the
+                # buffer so that validate_packet() immediately sees
+                # the new data.
+                buf = bytearray()
+                s, remote_addr = device_socket.recvfrom(1024)
+                print(repr(remote_addr))
             if len(s) == 0:
                 # end of file
                 running = False
                 break
-    
+            elif len(s) == 1:
+                buf.append(s)
+            else:
+                buf.extend(s)
 #            if ascii.isprint(s):
 #                print(s)   
 #            else:
 #                print(hex(ord(s)))
     
-            buf.append(s)
             message = AW_Message.validate_packet(buf, hmac_key, 
                                                  args.ignore_digest)
+
             if message is not None:
-                if device.isatty():
+                if (device and device.isatty()) or device_socket:
                     message_time = time.time()
                 else:
                     message_time = None
@@ -729,7 +786,8 @@ while running:
                 message_tags = AW_Message.parse_packet(message)
                 AW_Message.tidy_pending_tags(pending_tags, message_tags)
                 
-                if fd.isatty() and args.acknowledge:
+                # if fd.isatty() and args.acknowledge:
+                if args.acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
                     AW_Message.put_header(response,
@@ -750,11 +808,21 @@ while running:
                     
 
                     for tag_name in pending_tags:
-                        AW_Message.put_data(response, 
-                                            AW_Message.tag_data[tag_name]['id'],
-                                            pending_tags[tag_name])
+                        if tag_name != 'reboot':
+                            AW_Message.put_data(response, 
+                                                AW_Message.tag_data[tag_name] \
+                                                    ['id'],
+                                                pending_tags[tag_name])
                         # del pending_tags[tag]
-                        
+                    
+                            
+                    # Send the reboot command last
+                    if pending_tags.has_key('reboot'):
+                        AW_Message.put_data(response, 
+                                            AW_Message.tag_data['reboot']['id'],
+                                            pending_tags['reboot'])
+                    
+
                     # Add padding to round up to a multiple of block size
                     padding_length = (comms_block_size - 
                                      ((AW_Message.get_packet_length(response) +
@@ -767,7 +835,10 @@ while running:
                     
                     # Trim spare bytes from end of buffer
                     del response[AW_Message.get_packet_length(response):]
-                    fd.write(response)
+                    if fd == device:
+                        device.write(response)
+                    else:
+                        count = device_socket.sendto(response, remote_addr)
 
                     if args.verbosity:   
                         # print('Response: ------')
