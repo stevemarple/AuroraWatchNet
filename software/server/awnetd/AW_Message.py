@@ -70,7 +70,7 @@ def format_tag_blank(tag_name, data_len, payload):
     return ''
 
 def format_null_terminated_string(tag_name, data_len, payload):
-    return "'" + payload.split('\0')[0] + "'"
+    return "'" + str(payload.split('\0')[0]) + "'"
 
 def format_unix_epoch_32678(tag_name, data_len, payload):
     '''
