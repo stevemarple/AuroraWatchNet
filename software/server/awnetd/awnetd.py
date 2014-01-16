@@ -73,7 +73,7 @@ def read_config_file(config_file):
         site_ids = []
 
 
-def get_file_for_time(t, file_obj, fstr, buffering=-1):
+def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
     '''
     t: seconds since unix epoch
     '''
@@ -89,7 +89,7 @@ def get_file_for_time(t, file_obj, fstr, buffering=-1):
         if not os.path.isdir(p):
             os.makedirs(p)
 
-        file_obj = open(tmp_name, 'a+', buffering)
+        file_obj = open(tmp_name, mode, buffering)
     
     return file_obj
 
@@ -271,6 +271,7 @@ def write_to_log_file(t, s):
         return
 
     try:
+        # Open as binary, flush ourselves when finished here.
         aw_log_file = get_file_for_time(t, aw_log_file, 
                                         config.get('logfile', 'filename'))
         aw_log_file.write(s)
@@ -659,7 +660,7 @@ elif config.get('daemon', 'connection') == 'ethernet':
     control_socket = open_control_socket()
 
     write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
-                          + ' D Daemon started')
+                          + ' D Daemon started\n')
 
 else:
     if args.read_only:
@@ -668,7 +669,7 @@ else:
         device = open(device_filename, 'a+b', 0)
         write_to_log_file(daemon_start_time, 
                           iso_timestamp(daemon_start_time) \
-                              + ' D Daemon started')
+                              + ' D Daemon started\n')
 
     device_socket = None
 
