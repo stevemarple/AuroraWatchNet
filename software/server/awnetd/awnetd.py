@@ -274,6 +274,7 @@ def write_to_log_file(t, s):
         aw_log_file = get_file_for_time(t, aw_log_file, 
                                         config.get('logfile', 'filename'))
         aw_log_file.write(s)
+        aw_log_file.flush(s)
     except Exception as e:
         logging.exception('Could not write to log file')
 
