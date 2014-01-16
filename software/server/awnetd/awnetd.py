@@ -73,9 +73,11 @@ def read_config_file(config_file):
         site_ids = []
 
 
-def get_file_for_time(timestamp, file_obj, fstr, buffering=-1):
-    seconds = timestamp[0] + timestamp[1]/32768.0
-    tmp_name = time.strftime(fstr, time.gmtime(seconds))
+def get_file_for_time(t, file_obj, fstr, buffering=-1):
+    '''
+    t: seconds since unix epoch
+    '''
+    tmp_name = time.strftime(fstr, time.gmtime(t))
     if file_obj is not None and tmp_name != file_obj.name:
         # Filename has changed
         file_obj.close()
@@ -92,10 +94,10 @@ def get_file_for_time(timestamp, file_obj, fstr, buffering=-1):
     return file_obj
 
 aw_message_file = None
-def write_message_to_file(timestamp, message, fstr):
+def write_message_to_file(t, message, fstr):
     global aw_message_file        
     try:
-        aw_message_file = get_file_for_time(timestamp, aw_message_file, fstr)
+        aw_message_file = get_file_for_time(t, aw_message_file, fstr)
         aw_message_file.write(message);
         aw_message_file.flush()
     except Exception as e:
@@ -251,51 +253,69 @@ def write_cloud_data(timestamp, data):
             else:
                 cloud_file.write(' nan')
         cloud_file.write('\n')
+
     
+def iso_timestamp(t):
+    '''
+    Create an ISO timestamp with microseconds. Uses UTC.
+    '''
+    us_str = '.%06d' % (int((t * 1e6) % 1e6)) # microseconds fraction
+    return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
+
+
 aw_log_file = None   
-def write_log_file(timestamp, message_tags, fstr, is_response_message=False):
-    '''Write important information to a log file.'''
+def write_to_log_file(t, s):
+    global config
+    global aw_log_file
+    if not config.has_option ('logfile', 'filename'):
+        return
+
+    try:
+        aw_log_file = get_file_for_time(t, aw_log_file, 
+                                        config.get('logfile', 'filename'))
+        aw_log_file.write(s)
+    except Exception as e:
+        logging.exception('Could not write to log file')
+
+
+def log_message_events(t, message_tags, is_response=False):
+    '''Write important events in a message or its response to a log file.'''
+
+    global config
+    global aw_log_file
+    if not config.has_option('logfile', 'filename'):
+        return
+
 
     # Generate the lines to write before attempting to open the file
     # to avoid creating empty files.
     lines = []
+    ts = iso_timestamp(t)
+    if is_response:
+        prefix = ts + ' R '
+    else:
+        prefix = ts + ' M '
 
     tags_to_log = ['time_adjustment', 'reboot_flags', 'reboot', 
-    #tags_to_log = ['reboot_flags', 'reboot', 
                    'current_firmware', 'read_eeprom', 'eeprom_contents']
     for tag_name in tags_to_log:
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
                 tag_repr, data_repr, data_len = \
                     AW_Message.decode_tag_payload(tag_name, tag_payload)
-                # TODO: add decode_tag_data() function to AW_Message
-                # lines.append(tag_name + ' '.join(map(hex, message_tags[tag_name])))
-                # lines.append(tag_name + ' '  + repr(message_tags[tag_name]))
-                lines.append(tag_name + ' ' + data_repr)
+                if data_len:
+                    lines.append(prefix + tag_name + ' ' + data_repr + '\n')
+                else:
+                    lines.append(prefix + tag_name + '\n')
 
     # TODO
     # if ('upgrade_firmware' in message_tags and first_page):
     #    lines.append('firmware upgrade')
 
     if lines:
-        seconds = timestamp[0] + timestamp[1]/32768.0
-        us_str = '%06d' % (int((seconds * 1e6) % 1e6)) # microseconds fraction
-        ts = time.strftime('%Y-%m-%dT%H:%M:%S.' + us_str + '+0000', 
-                       time.gmtime(seconds))
-        if is_response_message:
-            prefix = ts + ' R '
-        else:
-            prefix = ts + ' M '
-        global aw_log_file
-        try:
-            aw_log_file = get_file_for_time(timestamp, aw_log_file, fstr)
-            for s in lines:
-                aw_log_file.write(prefix)
-                aw_log_file.write(s)
-                aw_log_file.write('\n')
-                aw_log_file.flush()
-        except Exception as e:
-            logging.exception('Could not write to log file')
+        print(repr(lines))
+        write_to_log_file(t, ''.join(lines))
+
 
 def open_control_socket():
     if config.has_option('controlsocket', 'filename'):
@@ -575,6 +595,7 @@ def describe_pending_tags():
 
 # ==========================================================================
 
+daemon_start_time = time.time()
 # Parse command line arguments
 parser = \
     argparse.ArgumentParser(description='AuroraWatch data recording daemon')
@@ -636,11 +657,18 @@ elif config.get('daemon', 'connection') == 'ethernet':
     # device_socket.listen(3)
     control_socket = open_control_socket()
 
+    write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
+                          + ' D Daemon started')
+
 else:
     if args.read_only:
         device = open(device_filename, 'rb', 0)
     else:
         device = open(device_filename, 'a+b', 0)
+        write_to_log_file(daemon_start_time, 
+                          iso_timestamp(daemon_start_time) \
+                              + ' D Daemon started')
+
     device_socket = None
 
 if device_filename == '-':
@@ -783,6 +811,7 @@ while running:
                     AW_Message.print_packet(message, message_time=message_time)
                 
                 timestamp = AW_Message.get_timestamp(message)
+                timestamp_s = timestamp[0] + timestamp[1]/32768.0
                 message_tags = AW_Message.parse_packet(message)
                 AW_Message.tidy_pending_tags(pending_tags, message_tags)
                 
@@ -846,10 +875,10 @@ while running:
                     
                 if config.has_option('awpacket', 'filename'):
                     # Save the message and response
-                    write_message_to_file(timestamp, message, 
+                    write_message_to_file(timestamp_s, message, 
                                         config.get('awpacket', 'filename'))
                     if response is not None:
-                        write_message_to_file(timestamp, response, 
+                        write_message_to_file(timestamp_s, response, 
                                             config.get('awpacket', 'filename'))
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
@@ -865,12 +894,11 @@ while running:
 
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
-                    write_log_file(timestamp, message_tags, 
-                                   config.get('logfile', 'filename'))
-                    # if response is not None:
-                    #     write_log_file(timestamp, response, 
-                    #                    config.get('logfile', 'filename'),
-                    #                    is_response_message=True)
+                    log_message_events(timestamp_s, message_tags, 
+                                           is_response=AW_Message.is_response_message(message))
+                    if response is not None:
+                        log_message_events(timestamp_s, response, 
+                                               is_response=True)
 
                 if (config.has_option('cloud', 'filename') and
                     not AW_Message.is_response_message(message)):
