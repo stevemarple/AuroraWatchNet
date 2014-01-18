@@ -27,6 +27,11 @@ else:
     from ConfigParser import SafeConfigParser
 
 
+# rt_transfer is list of hosts to transfer data to in real
+# time. Messages, and daemon responses, are sent as UDP packets to
+# each host on the list. List itema are dicts containing 'hostname',
+# 'ip', 'port' and 'key'. Each messages is signed with the host's key.
+rt_transfer = []
 
 def read_config_file(config_file):
     global config
@@ -72,6 +77,26 @@ def read_config_file(config_file):
     else:
         site_ids = []
 
+    # Read realtime transfer details
+    global rt_transfer
+    section = 'realtime_transfer'
+    rt_transfer = []
+    if config.has_section(section):
+        for i in config.items(section):
+            mo = re.match('^remote_host(.*)$', i[0])
+            if mo:
+                suffix = mo.group(1)
+                hmac_key = config.get(section,
+                                      'remote_key' + suffix).decode('hex')
+                # Hostnames may resolve to multiple IP addresses, add all
+                for ip in socket.gethostbyname_ex(i[1])[2]:
+                    rt_transfer.append({\
+                            'hostname': i[1],
+                            'ip': ip,
+                            'port': int(config.get(section, 
+                                                   'remote_port' + suffix)),
+                            'key': hmac_key})
+                    
 
 def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
     '''
@@ -317,6 +342,19 @@ def log_message_events(t, message_tags, is_response=False):
     if lines:
         print(repr(lines))
         write_to_log_file(t, ''.join(lines))
+
+
+def send_rt_message(host_info, message, response):
+    AW_Message.put_signature(message, host_info['key'], 
+                             AW_Message.get_retries(message),
+                             AW_Message.get_sequence_id(message))
+    rt_socket.sendto(message, (host_info['ip'], host_info['port']))
+
+    if response is not None:
+        AW_Message.put_signature(response, host_info['key'], 
+                                 AW_Message.get_retries(response),
+                                 AW_Message.get_sequence_id(response))
+        rt_socket.sendto(response, (host_info['ip'], host_info['port']))
 
 
 def open_control_socket():
@@ -738,6 +776,12 @@ if device_socket is not None:
 if control_socket is not None:
     select_list.append(control_socket)
     
+
+if config.has_section('realtime_transfer'):
+    rt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+else:
+    rt_socket = None
+
 if not config.has_option('magnetometer', 'key'):
     print('Config file missing key from magnetometer section')
     exit(1)
@@ -800,6 +844,7 @@ while running:
     
             message = AW_Message.validate_packet(buf, hmac_key, 
                                                  args.ignore_digest)
+            reponse = None
 
             if message is not None:
                 if (device and device.isatty()) or device_socket:
@@ -917,6 +962,11 @@ while running:
                     
                 if (not AW_Message.is_response_message(message)):
                     write_aurorawatchnet_text_data(timestamp, message_tags)
+
+                # Realtime transfer must be last since it alters the
+                # message and response signature.
+                for rt in rt_transfer:
+                    send_rt_message(rt, message, response)
                         
             else:
                 response = None
