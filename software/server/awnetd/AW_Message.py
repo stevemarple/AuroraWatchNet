@@ -60,14 +60,26 @@ firmware_version_max_length = 16
 firmware_block_size = 128
 
 
-def format_tag_array_of_longs(tag_name, dataLen, payload):
-    return repr(list(struct.unpack('!' + str(dataLen/4) + 'l', str(payload))))
+def format_tag_array_of_longs(tag_name, data_len, payload):
+    return repr(list(struct.unpack('!' + str(data_len/4) + 'l', str(payload))))
     
-def format_padding(tag_name, dataLen, payload):
-    return str([0] * dataLen)
+def format_padding(tag_name, data_len, payload):
+    return str([0] * data_len)
 
-def format_tag_blank(tag_name, dataLen, payload):
+def format_tag_blank(tag_name, data_len, payload):
     return ''
+
+def format_null_terminated_string(tag_name, data_len, payload):
+    return "'" + str(payload.split('\0')[0]) + "'"
+
+def format_unix_epoch_32678(tag_name, data_len, payload):
+    '''
+    Format a timestamp based on seconds since Unix epoch plus
+    32768th second.
+    '''
+    t = struct.unpack('!ih', str(payload))
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    return str(t[0]) + ',' + str(t[1]) + ' (' + dt.isoformat() + ')'
 
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
@@ -123,7 +135,7 @@ tag_data = {
     'time_adjustment': {
         'id': 6,
         'length': 7,
-        # 'format': 'LH',
+        'format': '!ih',
         },
     'reboot_flags': {
         'id': 7,
@@ -148,7 +160,9 @@ tag_data = {
     'current_epoch_time': {
         'id': 11,
         'length': 7,
-        'format': '!LH',
+        #'format': '!LH',
+        'format': '!ih',
+        'formatter' : format_unix_epoch_32678,
         },
     'reboot': {
         'id': 12,
@@ -159,6 +173,7 @@ tag_data = {
         'id': 13,
         'length': (size_of_tag + firmware_version_max_length),
         'format': ('!' + str(firmware_version_max_length) + 'c'),
+        'formatter': format_null_terminated_string,
         },
     'upgrade_firmware': {
         'id': 14,
@@ -568,6 +583,28 @@ def print_tags(buf):
         print(tag_name + ' (#' + str(tag_id) + '):  ' + data_repr)
         i += data_len
         
+
+def decode_tag_payload(tag_name, tag_payload):
+    if tag_data[tag_name]['length'] == 0:
+        data_len = (tag_payload[0] << 8) + tag_payload[1]
+        i = 2
+    else:
+        data_len = tag_data[tag_name]['length'] - 1
+        i = 0
+
+    if tag_data[tag_name].has_key('formatter'):
+        data_repr = tag_data[tag_name]['formatter'](tag_name, data_len, 
+                                                    tag_payload[i:(i+data_len)])
+    elif tag_data[tag_name].has_key('format'):
+        data_repr = repr(list(struct.unpack(tag_data[tag_name]['format'],
+                                            str(tag_payload[i:(i+data_len)]))))
+    else:
+        data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload[i:(i+data_len)]))
+    
+    return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
+        data_repr, data_len
+
+
 def print_signature(buf):
     if is_signed_message(buf):
         print('Sequence ID: ' + str(get_sequence_id(buf)))
@@ -608,7 +645,7 @@ def print_packet(buf, message_time=None):
     except Exception as e:
         print('Error in header: ' + str(e))
     
-def validate_packet(buf, hmac_key):
+def validate_packet(buf, hmac_key, ignore_digest=False):
     global default_magic
     complete_message = False
 
@@ -643,33 +680,35 @@ def validate_packet(buf, hmac_key):
             
         if valid and len(buf) >= packet_length:
             complete_message = True
-            # Compute HMAC-MD5
-            hmac_md5 = hmac.new(hmac_key)# , digestmod=hashlib.md5)
-            hmac_md5.update(buf[0:(packet_length - hmac_length)])
-            
-            
-            # Take least significant bytes
-            hmac_bytes = hmac_md5.digest()
-            hmac_bytes = hmac_bytes[(len(hmac_bytes)-hmac_length):]
-            
-            # Compare. To prevent timing attacks don't stop the 
-            # comparison early and aim to have all outcomes take the
-            # same time.
-            received_hmac_bytes = buf[(packet_length - hmac_length):]
 
-            for i in range(hmac_length):
-                valid = (ord(hmac_bytes[i]) == received_hmac_bytes[i]) and valid
-            if not valid:
-                print('#########################')
-                print('Packet failed HMAC-MD5, computed as ' +
-                      ' '.join(map(byte_hex, map(ord, hmac_bytes))))
+            if not ignore_digest:
+                # Compute HMAC-MD5
+                hmac_md5 = hmac.new(hmac_key)# , digestmod=hashlib.md5)
+                hmac_md5.update(buf[0:(packet_length - hmac_length)])
 
-                # Be paranoid when printing invalid packets!
-                try:
-                    print_packet(buf)
-                except:
-                    None
-                print('#########################')
+
+                # Take least significant bytes
+                hmac_bytes = hmac_md5.digest()
+                hmac_bytes = hmac_bytes[(len(hmac_bytes)-hmac_length):]
+
+                # Compare. To prevent timing attacks don't stop the 
+                # comparison early and aim to have all outcomes take the
+                # same time.
+                received_hmac_bytes = buf[(packet_length - hmac_length):]
+
+                for i in range(hmac_length):
+                    valid = (ord(hmac_bytes[i]) == received_hmac_bytes[i]) and valid
+                if not valid:
+                    print('#########################')
+                    print('Packet failed HMAC-MD5, computed as ' +
+                          ' '.join(map(byte_hex, map(ord, hmac_bytes))))
+
+                    # Be paranoid when printing invalid packets!
+                    try:
+                        print_packet(buf)
+                    except:
+                        None
+                    print('#########################')
             
         # All tests done
         if valid:

@@ -3,8 +3,10 @@
 import argparse
 import binascii
 from curses import ascii 
+import logging
 import math
 import os
+import re
 import select
 import socket
 import struct
@@ -25,6 +27,11 @@ else:
     from ConfigParser import SafeConfigParser
 
 
+# rt_transfer is list of hosts to transfer data to in real
+# time. Messages, and daemon responses, are sent as UDP packets to
+# each host on the list. List itema are dicts containing 'hostname',
+# 'ip', 'port' and 'key'. Each messages is signed with the host's key.
+rt_transfer = []
 
 def read_config_file(config_file):
     global config
@@ -35,14 +42,23 @@ def read_config_file(config_file):
     config.set('daemon', 'pidfile', '/tmp/test.pid')
     config.set('daemon', 'user', 'nobody')
     config.set('daemon', 'group', 'nogroup')
-    
+    config.set('daemon', 'connection', 'serial')
+
+    config.add_section('controlsocket')
+    # ord('A') = 65, ord('W') = 87 
+    config.set('controlsocket', 'port', '6587')
+
     config.add_section('serial')
     config.set('serial', 'port', '/dev/ttyACM0')
-    # config.set('serial', 'port', '/tmp/data')
     config.set('serial', 'baudrate', '9600')
     config.set('serial', 'blocksize', '12')
     config.set('serial', 'setup', '')
     
+    # For ethernet
+    config.add_section('ethernet')
+    config.set('ethernet', 'local_port', '6588')
+    config.set('ethernet', 'local_ip', '')
+
 #    config.add_section('magnetometer')
 #    config.set('magnetometer', 'datatransferdelay', '2')
 
@@ -61,10 +77,32 @@ def read_config_file(config_file):
     else:
         site_ids = []
 
+    # Read realtime transfer details
+    global rt_transfer
+    section = 'realtime_transfer'
+    rt_transfer = []
+    if config.has_section(section):
+        for i in config.items(section):
+            mo = re.match('^remote_host(.*)$', i[0])
+            if mo:
+                suffix = mo.group(1)
+                hmac_key = config.get(section,
+                                      'remote_key' + suffix).decode('hex')
+                # Hostnames may resolve to multiple IP addresses, add all
+                for ip in socket.gethostbyname_ex(i[1])[2]:
+                    rt_transfer.append({\
+                            'hostname': i[1],
+                            'ip': ip,
+                            'port': int(config.get(section, 
+                                                   'remote_port' + suffix)),
+                            'key': hmac_key})
+                    
 
-def get_file_for_time(timestamp, file_obj, fstr, buffering=-1):
-    seconds = timestamp[0] + timestamp[1]/32768.0
-    tmp_name = time.strftime(fstr, time.gmtime(seconds))
+def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
+    '''
+    t: seconds since unix epoch
+    '''
+    tmp_name = time.strftime(fstr, time.gmtime(t))
     if file_obj is not None and tmp_name != file_obj.name:
         # Filename has changed
         file_obj.close()
@@ -76,15 +114,15 @@ def get_file_for_time(timestamp, file_obj, fstr, buffering=-1):
         if not os.path.isdir(p):
             os.makedirs(p)
 
-        file_obj = open(tmp_name, 'a+', buffering)
+        file_obj = open(tmp_name, mode, buffering)
     
     return file_obj
 
 aw_message_file = None
-def write_message_to_file(timestamp, message, fstr):
+def write_message_to_file(t, message, fstr):
     global aw_message_file        
     try:
-        aw_message_file = get_file_for_time(timestamp, aw_message_file, fstr)
+        aw_message_file = get_file_for_time(t, aw_message_file, fstr)
         aw_message_file.write(message);
         aw_message_file.flush()
     except Exception as e:
@@ -240,8 +278,106 @@ def write_cloud_data(timestamp, data):
             else:
                 cloud_file.write(' nan')
         cloud_file.write('\n')
+
     
-    
+def iso_timestamp(t):
+    '''
+    Create an ISO timestamp with microseconds. Uses UTC.
+    '''
+    us_str = '.%06d' % (int((t * 1e6) % 1e6)) # microseconds fraction
+    return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
+
+
+aw_log_file = None   
+def write_to_log_file(t, s):
+    global config
+    global aw_log_file
+    if not config.has_option ('logfile', 'filename'):
+        return
+
+    try:
+        # Open as binary, flush ourselves when finished here.
+        aw_log_file = get_file_for_time(t, aw_log_file, 
+                                        config.get('logfile', 'filename'))
+        aw_log_file.write(s)
+        aw_log_file.flush()
+    except Exception as e:
+        logging.exception('Could not write to log file')
+
+
+def log_message_events(t, message_tags, is_response=False):
+    '''Write important events in a message or its response to a log file.'''
+
+    global config
+    global aw_log_file
+    if not config.has_option('logfile', 'filename'):
+        return
+
+
+    # Generate the lines to write before attempting to open the file
+    # to avoid creating empty files.
+    lines = []
+    ts = iso_timestamp(t)
+    if is_response:
+        prefix = ts + ' R '
+    else:
+        prefix = ts + ' M '
+
+    tags_to_log = ['time_adjustment', 'reboot_flags', 'reboot', 
+                   'current_firmware', 'read_eeprom', 'eeprom_contents']
+    for tag_name in tags_to_log:
+        if tag_name in message_tags:
+            for tag_payload in message_tags[tag_name]:
+                tag_repr, data_repr, data_len = \
+                    AW_Message.decode_tag_payload(tag_name, tag_payload)
+                if data_len:
+                    lines.append(prefix + tag_name + ' ' + data_repr + '\n')
+                else:
+                    lines.append(prefix + tag_name + '\n')
+
+    # TODO
+    # if ('upgrade_firmware' in message_tags and first_page):
+    #    lines.append('firmware upgrade')
+
+    if lines:
+        print(repr(lines))
+        write_to_log_file(t, ''.join(lines))
+
+
+def send_rt_message(host_info, message, response):
+    AW_Message.put_signature(message, host_info['key'], 
+                             AW_Message.get_retries(message),
+                             AW_Message.get_sequence_id(message))
+    rt_socket.sendto(message, (host_info['ip'], host_info['port']))
+
+    if response is not None:
+        AW_Message.put_signature(response, host_info['key'], 
+                                 AW_Message.get_retries(response),
+                                 AW_Message.get_sequence_id(response))
+        rt_socket.sendto(response, (host_info['ip'], host_info['port']))
+
+
+def open_control_socket():
+    if config.has_option('controlsocket', 'filename'):
+        if os.path.exists(config.get('controlsocket', 'filename')):
+            os.remove(config.get('controlsocket', 'filename'))
+        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        control_socket.bind(config.get('controlsocket', 'filename'))
+        # control_socket.setblocking(False)
+        control_socket.listen(1)
+    else:
+        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # ord('A') = 65, ord('W') = 87 
+        control_socket.bind(('localhost', 
+                             int(config.get('controlsocket', 'port'))))
+        control_socket.setblocking(False)
+        control_socket.listen(0)
+    return control_socket
+
+
 # Process any CR or LF terminated messages which are in the buffer    
 def handle_control_message(buf, pending_tags):
     r = []
@@ -499,6 +635,7 @@ def describe_pending_tags():
 
 # ==========================================================================
 
+daemon_start_time = time.time()
 # Parse command line arguments
 parser = \
     argparse.ArgumentParser(description='AuroraWatch data recording daemon')
@@ -514,6 +651,8 @@ parser.add_argument('--no-acknowledge', action='store_false',
                     help="Don't transmit acknowledgement")
 parser.add_argument('--read-only', action='store_true',
                     help='Open device file read-only (implies --no-acknowledge)')
+parser.add_argument('--ignore-digest', action='store_true',
+                    help='Ignore HMAC-MD5 digest')
 parser.add_argument('--device', metavar='FILE', help='Device file')
 parser.add_argument('-v', '--verbose', dest='verbosity', action='count', 
                      default=0, help='Increase verbosity')
@@ -521,6 +660,10 @@ parser.add_argument('-v', '--verbose', dest='verbosity', action='count',
 args = parser.parse_args()
 if args.read_only:
     args.acknowledge = False
+
+# Do not ignore digest when acknowledgements are required
+if args.ignore_digest and args.acknowledge:
+    print('--ignore-digest requires --no-acknowledge or --read-only')
 
 read_config_file(args.config_file)
 if site_ids:
@@ -538,72 +681,85 @@ else:
 
 if device_filename == '-':
     device = os.sys.stdin
+    device_socket = None
+    args.acknowledge = False # Cannot send acknowledgements
+
+elif config.get('daemon', 'connection') == 'ethernet':
+    # Connect via ethnernet
+    device = None
+    local_port = int(config.get('ethernet', 'local_port'))
+    local_ip = config.get('ethernet', 'local_ip')
+    device_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+    # device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#    device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    device_socket.bind((local_ip, local_port))
+    device_socket.setblocking(False)
+    # device_socket.listen(3)
+    control_socket = open_control_socket()
+
+    write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
+                          + ' D Daemon started\n')
+
 else:
     if args.read_only:
         device = open(device_filename, 'rb', 0)
     else:
         device = open(device_filename, 'a+b', 0)
+        write_to_log_file(daemon_start_time, 
+                          iso_timestamp(daemon_start_time) \
+                              + ' D Daemon started\n')
+
+    device_socket = None
 
 if device_filename == '-':
     control_socket = None
     
-elif device.isatty():
-    if args.verbosity:
-        print('Reading from ' + device_filename)
-    tty.setraw(device, termios.TCIOFLUSH)
-    term_attr = termios.tcgetattr(device)
-    term_attr[4] = term_attr[5] = get_termios_baud_rate(config.get('serial', 
-                                                          'baudrate'))
-    termios.tcsetattr(device, termios.TCSANOW, term_attr)
+elif device:
+    if device.isatty():
+        if args.verbosity:
+            print('Reading from ' + device_filename)
+        tty.setraw(device, termios.TCIOFLUSH)
+        term_attr = termios.tcgetattr(device)
+        term_attr[4] = term_attr[5] = get_termios_baud_rate(config.get('serial', 
+                                                              'baudrate'))
+        termios.tcsetattr(device, termios.TCSANOW, term_attr)
 
-    # Discard any characters already present in the device
-    termios.tcflush(device, termios.TCIOFLUSH)
+        # Discard any characters already present in the device
+        termios.tcflush(device, termios.TCIOFLUSH)
 
 
-    device_setup_cmds = config.get('serial', 'setup').split(';')
-    if len(device_setup_cmds):
-        debug_print(2, 'Setup device... ')
-        device.flush()
-        time.sleep(1)
-        device.write('+++')
-        device.flush()
-        time.sleep(1.2)
-        termios.tcflush(device, termios.TCIFLUSH)
-        
-        # print(readline_with_timeout(device, 1))
-        for cmd in device_setup_cmds:
-            device.write(cmd)
-            device.write('\r')
-            debug_print(3, cmd)
+        device_setup_cmds = config.get('serial', 'setup').split(';')
+        if len(device_setup_cmds):
+            debug_print(2, 'Setup device... ')
+            device.flush()
+            time.sleep(1)
+            device.write('+++')
+            device.flush()
+            time.sleep(1.2)
+            termios.tcflush(device, termios.TCIFLUSH)
+
+            # print(readline_with_timeout(device, 1))
+            for cmd in device_setup_cmds:
+                device.write(cmd)
+                device.write('\r')
+                debug_print(3, cmd)
+                debug_print(3, readline_with_timeout(device, 1))
+
+            device.write('ATDN\r')
+            device.flush()
+            debug_print(3, 'ATDN')
             debug_print(3, readline_with_timeout(device, 1))
-        
-        device.write('ATDN\r')
-        device.flush()
-        debug_print(3, 'ATDN')
-        debug_print(3, readline_with_timeout(device, 1))
-        debug_print(2, '... done')
+            debug_print(2, '... done')
+            
+        control_socket = open_control_socket()
 
-    if config.has_option('controlsocket', 'filename'):
-        if os.path.exists(config.get('controlsocket', 'filename')):
-            os.remove(config.get('controlsocket', 'filename'))
-        control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        control_socket.bind(config.get('controlsocket', 'filename'))
-        # control_socket.setblocking(False)
-        control_socket.listen(1)
     else:
-        control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
-        # ord('A'_ = 65, ord('W') = 87 
-        control_socket.bind(('localhost', 6587))
-        control_socket.setblocking(False)
-        control_socket.listen(0)
-else:
-    # Plain files should be opened read-only
-    device.close()
-    device = open(device_filename, 'r', 0)
-    control_socket = None
+        # Plain files should be opened read-only
+        device.close()
+        device = open(device_filename, 'r', 0)
+        control_socket = None
+        args.acknowledge = False
+
         
 control_socket_conn = None
 control_buffer = None
@@ -611,11 +767,21 @@ control_buffer = None
 # Pending tags are persistent and are removed when acknowledged
 pending_tags = {}
 
-# select_list = [device, control_socket]
-select_list = [device]
+select_list = []
+if device is not None:
+    select_list.append(device)
+if device_socket is not None:
+    select_list.append(device_socket)
+
 if control_socket is not None:
     select_list.append(control_socket)
     
+
+if config.has_section('realtime_transfer'):
+    rt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+else:
+    rt_socket = None
+
 if not config.has_option('magnetometer', 'key'):
     print('Config file missing key from magnetometer section')
     exit(1)
@@ -648,22 +814,40 @@ while running:
     for fd in inputready:
         # print('FD: ' + str(fd)) 
 
-        if fd == device:
-            s = fd.read(1)
+        if fd in [device, device_socket]:
+            if fd == device:
+                # Serial/file device, read and process one byte at a time
+                s = device.read(1)
+            else:
+                # Network device. Read all data from the packet. Don't
+                # carry over data from old packets because
+                # validate_packet() only gets called once and old data
+                # is not currently removed fast enough. Ensure that
+                # the start of the packet is put into the start of the
+                # buffer so that validate_packet() immediately sees
+                # the new data.
+                buf = bytearray()
+                s, remote_addr = device_socket.recvfrom(1024)
+                print(repr(remote_addr))
             if len(s) == 0:
                 # end of file
                 running = False
                 break
-    
+            elif len(s) == 1:
+                buf.append(s)
+            else:
+                buf.extend(s)
 #            if ascii.isprint(s):
 #                print(s)   
 #            else:
 #                print(hex(ord(s)))
     
-            buf.append(s)
-            message = AW_Message.validate_packet(buf, hmac_key)
+            message = AW_Message.validate_packet(buf, hmac_key, 
+                                                 args.ignore_digest)
+            reponse = None
+
             if message is not None:
-                if device.isatty():
+                if (device and device.isatty()) or device_socket:
                     message_time = time.time()
                 else:
                     message_time = None
@@ -674,10 +858,12 @@ while running:
                     AW_Message.print_packet(message, message_time=message_time)
                 
                 timestamp = AW_Message.get_timestamp(message)
+                timestamp_s = timestamp[0] + timestamp[1]/32768.0
                 message_tags = AW_Message.parse_packet(message)
                 AW_Message.tidy_pending_tags(pending_tags, message_tags)
                 
-                if fd.isatty() and args.acknowledge:
+                # if fd.isatty() and args.acknowledge:
+                if args.acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
                     AW_Message.put_header(response,
@@ -698,11 +884,21 @@ while running:
                     
 
                     for tag_name in pending_tags:
-                        AW_Message.put_data(response, 
-                                            AW_Message.tag_data[tag_name]['id'],
-                                            pending_tags[tag_name])
+                        if tag_name != 'reboot':
+                            AW_Message.put_data(response, 
+                                                AW_Message.tag_data[tag_name] \
+                                                    ['id'],
+                                                pending_tags[tag_name])
                         # del pending_tags[tag]
-                        
+                    
+                            
+                    # Send the reboot command last
+                    if pending_tags.has_key('reboot'):
+                        AW_Message.put_data(response, 
+                                            AW_Message.tag_data['reboot']['id'],
+                                            pending_tags['reboot'])
+                    
+
                     # Add padding to round up to a multiple of block size
                     padding_length = (comms_block_size - 
                                      ((AW_Message.get_packet_length(response) +
@@ -715,7 +911,10 @@ while running:
                     
                     # Trim spare bytes from end of buffer
                     del response[AW_Message.get_packet_length(response):]
-                    fd.write(response)
+                    if fd == device:
+                        device.write(response)
+                    else:
+                        count = device_socket.sendto(response, remote_addr)
 
                     if args.verbosity:   
                         # print('Response: ------')
@@ -723,10 +922,10 @@ while running:
                     
                 if config.has_option('awpacket', 'filename'):
                     # Save the message and response
-                    write_message_to_file(timestamp, message, 
+                    write_message_to_file(timestamp_s, message, 
                                         config.get('awpacket', 'filename'))
                     if response is not None:
-                        write_message_to_file(timestamp, response, 
+                        write_message_to_file(timestamp_s, response, 
                                             config.get('awpacket', 'filename'))
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
@@ -739,7 +938,15 @@ while running:
                                               str(message_tags[tag_name][0]))
                             data[tag_name] = comp[1];
                     write_aurorawatch_realtime_data(timestamp, data)
-                
+
+                # Keep logfile of important events
+                if config.has_option('logfile', 'filename'):
+                    log_message_events(timestamp_s, message_tags, 
+                                           is_response=AW_Message.is_response_message(message))
+                    if response is not None:
+                        log_message_events(timestamp_s, response, 
+                                               is_response=True)
+
                 if (config.has_option('cloud', 'filename') and
                     not AW_Message.is_response_message(message)):
                     data = {}
@@ -755,6 +962,11 @@ while running:
                     
                 if (not AW_Message.is_response_message(message)):
                     write_aurorawatchnet_text_data(timestamp, message_tags)
+
+                # Realtime transfer must be last since it alters the
+                # message and response signature.
+                for rt in rt_transfer:
+                    send_rt_message(rt, message, response)
                         
             else:
                 response = None
