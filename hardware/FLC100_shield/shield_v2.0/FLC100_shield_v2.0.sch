@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="yes"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -6111,7 +6111,7 @@ www.ciseco.co.uk</description>
 <part name="GND22" library="supply1" deviceset="GND" device=""/>
 <part name="C1" library="SparkFun" deviceset="CAP" device="PTH" value="100n"/>
 <part name="GND23" library="supply1" deviceset="GND" device=""/>
-<part name="R8" library="SteveMarple" deviceset="RESISTOR" device="" value="100k"/>
+<part name="R8" library="SteveMarple" deviceset="RESISTOR" device="" value="1M"/>
 <part name="U$14" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="U$1" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="U$3" library="SteveMarple" deviceset="PAD" device=""/>
@@ -6192,7 +6192,6 @@ www.ciseco.co.uk</description>
 <part name="R19" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="R20" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="P+6" library="supply1" deviceset="+5V" device=""/>
-<part name="P+10" library="supply1" deviceset="+5V" device=""/>
 <part name="P+11" library="supply1" deviceset="+5V" device=""/>
 <part name="C3" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7 25V"/>
 <part name="GND12" library="supply1" deviceset="GND" device=""/>
@@ -6201,8 +6200,6 @@ www.ciseco.co.uk</description>
 <part name="GND13" library="supply1" deviceset="GND" device=""/>
 <part name="X5" library="SteveMarple" deviceset="CONN-SMA" device="THD-SMD-EDGE" value="SMA"/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
-<part name="C4" library="SparkFun" deviceset="CAP" device="PTH" value="100n"/>
-<part name="GND21" library="supply1" deviceset="GND" device=""/>
 <part name="JP1" library="SparkFun" deviceset="JUMPER-3" device="PTH" value="ISP VCC"/>
 </parts>
 <sheets>
@@ -6245,6 +6242,8 @@ Footprint allows LM7805 to be fitted.</text>
 <wire x1="45.72" y1="91.44" x2="50.8" y2="86.36" width="0.1524" layer="94" style="shortdash"/>
 <wire x1="50.8" y1="86.36" x2="91.44" y2="86.36" width="0.1524" layer="94" style="shortdash"/>
 <wire x1="91.44" y1="86.36" x2="96.52" y2="91.44" width="0.1524" layer="94" style="shortdash"/>
+<text x="317.5" y="200.66" size="1.778" layer="91">Voltage selection for battery or
+power-over-ethernet operation.</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
@@ -6282,9 +6281,9 @@ Footprint allows LM7805 to be fitted.</text>
 <instance part="JP2" gate="A" x="256.54" y="233.68" rot="MR270"/>
 <instance part="P+1" gate="1" x="261.62" y="243.84"/>
 <instance part="+3V1" gate="G$1" x="302.26" y="243.84"/>
-<instance part="X3" gate="A" x="238.76" y="88.9"/>
-<instance part="GND1" gate="1" x="228.6" y="60.96"/>
-<instance part="GND2" gate="1" x="251.46" y="60.96"/>
+<instance part="X3" gate="A" x="185.42" y="101.6"/>
+<instance part="GND1" gate="1" x="175.26" y="73.66"/>
+<instance part="GND2" gate="1" x="198.12" y="73.66"/>
 <instance part="P+3" gate="1" x="71.12" y="243.84"/>
 <instance part="P+4" gate="1" x="71.12" y="205.74"/>
 <instance part="J1" gate="G$1" x="304.8" y="182.88" rot="R180"/>
@@ -6348,7 +6347,6 @@ Footprint allows LM7805 to be fitted.</text>
 <instance part="R19" gate="G$1" x="284.48" y="48.26" rot="R90"/>
 <instance part="R20" gate="G$1" x="292.1" y="48.26" rot="R90"/>
 <instance part="P+6" gate="1" x="281.94" y="137.16"/>
-<instance part="P+10" gate="1" x="294.64" y="243.84"/>
 <instance part="P+11" gate="1" x="299.72" y="30.48" rot="R270"/>
 <instance part="C3" gate="G$1" x="233.68" y="33.02"/>
 <instance part="GND12" gate="1" x="233.68" y="25.4"/>
@@ -6357,8 +6355,6 @@ Footprint allows LM7805 to be fitted.</text>
 <instance part="GND13" gate="1" x="231.14" y="-129.54"/>
 <instance part="X5" gate="G$1" x="205.74" y="-104.14" rot="MR0"/>
 <instance part="GND14" gate="1" x="205.74" y="-111.76"/>
-<instance part="C4" gate="G$1" x="299.72" y="50.8"/>
-<instance part="GND21" gate="1" x="299.72" y="45.72"/>
 <instance part="JP1" gate="G$1" x="309.88" y="200.66" rot="MR90"/>
 </instances>
 <busses>
@@ -6441,12 +6437,6 @@ Footprint allows LM7805 to be fitted.</text>
 <wire x1="281.94" y1="121.92" x2="281.94" y2="134.62" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="X1" gate="G$1" pin="1"/>
-<wire x1="304.8" y1="233.68" x2="294.64" y2="233.68" width="0.1524" layer="91"/>
-<pinref part="P+10" gate="1" pin="+5V"/>
-<wire x1="294.64" y1="241.3" x2="294.64" y2="233.68" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="X4" gate="G$1" pin="1"/>
 <wire x1="297.18" y1="30.48" x2="281.94" y2="30.48" width="0.1524" layer="91"/>
 <pinref part="P+11" gate="1" pin="+5V"/>
@@ -6458,11 +6448,6 @@ Footprint allows LM7805 to be fitted.</text>
 </segment>
 </net>
 <net name="SCL" class="0">
-<segment>
-<pinref part="MOD-1016" gate="G$1" pin="SCL"/>
-<wire x1="274.32" y1="78.74" x2="271.78" y2="78.74" width="0.1524" layer="91"/>
-<label x="269.24" y="78.74" size="1.778" layer="95" rot="MR0"/>
-</segment>
 <segment>
 <pinref part="R5" gate="G$1" pin="1"/>
 <wire x1="45.72" y1="187.96" x2="45.72" y2="190.5" width="0.1524" layer="91"/>
@@ -6596,14 +6581,14 @@ Footprint allows LM7805 to be fitted.</text>
 <segment>
 <pinref part="X3" gate="A" pin="36"/>
 <pinref part="GND2" gate="1" pin="GND"/>
-<wire x1="243.84" y1="66.04" x2="251.46" y2="66.04" width="0.1524" layer="91"/>
-<wire x1="251.46" y1="66.04" x2="251.46" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="190.5" y1="78.74" x2="198.12" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="198.12" y1="78.74" x2="198.12" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="X3" gate="A" pin="35"/>
 <pinref part="GND1" gate="1" pin="GND"/>
-<wire x1="236.22" y1="66.04" x2="228.6" y2="66.04" width="0.1524" layer="91"/>
-<wire x1="228.6" y1="66.04" x2="228.6" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="182.88" y1="78.74" x2="175.26" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="175.26" y1="78.74" x2="175.26" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="MOD-1016" gate="G$1" pin="GND"/>
@@ -6687,10 +6672,6 @@ Footprint allows LM7805 to be fitted.</text>
 <segment>
 <pinref part="X5" gate="G$1" pin="GND"/>
 <pinref part="GND14" gate="1" pin="GND"/>
-</segment>
-<segment>
-<pinref part="C4" gate="G$1" pin="2"/>
-<pinref part="GND21" gate="1" pin="GND"/>
 </segment>
 </net>
 <net name="VIN" class="1">
@@ -6992,11 +6973,6 @@ Footprint allows LM7805 to be fitted.</text>
 </net>
 <net name="SDA" class="0">
 <segment>
-<pinref part="MOD-1016" gate="G$1" pin="SDA_MOSI"/>
-<wire x1="274.32" y1="73.66" x2="271.78" y2="73.66" width="0.1524" layer="91"/>
-<label x="269.24" y="73.66" size="1.778" layer="95" rot="MR0"/>
-</segment>
-<segment>
 <pinref part="R1" gate="G$1" pin="1"/>
 <wire x1="45.72" y1="226.06" x2="45.72" y2="228.6" width="0.1524" layer="91"/>
 <pinref part="Q1" gate="G$1" pin="S"/>
@@ -7066,8 +7042,8 @@ Footprint allows LM7805 to be fitted.</text>
 </segment>
 <segment>
 <pinref part="X3" gate="A" pin="32"/>
-<wire x1="243.84" y1="71.12" x2="251.46" y2="71.12" width="0.1524" layer="91"/>
-<label x="254" y="71.12" size="1.778" layer="95"/>
+<wire x1="190.5" y1="83.82" x2="198.12" y2="83.82" width="0.1524" layer="91"/>
+<label x="200.66" y="83.82" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="MISO" class="0">
@@ -7083,8 +7059,8 @@ Footprint allows LM7805 to be fitted.</text>
 </segment>
 <segment>
 <pinref part="X3" gate="A" pin="31"/>
-<wire x1="236.22" y1="71.12" x2="228.6" y2="71.12" width="0.1524" layer="91"/>
-<label x="226.06" y="71.12" size="1.778" layer="95" rot="MR0"/>
+<wire x1="182.88" y1="83.82" x2="175.26" y2="83.82" width="0.1524" layer="91"/>
+<label x="172.72" y="83.82" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 <net name="SCK" class="0">
@@ -7100,8 +7076,8 @@ Footprint allows LM7805 to be fitted.</text>
 </segment>
 <segment>
 <pinref part="X3" gate="A" pin="33"/>
-<wire x1="236.22" y1="68.58" x2="228.6" y2="68.58" width="0.1524" layer="91"/>
-<label x="226.06" y="68.58" size="1.778" layer="95" rot="MR0"/>
+<wire x1="182.88" y1="81.28" x2="175.26" y2="81.28" width="0.1524" layer="91"/>
+<label x="172.72" y="81.28" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 <net name="N$4" class="0">
@@ -7440,10 +7416,6 @@ Footprint allows LM7805 to be fitted.</text>
 <junction x="284.48" y="58.42"/>
 <pinref part="R19" gate="G$1" pin="2"/>
 <wire x1="284.48" y1="53.34" x2="284.48" y2="58.42" width="0.1524" layer="91"/>
-<junction x="292.1" y="58.42"/>
-<pinref part="C4" gate="G$1" pin="1"/>
-<wire x1="292.1" y1="58.42" x2="299.72" y2="58.42" width="0.1524" layer="91"/>
-<wire x1="299.72" y1="58.42" x2="299.72" y2="55.88" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="6" class="0">
@@ -7487,6 +7459,30 @@ Footprint allows LM7805 to be fitted.</text>
 <wire x1="299.72" y1="215.9" x2="299.72" y2="203.2" width="0.1524" layer="91"/>
 <pinref part="JP1" gate="G$1" pin="2"/>
 <wire x1="299.72" y1="203.2" x2="307.34" y2="203.2" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="14" class="0">
+<segment>
+<pinref part="U$13" gate="G$1" pin="14"/>
+<wire x1="210.82" y1="231.14" x2="220.98" y2="231.14" width="0.1524" layer="91"/>
+<label x="223.52" y="231.14" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="MOD-1016" gate="G$1" pin="SDA_MOSI"/>
+<wire x1="274.32" y1="73.66" x2="271.78" y2="73.66" width="0.1524" layer="91"/>
+<label x="269.24" y="73.66" size="1.778" layer="95" rot="MR0"/>
+</segment>
+</net>
+<net name="17" class="0">
+<segment>
+<pinref part="U$13" gate="G$1" pin="17"/>
+<wire x1="210.82" y1="223.52" x2="220.98" y2="223.52" width="0.1524" layer="91"/>
+<label x="223.52" y="223.52" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="MOD-1016" gate="G$1" pin="SCL"/>
+<wire x1="274.32" y1="78.74" x2="271.78" y2="78.74" width="0.1524" layer="91"/>
+<label x="269.24" y="78.74" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
 </nets>
