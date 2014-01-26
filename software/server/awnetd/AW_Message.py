@@ -404,6 +404,11 @@ def put_current_epoch_time(buf):
     now = time.time()
     seconds = long(now);
     frac = int(round((now % 1) * 32768.0))
+    if frac >= 32768:
+        # Almost start of next second, resulting in a rounding to an
+        # improper fraction
+        frac = 0
+        seconds += 1
 
     buf[i] = tag_data['current_epoch_time']['id']
     i += 1
