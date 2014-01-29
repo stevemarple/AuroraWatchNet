@@ -1229,8 +1229,8 @@
 <pad name="4" x="-1.27" y="1.27" drill="0.9144" shape="octagon"/>
 <pad name="5" x="1.27" y="-1.27" drill="0.9144" shape="octagon"/>
 <pad name="6" x="1.27" y="1.27" drill="0.9144" shape="octagon"/>
-<text x="-8.89" y="5.08" size="1.778" layer="25" font="vector" ratio="10">&gt;NAME</text>
-<text x="0.635" y="5.08" size="1.778" layer="27" font="vector" ratio="10">&gt;VALUE</text>
+<text x="-8.89" y="5.08" size="1.27" layer="25" font="vector" ratio="10">&gt;NAME</text>
+<text x="0.635" y="5.08" size="1.27" layer="27" font="vector" ratio="10">&gt;VALUE</text>
 <text x="-6.35" y="-1.905" size="1.27" layer="21" font="vector" ratio="10">1</text>
 <text x="-6.35" y="0.635" size="1.27" layer="21" font="vector" ratio="10">2</text>
 <text x="-0.381" y="-4.064" size="1.27" layer="21" font="vector" ratio="10">8</text>
@@ -2000,6 +2000,39 @@ SOT23-6 package with footprint designed for easier soldering by hand.&lt;/p&gt;<
 <wire x1="1.2446" y1="1.27" x2="0.7112" y2="1.27" width="0" layer="51"/>
 <wire x1="0.7112" y1="0.762" x2="1.2446" y2="0.762" width="0" layer="51"/>
 </package>
+<package name="78XXL-NO-HOLE">
+<wire x1="-5.207" y1="-1.27" x2="5.207" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="5.207" y1="14.605" x2="-5.207" y2="14.605" width="0.1524" layer="21"/>
+<wire x1="5.207" y1="-1.27" x2="5.207" y2="11.176" width="0.1524" layer="21"/>
+<wire x1="5.207" y1="11.176" x2="4.318" y2="11.176" width="0.1524" layer="21"/>
+<wire x1="4.318" y1="11.176" x2="4.318" y2="12.7" width="0.1524" layer="21"/>
+<wire x1="4.318" y1="12.7" x2="5.207" y2="12.7" width="0.1524" layer="21"/>
+<wire x1="5.207" y1="12.7" x2="5.207" y2="14.605" width="0.1524" layer="21"/>
+<wire x1="-5.207" y1="-1.27" x2="-5.207" y2="11.176" width="0.1524" layer="21"/>
+<wire x1="-5.207" y1="11.176" x2="-4.318" y2="11.176" width="0.1524" layer="21"/>
+<wire x1="-4.318" y1="11.176" x2="-4.318" y2="12.7" width="0.1524" layer="21"/>
+<wire x1="-4.318" y1="12.7" x2="-5.207" y2="12.7" width="0.1524" layer="21"/>
+<wire x1="-5.207" y1="12.7" x2="-5.207" y2="14.605" width="0.1524" layer="21"/>
+<wire x1="-4.572" y1="-0.635" x2="4.572" y2="-0.635" width="0.0508" layer="21"/>
+<wire x1="4.572" y1="7.62" x2="4.572" y2="-0.635" width="0.0508" layer="21"/>
+<wire x1="4.572" y1="7.62" x2="-4.572" y2="7.62" width="0.0508" layer="21"/>
+<wire x1="-4.572" y1="-0.635" x2="-4.572" y2="7.62" width="0.0508" layer="21"/>
+<pad name="IN" x="-2.54" y="-3.81" drill="1.016" shape="long" rot="R90"/>
+<pad name="GND" x="0" y="-3.81" drill="1.016" shape="long" rot="R90"/>
+<pad name="OUT" x="2.54" y="-3.81" drill="1.016" shape="long" rot="R90"/>
+<text x="-3.81" y="5.08" size="1.778" layer="25" ratio="10">&gt;NAME</text>
+<text x="-3.937" y="2.54" size="1.778" layer="27" ratio="10">&gt;VALUE</text>
+<text x="-0.508" y="0" size="1.27" layer="51" ratio="10">-</text>
+<text x="-3.048" y="0" size="1.27" layer="51" ratio="10">I</text>
+<text x="2.032" y="0" size="1.27" layer="51" ratio="10">O</text>
+<rectangle x1="1.905" y1="-2.159" x2="3.175" y2="-1.27" layer="21"/>
+<rectangle x1="1.905" y1="-3.81" x2="3.175" y2="-2.159" layer="51"/>
+<rectangle x1="-0.635" y1="-2.159" x2="0.635" y2="-1.27" layer="21"/>
+<rectangle x1="-3.175" y1="-2.159" x2="-1.905" y2="-1.27" layer="21"/>
+<rectangle x1="-0.635" y1="-3.81" x2="0.635" y2="-2.159" layer="51"/>
+<rectangle x1="-3.175" y1="-3.81" x2="-1.905" y2="-2.159" layer="51"/>
+<rectangle x1="-5.207" y1="6.35" x2="5.207" y2="14.605" layer="43"/>
+</package>
 </packages>
 <symbols>
 <symbol name="A3L-LOC">
@@ -2122,11 +2155,11 @@ SOT23-6 package with footprint designed for easier soldering by hand.&lt;/p&gt;<
 <text x="0.762" y="79.248" size="2.54" layer="94" font="vector">2</text>
 <text x="1.016" y="26.67" size="2.54" layer="94" font="vector">1</text>
 <text x="321.691" y="19.431" size="2.54" layer="94" font="vector">&gt;DRAWING_NAME</text>
-<text x="309.753" y="9.525" size="2.286" layer="94" font="vector">&gt;LAST_DATE_TIME</text>
+<text x="309.88" y="9.525" size="2.286" layer="94" font="vector">&gt;LAST_DATE_TIME</text>
 <text x="368.3" y="4.445" size="2.54" layer="94" font="vector">&gt;SHEET</text>
-<text x="309.626" y="4.318" size="2.54" layer="94">Drawn By:</text>
+<text x="309.88" y="4.318" size="2.54" layer="94">Drawn By:</text>
 <text x="309.88" y="19.558" size="2.54" layer="94">Title:</text>
-<text x="310.134" y="14.478" size="2.54" layer="94">Version:</text>
+<text x="309.88" y="14.478" size="2.54" layer="94">Version:</text>
 </symbol>
 <symbol name="N-MOSFET">
 <wire x1="-1.778" y1="0.762" x2="-1.778" y2="0" width="0.254" layer="94"/>
@@ -2742,6 +2775,16 @@ Standard 7805 5V regulator. IGO (Input Ground Output). Spark Fun Electronics SKU
 </technologies>
 </device>
 <device name="-TO-220" package="TO-220-ALT">
+<connects>
+<connect gate="G$1" pin="GND" pad="GND"/>
+<connect gate="G$1" pin="IN" pad="IN"/>
+<connect gate="G$1" pin="OUT" pad="OUT"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="SIDE-NO-HOLE" package="78XXL-NO-HOLE">
 <connects>
 <connect gate="G$1" pin="GND" pad="GND"/>
 <connect gate="G$1" pin="IN" pad="IN"/>
@@ -6192,7 +6235,6 @@ www.ciseco.co.uk</description>
 <part name="R19" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="R20" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="P+6" library="supply1" deviceset="+5V" device=""/>
-<part name="P+11" library="supply1" deviceset="+5V" device=""/>
 <part name="C3" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7 25V"/>
 <part name="GND12" library="supply1" deviceset="GND" device=""/>
 <part name="P+12" library="supply1" deviceset="+5V" device=""/>
@@ -6201,6 +6243,8 @@ www.ciseco.co.uk</description>
 <part name="X5" library="SteveMarple" deviceset="CONN-SMA" device="THD-SMD-EDGE" value="SMA"/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
 <part name="JP1" library="SparkFun" deviceset="JUMPER-3" device="PTH" value="ISP VCC"/>
+<part name="C4" library="SparkFun" deviceset="CAP" device="PTH" value="100n"/>
+<part name="GND21" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -6244,6 +6288,8 @@ Footprint allows LM7805 to be fitted.</text>
 <wire x1="91.44" y1="86.36" x2="96.52" y2="91.44" width="0.1524" layer="94" style="shortdash"/>
 <text x="317.5" y="200.66" size="1.778" layer="91">Voltage selection for battery or
 power-over-ethernet operation.</text>
+<text x="317.5" y="30.48" size="1.778" layer="91">No level-shifting so maximum pull-up
+voltage should be IOREF.</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
@@ -6339,23 +6385,24 @@ power-over-ethernet operation.</text>
 <instance part="U$22" gate="G$1" x="238.76" y="-43.18" rot="R180"/>
 <instance part="U$40" gate="G$1" x="238.76" y="-66.04" rot="R180"/>
 <instance part="JP13" gate="A" x="137.16" y="215.9"/>
-<instance part="C2" gate="G$1" x="223.52" y="33.02"/>
-<instance part="GND9" gate="1" x="223.52" y="25.4"/>
+<instance part="C2" gate="G$1" x="203.2" y="33.02"/>
+<instance part="GND9" gate="1" x="203.2" y="25.4"/>
 <instance part="+3V6" gate="G$1" x="261.62" y="45.72"/>
-<instance part="GND10" gate="1" x="264.16" y="25.4"/>
+<instance part="GND10" gate="1" x="264.16" y="20.32"/>
 <instance part="U$5" gate="G$1" x="284.48" y="33.02"/>
 <instance part="R19" gate="G$1" x="284.48" y="48.26" rot="R90"/>
 <instance part="R20" gate="G$1" x="292.1" y="48.26" rot="R90"/>
 <instance part="P+6" gate="1" x="281.94" y="137.16"/>
-<instance part="P+11" gate="1" x="299.72" y="30.48" rot="R270"/>
-<instance part="C3" gate="G$1" x="233.68" y="33.02"/>
-<instance part="GND12" gate="1" x="233.68" y="25.4"/>
-<instance part="P+12" gate="1" x="233.68" y="40.64"/>
+<instance part="C3" gate="G$1" x="213.36" y="33.02"/>
+<instance part="GND12" gate="1" x="213.36" y="25.4"/>
+<instance part="P+12" gate="1" x="213.36" y="40.64"/>
 <instance part="+3V7" gate="G$1" x="231.14" y="-96.52"/>
 <instance part="GND13" gate="1" x="231.14" y="-129.54"/>
 <instance part="X5" gate="G$1" x="205.74" y="-104.14" rot="MR0"/>
 <instance part="GND14" gate="1" x="205.74" y="-111.76"/>
 <instance part="JP1" gate="G$1" x="309.88" y="200.66" rot="MR90"/>
+<instance part="C4" gate="G$1" x="241.3" y="27.94"/>
+<instance part="GND21" gate="1" x="241.3" y="20.32"/>
 </instances>
 <busses>
 </busses>
@@ -6382,7 +6429,7 @@ power-over-ethernet operation.</text>
 <junction x="71.12" y="187.96"/>
 </segment>
 </net>
-<net name="+5V" class="0">
+<net name="+5V" class="1">
 <segment>
 <pinref part="JP6" gate="G$1" pin="3"/>
 <wire x1="251.46" y1="170.18" x2="251.46" y2="167.64" width="0.1524" layer="91"/>
@@ -6437,14 +6484,9 @@ power-over-ethernet operation.</text>
 <wire x1="281.94" y1="121.92" x2="281.94" y2="134.62" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="X4" gate="G$1" pin="1"/>
-<wire x1="297.18" y1="30.48" x2="281.94" y2="30.48" width="0.1524" layer="91"/>
-<pinref part="P+11" gate="1" pin="+5V"/>
-</segment>
-<segment>
 <pinref part="C3" gate="G$1" pin="+"/>
 <pinref part="P+12" gate="1" pin="+5V"/>
-<wire x1="233.68" y1="38.1" x2="233.68" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="213.36" y1="38.1" x2="213.36" y2="35.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SCL" class="0">
@@ -6463,7 +6505,7 @@ power-over-ethernet operation.</text>
 <pinref part="U$13" gate="G$1" pin="21(SCL)@1"/>
 </segment>
 </net>
-<net name="+3V3" class="0">
+<net name="+3V3" class="1">
 <segment>
 <pinref part="+3V4" gate="G$1" pin="+3V3"/>
 <wire x1="144.78" y1="241.3" x2="144.78" y2="226.06" width="0.1524" layer="91"/>
@@ -6655,7 +6697,7 @@ power-over-ethernet operation.</text>
 </segment>
 <segment>
 <pinref part="GND10" gate="1" pin="GND"/>
-<wire x1="264.16" y1="27.94" x2="264.16" y2="33.02" width="0.1524" layer="91"/>
+<wire x1="264.16" y1="22.86" x2="264.16" y2="33.02" width="0.1524" layer="91"/>
 <pinref part="X4" gate="G$1" pin="4"/>
 <wire x1="264.16" y1="33.02" x2="266.7" y2="33.02" width="0.1524" layer="91"/>
 </segment>
@@ -6672,6 +6714,11 @@ power-over-ethernet operation.</text>
 <segment>
 <pinref part="X5" gate="G$1" pin="GND"/>
 <pinref part="GND14" gate="1" pin="GND"/>
+</segment>
+<segment>
+<pinref part="C4" gate="G$1" pin="2"/>
+<pinref part="GND21" gate="1" pin="GND"/>
+<wire x1="241.3" y1="25.4" x2="241.3" y2="22.86" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="VIN" class="1">
@@ -6744,8 +6791,8 @@ power-over-ethernet operation.</text>
 </segment>
 <segment>
 <pinref part="C2" gate="G$1" pin="+"/>
-<wire x1="223.52" y1="35.56" x2="223.52" y2="38.1" width="0.1524" layer="91"/>
-<label x="223.52" y="40.64" size="1.778" layer="95"/>
+<wire x1="203.2" y1="35.56" x2="203.2" y2="38.1" width="0.1524" layer="91"/>
+<label x="203.2" y="40.64" size="1.778" layer="95"/>
 </segment>
 <segment>
 <pinref part="X4" gate="G$1" pin="2"/>
@@ -6867,7 +6914,7 @@ power-over-ethernet operation.</text>
 <wire x1="254" y1="165.1" x2="254" y2="170.18" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="IOREF" class="0">
+<net name="IOREF" class="1">
 <segment>
 <pinref part="JP6" gate="G$1" pin="1"/>
 <wire x1="256.54" y1="170.18" x2="256.54" y2="165.1" width="0.1524" layer="91"/>
@@ -6932,6 +6979,11 @@ power-over-ethernet operation.</text>
 <junction x="215.9" y="154.94"/>
 <wire x1="215.9" y1="154.94" x2="220.98" y2="154.94" width="0.1524" layer="91"/>
 <label x="223.52" y="154.94" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="X4" gate="G$1" pin="1"/>
+<wire x1="297.18" y1="30.48" x2="281.94" y2="30.48" width="0.1524" layer="91"/>
+<label x="299.72" y="30.48" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="MAG_VCC" class="0">
@@ -7357,7 +7409,7 @@ power-over-ethernet operation.</text>
 <label x="294.64" y="-116.84" size="1.778" layer="95"/>
 </segment>
 </net>
-<net name="N$10" class="0">
+<net name="N$10" class="1">
 <segment>
 <pinref part="U$13" gate="G$1" pin="A2"/>
 <pinref part="JP13" gate="A" pin="2"/>
@@ -7407,15 +7459,18 @@ power-over-ethernet operation.</text>
 <net name="N$22" class="0">
 <segment>
 <pinref part="X4" gate="G$1" pin="6"/>
-<wire x1="266.7" y1="35.56" x2="264.16" y2="35.56" width="0.1524" layer="91"/>
-<wire x1="264.16" y1="35.56" x2="264.16" y2="58.42" width="0.1524" layer="91"/>
+<wire x1="266.7" y1="35.56" x2="241.3" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="241.3" y1="35.56" x2="241.3" y2="58.42" width="0.1524" layer="91"/>
 <pinref part="R20" gate="G$1" pin="2"/>
-<wire x1="264.16" y1="58.42" x2="284.48" y2="58.42" width="0.1524" layer="91"/>
+<wire x1="241.3" y1="58.42" x2="284.48" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="284.48" y1="58.42" x2="292.1" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="292.1" y1="58.42" x2="292.1" y2="53.34" width="0.1524" layer="91"/>
 <junction x="284.48" y="58.42"/>
 <pinref part="R19" gate="G$1" pin="2"/>
 <wire x1="284.48" y1="53.34" x2="284.48" y2="58.42" width="0.1524" layer="91"/>
+<junction x="241.3" y="35.56"/>
+<pinref part="C4" gate="G$1" pin="1"/>
+<wire x1="241.3" y1="35.56" x2="241.3" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="6" class="0">
