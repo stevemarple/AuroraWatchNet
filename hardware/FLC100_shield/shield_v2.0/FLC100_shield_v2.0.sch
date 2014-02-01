@@ -5140,7 +5140,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="U$3" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="U$6" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="GND15" library="supply1" deviceset="GND" device=""/>
-<part name="U$15" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="U$16" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="+3V4" library="supply1" deviceset="+3V3" device=""/>
 <part name="U$13" library="SteveMarple" deviceset="CALUNIUM-SHIELD-V3" device="V3-NO-HOLES-NO-TEXT" value="CALUNIUM-SHIELD-V3"/>
@@ -5182,7 +5181,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
 <part name="JP9" library="SparkFun" deviceset="JUMPER-2" device="PTH" value="CLOUD PWR"/>
 <part name="JP11" library="pinhead" deviceset="PINHD-2X3" device="" value="ALT ISP"/>
-<part name="IC4" library="SteveMarple" deviceset="MCP1640" device="SOT23-6-HAND" value="MCP1640SOT23-6-HAND"/>
+<part name="IC4" library="SteveMarple" deviceset="MCP1640" device="SOT23-6-HAND" value="MCP1640"/>
 <part name="GND17" library="supply1" deviceset="GND" device=""/>
 <part name="C15" library="SteveMarple" deviceset="C-EU" device="1206-HAND" value="4u7"/>
 <part name="GND18" library="supply1" deviceset="GND" device=""/>
@@ -5214,12 +5213,14 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="R19" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="R20" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="P+6" library="supply1" deviceset="+5V" device=""/>
-<part name="C3" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7 25V"/>
+<part name="C3" library="SparkFun" deviceset="CAP_POL" device="PTH2" value="4u7"/>
 <part name="GND12" library="supply1" deviceset="GND" device=""/>
 <part name="P+12" library="supply1" deviceset="+5V" device=""/>
 <part name="JP1" library="SparkFun" deviceset="JUMPER-3" device="PTH" value="MAG VCC"/>
 <part name="C4" library="SparkFun" deviceset="CAP" device="PTH" value="100n"/>
 <part name="GND21" library="supply1" deviceset="GND" device=""/>
+<part name="U$2" library="SteveMarple" deviceset="PAD" device=""/>
+<part name="U$4" library="SteveMarple" deviceset="PAD" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -5293,7 +5294,6 @@ voltage should be IOREF.</text>
 <instance part="U$3" gate="G$1" x="165.1" y="231.14"/>
 <instance part="U$6" gate="G$1" x="165.1" y="226.06"/>
 <instance part="GND15" gate="1" x="208.28" y="137.16"/>
-<instance part="U$15" gate="G$1" x="210.82" y="142.24"/>
 <instance part="U$16" gate="G$1" x="213.36" y="142.24"/>
 <instance part="+3V4" gate="G$1" x="144.78" y="243.84"/>
 <instance part="U$13" gate="G$1" x="190.5" y="182.88"/>
@@ -5373,6 +5373,8 @@ voltage should be IOREF.</text>
 <instance part="JP1" gate="G$1" x="309.88" y="200.66" rot="MR90"/>
 <instance part="C4" gate="G$1" x="241.3" y="27.94"/>
 <instance part="GND21" gate="1" x="241.3" y="20.32"/>
+<instance part="U$2" gate="G$1" x="238.76" y="-58.42" rot="R180"/>
+<instance part="U$4" gate="G$1" x="238.76" y="-60.96" rot="R180"/>
 </instances>
 <busses>
 </busses>
@@ -5578,10 +5580,7 @@ voltage should be IOREF.</text>
 <segment>
 <pinref part="GND15" gate="1" pin="GND"/>
 <wire x1="208.28" y1="139.7" x2="208.28" y2="142.24" width="0.1524" layer="91"/>
-<wire x1="208.28" y1="142.24" x2="210.82" y2="142.24" width="0.1524" layer="91"/>
-<pinref part="U$15" gate="G$1" pin="1"/>
-<wire x1="210.82" y1="142.24" x2="213.36" y2="142.24" width="0.1524" layer="91"/>
-<junction x="210.82" y="142.24"/>
+<wire x1="208.28" y1="142.24" x2="213.36" y2="142.24" width="0.1524" layer="91"/>
 <pinref part="U$16" gate="G$1" pin="1"/>
 </segment>
 <segment>
@@ -6274,15 +6273,15 @@ voltage should be IOREF.</text>
 <net name="XRF_P1_6" class="0">
 <segment>
 <pinref part="XRF" gate="G$1" pin="P1_6"/>
-<wire x1="243.84" y1="-58.42" x2="231.14" y2="-58.42" width="0.1524" layer="91"/>
-<label x="228.6" y="-58.42" size="1.778" layer="95" rot="MR0"/>
+<wire x1="243.84" y1="-58.42" x2="238.76" y2="-58.42" width="0.1524" layer="91"/>
+<pinref part="U$2" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="XRF_P1_5" class="0">
 <segment>
 <pinref part="XRF" gate="G$1" pin="P1_5"/>
-<wire x1="243.84" y1="-60.96" x2="231.14" y2="-60.96" width="0.1524" layer="91"/>
-<label x="228.6" y="-60.96" size="1.778" layer="95" rot="MR0"/>
+<wire x1="243.84" y1="-60.96" x2="238.76" y2="-60.96" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="1"/>
 </segment>
 </net>
 <net name="N$25" class="0">
