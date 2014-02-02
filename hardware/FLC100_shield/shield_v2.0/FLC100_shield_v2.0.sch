@@ -5179,7 +5179,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="+3V2" library="supply1" deviceset="+3V3" device=""/>
 <part name="+3V3" library="supply1" deviceset="+3V3" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
-<part name="JP9" library="SparkFun" deviceset="JUMPER-2" device="PTH" value="CLOUD PWR"/>
+<part name="JP9" library="SparkFun" deviceset="JUMPER-2" device="PTH" value="CLOUD CTRL"/>
 <part name="JP11" library="pinhead" deviceset="PINHD-2X3" device="" value="ALT ISP"/>
 <part name="IC4" library="SteveMarple" deviceset="MCP1640" device="SOT23-6-HAND" value="MCP1640"/>
 <part name="GND17" library="supply1" deviceset="GND" device=""/>
