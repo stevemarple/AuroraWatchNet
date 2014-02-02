@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="yes"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="yes" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -1989,6 +1989,39 @@ SOT23-6 package with footprint designed for easier soldering by hand.&lt;/p&gt;<
 <rectangle x1="-3.175" y1="-3.81" x2="-1.905" y2="-2.159" layer="51"/>
 <rectangle x1="-5.207" y1="6.35" x2="5.207" y2="14.605" layer="43"/>
 </package>
+<package name="SMA-DIODE">
+<description>&lt;B&gt;Diode&lt;/B&gt;&lt;p&gt;
+Basic SMA packaged diode. Good for reverse polarization protection. Common part #: MBRA140</description>
+<wire x1="-2.3" y1="1" x2="-2.3" y2="1.45" width="0.2032" layer="21"/>
+<wire x1="-2.3" y1="1.45" x2="2.3" y2="1.45" width="0.2032" layer="21"/>
+<wire x1="2.3" y1="1.45" x2="2.3" y2="1" width="0.2032" layer="21"/>
+<wire x1="2.3" y1="-1" x2="2.3" y2="-1.45" width="0.2032" layer="21"/>
+<wire x1="2.3" y1="-1.45" x2="-2.3" y2="-1.45" width="0.2032" layer="21"/>
+<wire x1="-2.3" y1="-1.45" x2="-2.3" y2="-1" width="0.2032" layer="21"/>
+<wire x1="1" y1="1" x2="1" y2="-1" width="0.2032" layer="21"/>
+<smd name="A" x="-2.15" y="0" dx="1.27" dy="1.47" layer="1" rot="R180"/>
+<smd name="C" x="2.15" y="0" dx="1.27" dy="1.47" layer="1"/>
+<text x="-2.286" y="1.651" size="0.4064" layer="25">&gt;NAME</text>
+<text x="0.254" y="1.651" size="0.4064" layer="27">&gt;VALUE</text>
+</package>
+<package name="DIODE-TH-0.4">
+<description>Diode, through-hole 0.4" spacing</description>
+<wire x1="3.175" y1="1.27" x2="1.905" y2="1.27" width="0.254" layer="21"/>
+<wire x1="1.905" y1="1.27" x2="-3.175" y2="1.27" width="0.254" layer="21"/>
+<wire x1="-3.175" y1="1.27" x2="-3.175" y2="0" width="0.254" layer="21"/>
+<wire x1="-3.175" y1="0" x2="-3.175" y2="-1.27" width="0.254" layer="21"/>
+<wire x1="-3.175" y1="-1.27" x2="1.905" y2="-1.27" width="0.254" layer="21"/>
+<wire x1="1.905" y1="-1.27" x2="3.175" y2="-1.27" width="0.254" layer="21"/>
+<wire x1="3.175" y1="-1.27" x2="3.175" y2="0" width="0.254" layer="21"/>
+<wire x1="3.175" y1="0" x2="3.175" y2="1.27" width="0.254" layer="21"/>
+<wire x1="1.905" y1="1.27" x2="1.905" y2="-1.27" width="0.254" layer="21"/>
+<wire x1="-3.175" y1="0" x2="-3.81" y2="0" width="0.254" layer="21"/>
+<wire x1="3.175" y1="0" x2="3.81" y2="0" width="0.254" layer="21"/>
+<pad name="A" x="-5.08" y="0" drill="1" diameter="1.9812"/>
+<pad name="C" x="5.08" y="0" drill="1" diameter="1.9812"/>
+<text x="-2.921" y="1.651" size="0.6096" layer="25">&gt;Name</text>
+<text x="-2.921" y="-0.508" size="1.016" layer="21" ratio="12">&gt;Value</text>
+</package>
 </packages>
 <symbols>
 <symbol name="A3L-LOC">
@@ -2390,6 +2423,20 @@ XBee-like radio module.</description>
 <pin name="P2_2" x="20.32" y="5.08" length="middle" rot="R180"/>
 <pin name="P2_3" x="20.32" y="7.62" length="middle" rot="R180"/>
 <pin name="P2_4" x="20.32" y="10.16" length="middle" direction="in" rot="R180"/>
+</symbol>
+<symbol name="DIODE-SCHOTTKY">
+<wire x1="-1.27" y1="-1.27" x2="1.27" y2="0" width="0.254" layer="94"/>
+<wire x1="1.27" y1="0" x2="-1.27" y2="1.27" width="0.254" layer="94"/>
+<wire x1="-1.27" y1="1.27" x2="-1.27" y2="-1.27" width="0.254" layer="94"/>
+<text x="2.54" y="0.4826" size="1.778" layer="95">&gt;NAME</text>
+<text x="2.54" y="-2.3114" size="1.778" layer="96">&gt;VALUE</text>
+<pin name="A" x="-5.08" y="0" visible="off" length="middle" direction="pas"/>
+<pin name="C" x="5.08" y="0" visible="off" length="middle" direction="pas" rot="R180"/>
+<wire x1="1.27" y1="1.27" x2="1.27" y2="-1.27" width="0.254" layer="94"/>
+<wire x1="1.27" y1="1.27" x2="1.778" y2="1.27" width="0.254" layer="94"/>
+<wire x1="1.27" y1="-1.27" x2="0.762" y2="-1.27" width="0.254" layer="94"/>
+<wire x1="0.762" y1="-1.27" x2="0.762" y2="-0.762" width="0.254" layer="94"/>
+<wire x1="1.778" y1="0.762" x2="1.778" y2="1.27" width="0.254" layer="94"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -3130,6 +3177,31 @@ Output Disconnect or Input/Output Bypass Option</description>
 <connect gate="G$1" pin="UART_RX" pad="3"/>
 <connect gate="G$1" pin="UART_TX" pad="2"/>
 <connect gate="G$1" pin="VCC" pad="1"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="DIODE-SCHOTTKY" prefix="D">
+<gates>
+<gate name="G$1" symbol="DIODE-SCHOTTKY" x="0" y="0"/>
+</gates>
+<devices>
+<device name="_" package="SMA-DIODE">
+<connects>
+<connect gate="G$1" pin="A" pad="A"/>
+<connect gate="G$1" pin="C" pad="C"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="" package="DIODE-TH-0.4">
+<connects>
+<connect gate="G$1" pin="A" pad="A"/>
+<connect gate="G$1" pin="C" pad="C"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -5151,8 +5223,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="X3" library="pinhead" deviceset="PINHD-2X18" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="GND2" library="supply1" deviceset="GND" device=""/>
-<part name="P+3" library="supply1" deviceset="+5V" device=""/>
-<part name="P+4" library="supply1" deviceset="+5V" device=""/>
 <part name="J1" library="SparkFun" deviceset="RJ11-6" device="PTH"/>
 <part name="MOD-1016" library="SteveMarple" deviceset="EMBEDDED_ADVENTURES_MOD-1016" device="NO-HOLES" value=""/>
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
@@ -5170,8 +5240,6 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="R12" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="R11" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
 <part name="R14" library="SteveMarple" deviceset="RESISTOR" device="" value="10k"/>
-<part name="P+8" library="supply1" deviceset="+5V" device=""/>
-<part name="P+9" library="supply1" deviceset="+5V" device=""/>
 <part name="R4" library="SteveMarple" deviceset="RESISTOR" device="" value="1k"/>
 <part name="X2" library="SteveMarple" deviceset="ML8" device="" value="CLOUD SENSOR"/>
 <part name="POWERPOD" library="SteveMarple" deviceset="CISECO_POWERPOD_NCP1402" device="" value="NCP1402 3V3"/>
@@ -5221,6 +5289,10 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <part name="GND21" library="supply1" deviceset="GND" device=""/>
 <part name="U$2" library="SteveMarple" deviceset="PAD" device=""/>
 <part name="U$4" library="SteveMarple" deviceset="PAD" device=""/>
+<part name="D1" library="SteveMarple" deviceset="DIODE-SCHOTTKY" device="" value="BAT85"/>
+<part name="D2" library="SteveMarple" deviceset="DIODE-SCHOTTKY" device="" value="BAT85"/>
+<part name="P+3" library="supply1" deviceset="+5V" device=""/>
+<part name="P+4" library="supply1" deviceset="+5V" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -5266,6 +5338,9 @@ Footprint allows LM7805 to be fitted.</text>
 power-over-ethernet operation.</text>
 <text x="317.5" y="30.48" size="1.778" layer="91">No level-shifting so maximum pull-up
 voltage should be IOREF.</text>
+<text x="76.2" y="160.02" size="1.27" layer="91" align="top-left">Diodes force pull-up to the higher voltage.
+May omit one diode and replace other by
+wire link when voltages known in advance.</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0"/>
@@ -5305,8 +5380,6 @@ voltage should be IOREF.</text>
 <instance part="X3" gate="A" x="185.42" y="101.6"/>
 <instance part="GND1" gate="1" x="175.26" y="73.66"/>
 <instance part="GND2" gate="1" x="198.12" y="73.66"/>
-<instance part="P+3" gate="1" x="71.12" y="243.84"/>
-<instance part="P+4" gate="1" x="71.12" y="205.74"/>
 <instance part="J1" gate="G$1" x="304.8" y="182.88" rot="R180"/>
 <instance part="MOD-1016" gate="G$1" x="287.02" y="78.74"/>
 <instance part="GND3" gate="1" x="271.78" y="66.04"/>
@@ -5318,14 +5391,12 @@ voltage should be IOREF.</text>
 <instance part="Q7" gate="G$1" x="83.82" y="132.08" rot="MR270"/>
 <instance part="Q8" gate="G$1" x="58.42" y="93.98" rot="R270"/>
 <instance part="Q9" gate="G$1" x="83.82" y="93.98" rot="MR270"/>
-<instance part="R10" gate="G$1" x="71.12" y="139.7" rot="R90"/>
-<instance part="R13" gate="G$1" x="71.12" y="101.6" rot="R90"/>
+<instance part="R10" gate="G$1" x="68.58" y="139.7" rot="R90"/>
+<instance part="R13" gate="G$1" x="73.66" y="101.6" rot="R90"/>
 <instance part="R9" gate="G$1" x="45.72" y="139.7" rot="R90"/>
 <instance part="R12" gate="G$1" x="45.72" y="101.6" rot="R90"/>
 <instance part="R11" gate="G$1" x="96.52" y="139.7" rot="R90"/>
 <instance part="R14" gate="G$1" x="96.52" y="101.6" rot="R90"/>
-<instance part="P+8" gate="1" x="71.12" y="149.86"/>
-<instance part="P+9" gate="1" x="71.12" y="111.76"/>
 <instance part="R4" gate="G$1" x="284.48" y="228.6" rot="MR0"/>
 <instance part="X2" gate="G$1" x="271.78" y="124.46"/>
 <instance part="POWERPOD" gate="G$1" x="35.56" y="38.1"/>
@@ -5375,6 +5446,10 @@ voltage should be IOREF.</text>
 <instance part="GND21" gate="1" x="241.3" y="20.32"/>
 <instance part="U$2" gate="G$1" x="238.76" y="-58.42" rot="R180"/>
 <instance part="U$4" gate="G$1" x="238.76" y="-60.96" rot="R180"/>
+<instance part="D1" gate="G$1" x="60.96" y="147.32"/>
+<instance part="D2" gate="G$1" x="81.28" y="147.32" rot="MR0"/>
+<instance part="P+3" gate="1" x="175.26" y="129.54"/>
+<instance part="P+4" gate="1" x="198.12" y="129.54"/>
 </instances>
 <busses>
 </busses>
@@ -5415,30 +5490,10 @@ voltage should be IOREF.</text>
 <wire x1="261.62" y1="233.68" x2="259.08" y2="233.68" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="R2" gate="G$1" pin="2"/>
-<wire x1="71.12" y1="241.3" x2="71.12" y2="238.76" width="0.1524" layer="91"/>
-<pinref part="P+3" gate="1" pin="+5V"/>
-</segment>
-<segment>
-<pinref part="R6" gate="G$1" pin="2"/>
-<wire x1="71.12" y1="203.2" x2="71.12" y2="200.66" width="0.1524" layer="91"/>
-<pinref part="P+4" gate="1" pin="+5V"/>
-</segment>
-<segment>
 <pinref part="IC1" gate="G$1" pin="OUT"/>
 <wire x1="368.3" y1="99.06" x2="368.3" y2="91.44" width="0.1524" layer="91"/>
 <wire x1="368.3" y1="91.44" x2="365.76" y2="91.44" width="0.1524" layer="91"/>
 <pinref part="P+7" gate="1" pin="+5V"/>
-</segment>
-<segment>
-<pinref part="R10" gate="G$1" pin="2"/>
-<wire x1="71.12" y1="147.32" x2="71.12" y2="144.78" width="0.1524" layer="91"/>
-<pinref part="P+8" gate="1" pin="+5V"/>
-</segment>
-<segment>
-<pinref part="R13" gate="G$1" pin="2"/>
-<wire x1="71.12" y1="109.22" x2="71.12" y2="106.68" width="0.1524" layer="91"/>
-<pinref part="P+9" gate="1" pin="+5V"/>
 </segment>
 <segment>
 <wire x1="170.18" y1="231.14" x2="165.1" y2="231.14" width="0.1524" layer="91"/>
@@ -5459,6 +5514,18 @@ voltage should be IOREF.</text>
 <pinref part="C3" gate="G$1" pin="+"/>
 <pinref part="P+12" gate="1" pin="+5V"/>
 <wire x1="213.36" y1="38.1" x2="213.36" y2="35.56" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="P+3" gate="1" pin="+5V"/>
+<wire x1="175.26" y1="127" x2="175.26" y2="121.92" width="0.1524" layer="91"/>
+<pinref part="X3" gate="A" pin="1"/>
+<wire x1="175.26" y1="121.92" x2="182.88" y2="121.92" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="X3" gate="A" pin="2"/>
+<wire x1="190.5" y1="121.92" x2="198.12" y2="121.92" width="0.1524" layer="91"/>
+<pinref part="P+4" gate="1" pin="+5V"/>
+<wire x1="198.12" y1="121.92" x2="198.12" y2="127" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SCL" class="0">
@@ -5842,7 +5909,7 @@ voltage should be IOREF.</text>
 <pinref part="U$13" gate="G$1" pin="A7"/>
 </segment>
 </net>
-<net name="ISP_VCC" class="0">
+<net name="ISP_VCC" class="1">
 <segment>
 <pinref part="U$13" gate="G$1" pin="ISP_VCC"/>
 <wire x1="210.82" y1="170.18" x2="218.44" y2="170.18" width="0.1524" layer="91"/>
@@ -5904,6 +5971,8 @@ voltage should be IOREF.</text>
 <wire x1="55.88" y1="137.16" x2="55.88" y2="147.32" width="0.1524" layer="91"/>
 <wire x1="45.72" y1="147.32" x2="55.88" y2="147.32" width="0.1524" layer="91"/>
 <label x="45.72" y="152.4" size="1.778" layer="95" rot="R90"/>
+<junction x="55.88" y="147.32"/>
+<pinref part="D1" gate="G$1" pin="A"/>
 </segment>
 <segment>
 <pinref part="U$14" gate="G$1" pin="1"/>
@@ -5929,6 +5998,10 @@ voltage should be IOREF.</text>
 <wire x1="96.52" y1="241.3" x2="96.52" y2="238.76" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="241.3" x2="96.52" y2="241.3" width="0.1524" layer="91"/>
 <label x="109.22" y="241.3" size="1.778" layer="95"/>
+<junction x="86.36" y="241.3"/>
+<pinref part="R2" gate="G$1" pin="2"/>
+<wire x1="71.12" y1="238.76" x2="71.12" y2="241.3" width="0.1524" layer="91"/>
+<wire x1="71.12" y1="241.3" x2="86.36" y2="241.3" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="Q4" gate="G$1" pin="G"/>
@@ -5939,6 +6012,10 @@ voltage should be IOREF.</text>
 <wire x1="96.52" y1="203.2" x2="96.52" y2="200.66" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="203.2" x2="96.52" y2="203.2" width="0.1524" layer="91"/>
 <label x="109.22" y="203.2" size="1.778" layer="95"/>
+<junction x="86.36" y="203.2"/>
+<pinref part="R6" gate="G$1" pin="2"/>
+<wire x1="71.12" y1="200.66" x2="71.12" y2="203.2" width="0.1524" layer="91"/>
+<wire x1="71.12" y1="203.2" x2="86.36" y2="203.2" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="X1" gate="G$1" pin="6"/>
@@ -6069,22 +6146,22 @@ voltage should be IOREF.</text>
 <segment>
 <pinref part="Q6" gate="G$1" pin="D"/>
 <pinref part="Q7" gate="G$1" pin="D"/>
-<wire x1="63.5" y1="132.08" x2="71.12" y2="132.08" width="0.1524" layer="91"/>
-<junction x="71.12" y="132.08"/>
-<wire x1="71.12" y1="132.08" x2="78.74" y2="132.08" width="0.1524" layer="91"/>
+<wire x1="63.5" y1="132.08" x2="68.58" y2="132.08" width="0.1524" layer="91"/>
+<junction x="68.58" y="132.08"/>
+<wire x1="68.58" y1="132.08" x2="78.74" y2="132.08" width="0.1524" layer="91"/>
 <pinref part="R10" gate="G$1" pin="1"/>
-<wire x1="71.12" y1="132.08" x2="71.12" y2="134.62" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="132.08" x2="68.58" y2="134.62" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$5" class="0">
 <segment>
 <pinref part="Q8" gate="G$1" pin="D"/>
 <pinref part="Q9" gate="G$1" pin="D"/>
-<wire x1="63.5" y1="93.98" x2="71.12" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="63.5" y1="93.98" x2="73.66" y2="93.98" width="0.1524" layer="91"/>
 <pinref part="R13" gate="G$1" pin="1"/>
-<wire x1="71.12" y1="93.98" x2="78.74" y2="93.98" width="0.1524" layer="91"/>
-<wire x1="71.12" y1="93.98" x2="71.12" y2="96.52" width="0.1524" layer="91"/>
-<junction x="71.12" y="93.98"/>
+<wire x1="73.66" y1="93.98" x2="78.74" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="73.66" y1="93.98" x2="73.66" y2="96.52" width="0.1524" layer="91"/>
+<junction x="73.66" y="93.98"/>
 </segment>
 </net>
 <net name="CLOUD_VCC" class="0">
@@ -6097,6 +6174,8 @@ voltage should be IOREF.</text>
 <wire x1="96.52" y1="147.32" x2="96.52" y2="144.78" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="147.32" x2="96.52" y2="147.32" width="0.1524" layer="91"/>
 <label x="109.22" y="147.32" size="1.778" layer="95"/>
+<junction x="86.36" y="147.32"/>
+<pinref part="D2" gate="G$1" pin="A"/>
 </segment>
 <segment>
 <pinref part="Q9" gate="G$1" pin="G"/>
@@ -6451,6 +6530,25 @@ voltage should be IOREF.</text>
 <pinref part="U$13" gate="G$1" pin="A6"/>
 <wire x1="170.18" y1="200.66" x2="160.02" y2="200.66" width="0.1524" layer="91"/>
 <label x="157.48" y="200.66" size="1.778" layer="95" rot="MR0"/>
+</segment>
+</net>
+<net name="CLOUD_PULLUP" class="0">
+<segment>
+<pinref part="R10" gate="G$1" pin="2"/>
+<wire x1="68.58" y1="147.32" x2="68.58" y2="144.78" width="0.1524" layer="91"/>
+<pinref part="R13" gate="G$1" pin="2"/>
+<wire x1="73.66" y1="147.32" x2="73.66" y2="106.68" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="147.32" x2="71.12" y2="147.32" width="0.1524" layer="91"/>
+<junction x="71.12" y="147.32"/>
+<wire x1="71.12" y1="147.32" x2="73.66" y2="147.32" width="0.1524" layer="91"/>
+<wire x1="71.12" y1="147.32" x2="71.12" y2="149.86" width="0.1524" layer="91"/>
+<label x="71.12" y="149.86" size="1.778" layer="95" rot="R90"/>
+<junction x="68.58" y="147.32"/>
+<junction x="73.66" y="147.32"/>
+<pinref part="D1" gate="G$1" pin="C"/>
+<wire x1="68.58" y1="147.32" x2="66.04" y2="147.32" width="0.1524" layer="91"/>
+<pinref part="D2" gate="G$1" pin="C"/>
+<wire x1="73.66" y1="147.32" x2="76.2" y2="147.32" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
