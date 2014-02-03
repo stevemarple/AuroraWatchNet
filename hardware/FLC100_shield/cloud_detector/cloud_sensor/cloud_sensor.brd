@@ -143,19 +143,18 @@
 <wire x1="21.59" y1="0" x2="22.86" y2="1.27" width="0" layer="20"/>
 <hole x="2.54" y="29.21" drill="3.2"/>
 <hole x="20.32" y="29.21" drill="3.2"/>
-<text x="1.905" y="5.08" size="0.8128" layer="121" ratio="12" rot="R90">CLOUD SENSOR v1.0</text>
-<text x="5.08" y="30.48" size="1.016" layer="121" ratio="10">(C) Steve Marple
-2014
+<text x="4.445" y="30.48" size="0.8128" layer="121" ratio="10">(C) Steve Marple 2014
 CC-BY-SA 4.0</text>
-<text x="16.51" y="20.32" size="0.8128" layer="122" ratio="10" rot="MR0">(C) Steve Marple 2014
+<text x="4.445" y="2.54" size="0.8128" layer="122" ratio="10" rot="SMR180">(C) Steve Marple 2014
 CC-BY-SA 4.0</text>
-<text x="20.955" y="22.86" size="1.27" layer="122" ratio="12" rot="MR0">CLOUD SENSOR v1.0</text>
+<text x="20.955" y="23.495" size="1.27" layer="122" ratio="12" rot="MR0">CLOUD SENSOR v1.0</text>
 <text x="10.16" y="35.56" size="1.016" layer="122" ratio="10" rot="MR0" align="center-left">GND</text>
 <text x="10.16" y="40.64" size="1.016" layer="122" ratio="10" rot="MR0" align="center-left">SDA</text>
 <text x="6.985" y="38.1" size="1.016" layer="122" ratio="10" rot="MR0" align="center-left">SCL</text>
 <text x="14.605" y="39.37" size="1.016" layer="122" ratio="10" rot="MR90" align="center-left">VCC</text>
 <wire x1="6.35" y1="23.495" x2="6.35" y2="29.845" width="0.1524" layer="21" style="shortdash"/>
 <wire x1="16.51" y1="23.495" x2="16.51" y2="29.845" width="0.1524" layer="21" style="shortdash"/>
+<text x="4.445" y="33.02" size="0.8128" layer="121" ratio="12">CLOUD SENSOR v1.0</text>
 </plain>
 <libraries>
 <library name="SparkFun">
@@ -275,6 +274,14 @@ We've spent an enormous amount of time creating and checking these footprints an
 <pad name="1" x="-1.27" y="0" drill="0.8128" diameter="1.8796"/>
 <text x="3.175" y="0.635" size="0.4064" layer="25" ratio="10">&gt;NAME</text>
 <text x="3.175" y="-1.27" size="0.4064" layer="27" ratio="10">&gt;VALUE</text>
+</package>
+<package name="CPOL-RADIAL-10UF-25V">
+<wire x1="-0.762" y1="1.397" x2="-1.778" y2="1.397" width="0.2032" layer="21"/>
+<circle x="0" y="0" radius="2.5" width="0.2032" layer="21"/>
+<pad name="1" x="1.27" y="0" drill="0.7" diameter="1.651" shape="square"/>
+<pad name="2" x="-1.27" y="0" drill="0.7" diameter="1.651"/>
+<text x="-0.889" y="1.524" size="0.4064" layer="25">&gt;Name</text>
+<text x="-1.905" y="-3.683" size="0.8128" layer="27">&gt;Value</text>
 </package>
 </packages>
 </library>
@@ -529,19 +536,19 @@ design rules under a new name.</description>
 </autorouter>
 <elements>
 <element name="X1" library="SteveMarple" package="ML8" value="SHIELD" x="11.43" y="8.89" smashed="yes" rot="R90">
-<attribute name="NAME" x="6.35" y="8.89" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
+<attribute name="NAME" x="6.35" y="9.525" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="6.35" y="12.065" size="1.016" layer="27" font="vector" ratio="10" rot="R90"/>
 </element>
-<element name="JP2" library="pinhead" package="2X03" value="VCC" x="19.05" y="17.78" smashed="yes" rot="R90">
-<attribute name="NAME" x="19.685" y="23.495" size="1.016" layer="25" ratio="10"/>
-<attribute name="VALUE" x="19.685" y="22.225" size="1.016" layer="27" ratio="10"/>
+<element name="JP1" library="pinhead" package="2X03" value="VCC" x="19.05" y="17.78" smashed="yes" rot="R90">
+<attribute name="NAME" x="22.606" y="15.24" size="0.8128" layer="25" ratio="10" rot="R90"/>
+<attribute name="VALUE" x="22.606" y="18.415" size="0.8128" layer="27" ratio="10" rot="R90"/>
 </element>
-<element name="R4" library="SteveMarple" package="RES-AXIAL-0.4" value="10k" x="11.43" y="46.99" smashed="yes">
-<attribute name="NAME" x="5.08" y="46.355" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
+<element name="R1" library="SteveMarple" package="RES-AXIAL-0.4" value="10k" x="11.43" y="46.99" smashed="yes">
+<attribute name="NAME" x="5.334" y="47.625" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="11.43" y="46.99" size="1.016" layer="27" font="vector" ratio="10" align="center"/>
 </element>
-<element name="R5" library="SteveMarple" package="RES-AXIAL-0.4" value="10k" x="11.43" y="44.45" smashed="yes">
-<attribute name="NAME" x="5.08" y="43.815" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
+<element name="R2" library="SteveMarple" package="RES-AXIAL-0.4" value="10k" x="11.43" y="44.45" smashed="yes">
+<attribute name="NAME" x="5.334" y="42.545" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="11.43" y="44.45" size="1.016" layer="27" font="vector" ratio="10" align="center"/>
 </element>
 <element name="IC1" library="SteveMarple" package="TO39-4" value="MLX90614" x="11.43" y="38.1" smashed="yes" rot="MR90">
@@ -549,26 +556,26 @@ design rules under a new name.</description>
 <attribute name="VALUE" x="15.24" y="31.115" size="1.016" layer="28" ratio="10" rot="MR0"/>
 </element>
 <element name="Q1" library="SteveMarple" package="TO-92" value="2N7000" x="3.81" y="20.32" smashed="yes" rot="R180">
-<attribute name="NAME" x="7.62" y="20.32" size="1.016" layer="25" ratio="10"/>
-<attribute name="VALUE" x="7.62" y="19.05" size="1.016" layer="27" ratio="10"/>
+<attribute name="NAME" x="1.27" y="23.495" size="1.016" layer="25" ratio="10"/>
+<attribute name="VALUE" x="1.27" y="22.225" size="1.016" layer="27" ratio="10"/>
 </element>
-<element name="R1" library="SteveMarple" package="RES-AXIAL-0.4" value="1M" x="3.81" y="10.795" smashed="yes" rot="R90">
-<attribute name="NAME" x="6.35" y="5.715" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
+<element name="R5" library="SteveMarple" package="RES-AXIAL-0.4" value="1M" x="3.81" y="10.795" smashed="yes" rot="R90">
+<attribute name="NAME" x="1.905" y="7.62" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="3.81" y="10.795" size="1.016" layer="27" font="vector" ratio="10" rot="R90" align="center"/>
 </element>
-<element name="R2" library="SteveMarple" package="RES-AXIAL-0.4" value="100R" x="20.32" y="38.1" smashed="yes" rot="R90">
+<element name="R3" library="SteveMarple" package="RES-AXIAL-0.4" value="100R" x="20.32" y="38.1" smashed="yes" rot="R90">
 <attribute name="NAME" x="18.415" y="40.005" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="20.32" y="38.1" size="1.016" layer="27" font="vector" ratio="10" rot="R90" align="center"/>
 </element>
-<element name="C1" library="SparkFun" package="CAP-PTH-SMALL" value="100n" x="17.78" y="38.1" smashed="yes" rot="R270">
+<element name="C2" library="SparkFun" package="CAP-PTH-SMALL" value="100n" x="17.78" y="38.1" smashed="yes" rot="R270">
 <attribute name="NAME" x="15.24" y="34.925" size="1.016" layer="25" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="16.51" y="34.925" size="1.016" layer="27" ratio="10" rot="R90"/>
 </element>
-<element name="JP1" library="pinhead" package="2X03" value="HEAT VCC" x="19.05" y="8.89" smashed="yes" rot="R270">
-<attribute name="NAME" x="16.51" y="3.556" size="1.016" layer="25" ratio="10"/>
-<attribute name="VALUE" x="22.606" y="6.35" size="0.6096" layer="27" ratio="10" rot="R90"/>
+<element name="JP2" library="pinhead" package="2X03" value="HEAT VCC" x="19.05" y="8.89" smashed="yes" rot="R270">
+<attribute name="NAME" x="22.479" y="3.556" size="0.8128" layer="25" ratio="10" rot="R90"/>
+<attribute name="VALUE" x="22.606" y="6.35" size="0.8128" layer="27" ratio="10" rot="R90"/>
 </element>
-<element name="R3" library="SteveMarple" package="RES-AXIAL-0.4" value="100R" x="2.54" y="38.1" smashed="yes" rot="R90">
+<element name="R4" library="SteveMarple" package="RES-AXIAL-0.4" value="100R" x="2.54" y="38.1" smashed="yes" rot="R90">
 <attribute name="NAME" x="5.08" y="35.56" size="1.016" layer="25" font="vector" ratio="10" rot="R90"/>
 <attribute name="VALUE" x="2.54" y="38.1" size="1.016" layer="27" font="vector" ratio="10" rot="R90" align="center"/>
 </element>
@@ -577,8 +584,12 @@ design rules under a new name.</description>
 <attribute name="MPN" value="22-23-2061" x="11.43" y="26.67" size="1.016" layer="27" ratio="10" display="off"/>
 <attribute name="MF" value="MOLEX" x="11.43" y="26.67" size="1.016" layer="27" ratio="10" display="off"/>
 <attribute name="OC_FARNELL" value="1462922" x="11.43" y="26.67" size="1.016" layer="27" ratio="10" display="off"/>
-<attribute name="NAME" x="9.525" y="22.225" size="1.016" layer="25" ratio="10"/>
-<attribute name="VALUE" x="12.7" y="22.225" size="1.016" layer="27" ratio="10"/>
+<attribute name="NAME" x="20.955" y="23.495" size="1.016" layer="25" ratio="10" rot="R90"/>
+<attribute name="VALUE" x="22.225" y="22.225" size="1.016" layer="27" ratio="10" rot="R90"/>
+</element>
+<element name="C1" library="SteveMarple" package="CPOL-RADIAL-10UF-25V" value="4u7" x="12.7" y="20.574" smashed="yes">
+<attribute name="NAME" x="7.747" y="21.971" size="1.016" layer="25" ratio="10"/>
+<attribute name="VALUE" x="7.62" y="20.701" size="1.016" layer="27" ratio="10"/>
 </element>
 </elements>
 <signals>
@@ -586,9 +597,9 @@ design rules under a new name.</description>
 <contactref element="X1" pad="4"/>
 <contactref element="IC1" pad="4"/>
 <contactref element="IC1" pad="4"/>
-<contactref element="R1" pad="P$1"/>
+<contactref element="R5" pad="P$1"/>
 <contactref element="Q1" pad="1"/>
-<contactref element="C1" pad="2"/>
+<contactref element="C2" pad="2"/>
 <polygon width="0.381" layer="16" isolate="0.6096">
 <vertex x="-1.27" y="-1.27"/>
 <vertex x="-1.27" y="50.8"/>
@@ -601,9 +612,11 @@ design rules under a new name.</description>
 <wire x1="12.7" y1="30.48" x2="12.7" y2="26.67" width="0.381" layer="1"/>
 <wire x1="11.43" y1="35.56" x2="11.43" y2="31.75" width="0.381" layer="1"/>
 <wire x1="11.43" y1="35.56" x2="17.78" y2="35.56" width="0.381" layer="16"/>
-<wire x1="12.7" y1="26.67" x2="12.7" y2="22.86" width="0.381" layer="16"/>
-<wire x1="12.7" y1="22.86" x2="10.16" y2="20.32" width="0.381" layer="16"/>
-<wire x1="10.16" y1="20.32" x2="5.08" y2="20.32" width="0.381" layer="16"/>
+<wire x1="12.7" y1="26.67" x2="12.7" y2="24.13" width="0.381" layer="16"/>
+<wire x1="12.7" y1="24.13" x2="11.43" y2="22.86" width="0.381" layer="16"/>
+<wire x1="11.43" y1="22.86" x2="11.43" y2="20.574" width="0.381" layer="16"/>
+<wire x1="11.43" y1="20.574" x2="11.43" y2="20.32" width="0.381" layer="16"/>
+<wire x1="11.43" y1="20.32" x2="5.08" y2="20.32" width="0.381" layer="16"/>
 <wire x1="6.35" y1="7.62" x2="10.16" y2="7.62" width="0.381" layer="1"/>
 <wire x1="5.08" y1="20.32" x2="6.35" y2="19.05" width="0.381" layer="1"/>
 <wire x1="6.35" y1="19.05" x2="6.35" y2="7.62" width="0.381" layer="1"/>
@@ -614,11 +627,12 @@ design rules under a new name.</description>
 <vertex x="25.4" y="52.07"/>
 <vertex x="25.4" y="-2.54"/>
 </polygon>
+<contactref element="C1" pad="2"/>
 </signal>
 <signal name="+5V" class="1">
 <contactref element="X1" pad="1"/>
-<contactref element="JP2" pad="4"/>
-<contactref element="JP1" pad="3"/>
+<contactref element="JP1" pad="4"/>
+<contactref element="JP2" pad="3"/>
 <wire x1="15.24" y1="8.89" x2="15.24" y2="5.08" width="0.381" layer="16"/>
 <wire x1="15.24" y1="5.08" x2="12.7" y2="5.08" width="0.381" layer="16"/>
 <wire x1="17.78" y1="8.89" x2="15.24" y2="8.89" width="0.381" layer="16"/>
@@ -628,15 +642,15 @@ design rules under a new name.</description>
 </signal>
 <signal name="+3V3" class="1">
 <contactref element="X1" pad="8"/>
-<contactref element="JP2" pad="2"/>
-<contactref element="JP1" pad="1"/>
+<contactref element="JP1" pad="2"/>
+<contactref element="JP2" pad="1"/>
 <wire x1="10.16" y1="15.24" x2="10.16" y2="12.7" width="0.381" layer="16"/>
 <wire x1="17.78" y1="15.24" x2="10.16" y2="15.24" width="0.381" layer="16"/>
 <wire x1="17.78" y1="15.24" x2="17.78" y2="11.43" width="0.381" layer="1"/>
 </signal>
 <signal name="VIN" class="1">
 <contactref element="X1" pad="2"/>
-<contactref element="JP1" pad="5"/>
+<contactref element="JP2" pad="5"/>
 <wire x1="10.16" y1="3.175" x2="10.16" y2="5.08" width="0.381" layer="1"/>
 <wire x1="17.78" y1="6.35" x2="17.78" y2="3.175" width="0.381" layer="1"/>
 <wire x1="17.78" y1="3.175" x2="10.16" y2="3.175" width="0.381" layer="1"/>
@@ -644,13 +658,15 @@ design rules under a new name.</description>
 </signal>
 <signal name="SDA">
 <contactref element="X1" pad="7"/>
-<contactref element="R4" pad="P$1"/>
+<contactref element="R1" pad="P$1"/>
 <contactref element="IC1" pad="2"/>
 <wire x1="11.43" y1="41.91" x2="11.43" y2="40.64" width="0.254" layer="1"/>
 <wire x1="6.35" y1="46.99" x2="11.43" y2="41.91" width="0.254" layer="1"/>
-<wire x1="12.7" y1="19.05" x2="12.7" y2="12.7" width="0.254" layer="1"/>
-<wire x1="10.16" y1="26.67" x2="10.16" y2="21.59" width="0.254" layer="1"/>
-<wire x1="10.16" y1="21.59" x2="12.7" y2="19.05" width="0.254" layer="1"/>
+<wire x1="12.7" y1="15.24" x2="12.7" y2="12.7" width="0.254" layer="1"/>
+<wire x1="10.16" y1="26.67" x2="10.16" y2="24.13" width="0.254" layer="1"/>
+<wire x1="10.16" y1="24.13" x2="8.89" y2="22.86" width="0.254" layer="1"/>
+<wire x1="8.89" y1="22.86" x2="8.89" y2="19.05" width="0.254" layer="1"/>
+<wire x1="8.89" y1="19.05" x2="12.7" y2="15.24" width="0.254" layer="1"/>
 <wire x1="9.525" y1="36.195" x2="11.43" y2="38.1" width="0.254" layer="1"/>
 <wire x1="11.43" y1="38.1" x2="11.43" y2="40.64" width="0.254" layer="1"/>
 <wire x1="10.16" y1="26.67" x2="10.16" y2="31.115" width="0.254" layer="1"/>
@@ -660,26 +676,26 @@ design rules under a new name.</description>
 </signal>
 <signal name="SCL">
 <contactref element="X1" pad="5"/>
-<contactref element="R5" pad="P$1"/>
+<contactref element="R2" pad="P$1"/>
 <contactref element="IC1" pad="1"/>
 <wire x1="6.35" y1="40.64" x2="8.89" y2="38.1" width="0.254" layer="1"/>
 <wire x1="6.35" y1="44.45" x2="6.35" y2="40.64" width="0.254" layer="1"/>
 <wire x1="11.43" y1="11.43" x2="12.7" y2="10.16" width="0.254" layer="1"/>
-<wire x1="11.43" y1="17.78" x2="11.43" y2="11.43" width="0.254" layer="1"/>
-<wire x1="7.62" y1="26.67" x2="7.62" y2="21.59" width="0.254" layer="1"/>
-<wire x1="7.62" y1="21.59" x2="11.43" y2="17.78" width="0.254" layer="1"/>
+<wire x1="11.43" y1="13.97" x2="11.43" y2="11.43" width="0.254" layer="1"/>
+<wire x1="7.62" y1="26.67" x2="7.62" y2="17.78" width="0.254" layer="1"/>
+<wire x1="7.62" y1="17.78" x2="11.43" y2="13.97" width="0.254" layer="1"/>
 <wire x1="7.62" y1="26.67" x2="7.62" y2="36.83" width="0.254" layer="1"/>
 <wire x1="7.62" y1="36.83" x2="8.89" y2="38.1" width="0.254" layer="1"/>
 <contactref element="X2" pad="2"/>
 </signal>
 <signal name="CONTROL">
 <contactref element="X1" pad="3"/>
-<contactref element="JP2" pad="6"/>
+<contactref element="JP1" pad="6"/>
 <contactref element="Q1" pad="2"/>
-<contactref element="R1" pad="P$2"/>
-<wire x1="13.335" y1="18.415" x2="15.24" y2="20.32" width="0.254" layer="16"/>
-<wire x1="15.24" y1="20.32" x2="17.78" y2="20.32" width="0.254" layer="16"/>
-<wire x1="3.81" y1="18.415" x2="13.335" y2="18.415" width="0.254" layer="16"/>
+<contactref element="R5" pad="P$2"/>
+<wire x1="15.24" y1="18.415" x2="17.145" y2="20.32" width="0.254" layer="16"/>
+<wire x1="17.145" y1="20.32" x2="17.78" y2="20.32" width="0.254" layer="16"/>
+<wire x1="3.81" y1="18.415" x2="15.24" y2="18.415" width="0.254" layer="16"/>
 <wire x1="11.43" y1="8.89" x2="12.7" y2="7.62" width="0.254" layer="16"/>
 <wire x1="7.62" y1="8.89" x2="11.43" y2="8.89" width="0.254" layer="16"/>
 <wire x1="3.81" y1="12.7" x2="7.62" y2="8.89" width="0.254" layer="16"/>
@@ -688,13 +704,13 @@ design rules under a new name.</description>
 </signal>
 <signal name="VCC" class="1">
 <contactref element="X1" pad="6"/>
-<contactref element="R4" pad="P$2"/>
-<contactref element="R5" pad="P$2"/>
-<contactref element="JP2" pad="5"/>
-<contactref element="JP2" pad="1"/>
-<contactref element="JP2" pad="3"/>
+<contactref element="R1" pad="P$2"/>
+<contactref element="R2" pad="P$2"/>
+<contactref element="JP1" pad="5"/>
+<contactref element="JP1" pad="1"/>
+<contactref element="JP1" pad="3"/>
 <contactref element="IC1" pad="3"/>
-<contactref element="C1" pad="1"/>
+<contactref element="C2" pad="1"/>
 <wire x1="11.43" y1="11.43" x2="10.16" y2="10.16" width="0.381" layer="16"/>
 <wire x1="13.97" y1="11.43" x2="11.43" y2="11.43" width="0.381" layer="16"/>
 <wire x1="20.32" y1="13.335" x2="15.875" y2="13.335" width="0.381" layer="16"/>
@@ -714,13 +730,16 @@ design rules under a new name.</description>
 <wire x1="15.24" y1="22.86" x2="19.05" y2="22.86" width="0.381" layer="16"/>
 <wire x1="15.24" y1="26.67" x2="15.24" y2="22.86" width="0.381" layer="16"/>
 <contactref element="X2" pad="5"/>
+<contactref element="C1" pad="1"/>
+<wire x1="13.97" y1="20.574" x2="13.97" y2="21.59" width="0.381" layer="16"/>
+<wire x1="13.97" y1="21.59" x2="15.24" y2="22.86" width="0.381" layer="16"/>
 </signal>
 <signal name="HEATER_VCC" class="1">
-<contactref element="R2" pad="P$2"/>
-<contactref element="JP1" pad="2"/>
-<contactref element="JP1" pad="4"/>
-<contactref element="JP1" pad="6"/>
 <contactref element="R3" pad="P$2"/>
+<contactref element="JP2" pad="2"/>
+<contactref element="JP2" pad="4"/>
+<contactref element="JP2" pad="6"/>
+<contactref element="R4" pad="P$2"/>
 <wire x1="4.445" y1="41.275" x2="2.54" y2="43.18" width="0.381" layer="16"/>
 <wire x1="18.415" y1="41.275" x2="15.875" y2="41.275" width="0.381" layer="16"/>
 <wire x1="15.875" y1="41.275" x2="13.335" y2="43.815" width="0.381" layer="16"/>
@@ -729,9 +748,8 @@ design rules under a new name.</description>
 <wire x1="6.985" y1="41.275" x2="4.445" y2="41.275" width="0.381" layer="16"/>
 <wire x1="20.32" y1="43.18" x2="18.415" y2="41.275" width="0.381" layer="16"/>
 <wire x1="20.32" y1="8.89" x2="20.32" y2="6.35" width="0.381" layer="1"/>
-<wire x1="17.78" y1="23.495" x2="17.78" y2="26.67" width="0.381" layer="1"/>
-<wire x1="22.098" y1="21.717" x2="20.32" y2="23.495" width="0.381" layer="1"/>
-<wire x1="20.32" y1="23.495" x2="17.78" y2="23.495" width="0.381" layer="1"/>
+<wire x1="17.78" y1="26.035" x2="17.78" y2="26.67" width="0.381" layer="1"/>
+<wire x1="22.098" y1="21.717" x2="17.78" y2="26.035" width="0.381" layer="1"/>
 <wire x1="22.098" y1="13.208" x2="22.098" y2="21.717" width="0.381" layer="1"/>
 <wire x1="20.32" y1="11.43" x2="22.098" y2="13.208" width="0.381" layer="1"/>
 <wire x1="20.32" y1="11.43" x2="20.32" y2="8.89" width="0.381" layer="1"/>
@@ -742,8 +760,8 @@ design rules under a new name.</description>
 </signal>
 <signal name="HEATER_CONTROL" class="1">
 <contactref element="Q1" pad="3"/>
-<contactref element="R2" pad="P$1"/>
 <contactref element="R3" pad="P$1"/>
+<contactref element="R4" pad="P$1"/>
 <wire x1="5.08" y1="26.67" x2="5.08" y2="24.13" width="0.381" layer="16"/>
 <wire x1="5.08" y1="24.13" x2="2.54" y2="21.59" width="0.381" layer="16"/>
 <wire x1="2.54" y1="21.59" x2="2.54" y2="20.32" width="0.381" layer="16"/>
