@@ -81,6 +81,35 @@ def format_unix_epoch_32678(tag_name, data_len, payload):
     dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
     return str(t[0]) + ',' + str(t[1]) + ' (' + dt.isoformat() + ')'
 
+def format_read_eeprom(tag_name, data_len, payload):
+    if data_len == 4:
+        return 'address=0x{addr:03x} length={length:d}'\
+            .format(addr=256 * payload[0] + payload[1],
+                    length=256 * payload[2] + payload[3])
+    else:
+        return 'Data wrong length'
+
+def format_eeprom_contents(tag_name, data_len, payload):
+    if data_len < 3:
+        return 'Data too short'
+    address = 256 * payload[0] + payload[1]
+    data_repr = '0x  ' + ' '.join(map(byte_hex, payload[2:]))
+    return ('address=0x%04x ' % address) + data_repr
+
+def format_upgrade_firmware(tag_name, data_len, payload):
+    return "'{version:s}' pages={pages:d} crc=0x{crc:04x}".\
+        format(version=payload[0:16].split('\0')[0],
+               pages=payload[16]*256 + payload[17],
+               crc=payload[18]*256 + payload[19])
+
+def format_get_firmware_page(tag_name, data_len, payload):
+    return "'{version:s}' page={page:d}".\
+        format(version=payload[0:16].split('\0')[0],
+               page=payload[16]*256 + payload[17])
+
+
+
+
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
 # protocol but elsewhere referred to by name. In tag_data the keys are
@@ -180,12 +209,14 @@ tag_data = {
         'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number + size_of_crc),
         'format': ('!' + str(firmware_version_max_length) + 'cHH'),
+        'formatter': format_upgrade_firmware,
         },
     'get_firmware_page': {
         'id': 15,
         'length': (size_of_tag + firmware_version_max_length + 
                    size_of_firmware_page_number),
         'format': ('!' + str(firmware_version_max_length) + 'cH'),
+        'formatter': format_get_firmware_page,
         },
     'firmware_page': {
         'id': 16,
@@ -193,17 +224,20 @@ tag_data = {
                    size_of_firmware_page_number + firmware_block_size),
         'format': ('!' + str(firmware_version_max_length) + 'cH' + 
                    str(firmware_block_size) + 'c'),
-        'formatter': 'format_tag_blank',
+        'formatter': format_get_firmware_page,
+        # 'formatter': format_tag_blank,
         },
     'read_eeprom': {
         'id': 17,
         'length': 5,
         'format': '!HH',
+        'formatter': format_read_eeprom,
         },
     'eeprom_contents': {
         'id': 18,
         'length': 0,
         # 'format': None,
+        'formatter': format_eeprom_contents,
         },
     'num_samples': {
         'id': 19,
@@ -590,24 +624,18 @@ def print_tags(buf):
         
 
 def decode_tag_payload(tag_name, tag_payload):
-    if tag_data[tag_name]['length'] == 0:
-        data_len = (tag_payload[0] << 8) + tag_payload[1]
-        i = 2
-    else:
-        data_len = tag_data[tag_name]['length'] - 1
-        i = 0
-
     if tag_data[tag_name].has_key('formatter'):
-        data_repr = tag_data[tag_name]['formatter'](tag_name, data_len, 
-                                                    tag_payload[i:(i+data_len)])
+        data_repr = tag_data[tag_name]['formatter'](tag_name, 
+                                                    len(tag_payload),
+                                                    tag_payload)
     elif tag_data[tag_name].has_key('format'):
         data_repr = repr(list(struct.unpack(tag_data[tag_name]['format'],
-                                            str(tag_payload[i:(i+data_len)]))))
+                                            str(tag_payload))))
     else:
-        data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload[i:(i+data_len)]))
+        data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload))
     
     return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
-        data_repr, data_len
+        data_repr, len(tag_payload)
 
 
 def print_signature(buf):
