@@ -324,7 +324,8 @@ def log_message_events(t, message_tags, is_response=False):
         prefix = ts + ' M '
 
     tags_to_log = ['time_adjustment', 'reboot_flags', 'reboot', 
-                   'current_firmware', 'read_eeprom', 'eeprom_contents']
+                   'current_firmware', 'read_eeprom', 'eeprom_contents',
+                   'upgrade_firmware', 'get_firmware_page', 'firmware_page']
     for tag_name in tags_to_log:
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
@@ -340,7 +341,6 @@ def log_message_events(t, message_tags, is_response=False):
     #    lines.append('firmware upgrade')
 
     if lines:
-        print(repr(lines))
         write_to_log_file(t, ''.join(lines))
 
 
@@ -466,7 +466,7 @@ def handle_control_message(buf, pending_tags):
         elif cmd == 'pending_tags':
             r.append('pending_tags:' + describe_pending_tags())
         else:
-            r.append('ERROR: do not understand '' + str(cmd) + ''')
+            r.append('ERROR: do not understand "' + str(cmd) + '"')
     print('\n'.join(r))
     return r
 
