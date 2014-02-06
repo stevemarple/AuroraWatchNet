@@ -163,7 +163,8 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr):
                 realtime_file.write(' {:.1f}'.format(1e9 * AW_Message.adc_counts_to_tesla(data)))
             else:
                 realtime_file.write(' nan')
-        realtime_file.write('\n')        
+        realtime_file.write('\n')
+        realtime_file.flush()
         global close_after_write
         if close_after_write:
             realtime_file.close()
@@ -203,9 +204,9 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
         else:
             data.append(float('NaN'))
         
-        awnet_text_file.write(str(timestamp[0]))
-        # strip zero before decimal point 
-        awnet_text_file.write(str(timestamp[1]/32768.0).lstrip('0'))
+        # Write the time
+        awnet_text_file.write('%.06f' % t)
+
         awnet_text_file.write('\t')
         awnet_text_file.write('\t'.join(map(str, data)))
         awnet_text_file.write('\n')
@@ -220,51 +221,48 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
 
 # AuroraWatch realtime file
 cloud_file = None
-def write_cloud_data(timestamp, data):
+def write_cloud_data(t, message_tags, fstr):
     global cloud_file
-    global config
-    unix_time = timestamp[0] + timestamp[1]/32768.0
-    tmp_name = time.strftime(config.get('cloud', 'filename'),
-                            time.gmtime(unix_time))
-    if cloud_file is not None and tmp_name != cloud_file.name:
-        # Filename has changed
-        cloud_file.close()
-        cloud_file = None
-            
-    if cloud_file is None:
-        # File wasn't open or filename changed
-        p = os.path.dirname(tmp_name)
-        if not os.path.isdir(p):
-            try:
-                os.makedirs(p)
-            except Exception as e:
-                print('Could not make directory ' + p + str(e))
-                return
+    try:
+        cloud_file = get_file_for_time(t, cloud_file, fstr)
         
-        try:
-            cloud_file = open(tmp_name, 'a+', 1)
-        except Exception as e:
-            print('Exception was ' + str(e))
-            cloud_file = None
-        
-    if cloud_file is not None:
+
         tag_names = ['cloud_ambient_temperature', 
                      'cloud_object1_temperature']
         if config.getboolean('cloud', 'dual_sensor'):
             tags.append('cloud_object2_temperature')
         tag_names.extend(['ambient_temperature', 'relative_humidity'])
 
-        # Write the time
-        cloud_file.write(str(timestamp[0]))
-        # strip zero before decimal point 
-        cloud_file.write(str(timestamp[1]/32768.0).lstrip('0'))
 
+        data = {}
+        for tag_name in ['cloud_ambient_temperature', 
+                         'cloud_object1_temperature',
+                         'cloud_object2_temperature', 
+                         'ambient_temperature',
+                         'relative_humidity']:
+            if tag_name in message_tags:
+                data[tag_name] = AW_Message.decode_cloud_temp( \
+                    tag_name, str(message_tags[tag_name][0]))
+
+
+        # Write the time
+        cloud_file.write('%.06f' % t)
+       
         for tag_name in tag_names:
-            if tag_name in data:
-                cloud_file.write(' {:.2f}'.format(data[tag_name]))
+            if tag_name in message_tags:
+                data = AW_Message.decode_cloud_temp( \
+                    tag_name, str(message_tags[tag_name][0]))
+                cloud_file.write(' {:.2f}'.format(data))
             else:
                 cloud_file.write(' nan')
         cloud_file.write('\n')
+        cloud_file.flush()
+        global close_after_write
+        if close_after_write:
+            cloud_file.close()
+
+    except Exception as e:
+        print('Could not save cloud data: ' + str(e))
 
     
 def iso_timestamp(t):
@@ -666,7 +664,6 @@ print('Done')
 comms_block_size = int(config.get('serial', 'blocksize'))
 
 close_after_write = config.getboolean('daemon', 'close_after_write')
-print('close_after_write: ' + str(close_after_write))
 
 if args.device:
     device_filename = args.device
@@ -949,23 +946,15 @@ while running:
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
                     log_message_events(timestamp_s, message_tags, 
-                                           is_response=AW_Message.is_response_message(message))
+                                       is_response=AW_Message.is_response_message(message))
                     if response is not None:
                         log_message_events(timestamp_s, response, 
                                                is_response=True)
 
                 if (config.has_option('cloud', 'filename') and
                     not AW_Message.is_response_message(message)):
-                    data = {}
-                    for tag_name in ['cloud_ambient_temperature', 
-                                     'cloud_object1_temperature',
-                                     'cloud_object2_temperature', 
-                                     'ambient_temperature',
-                                     'relative_humidity']:
-                        if tag_name in message_tags:
-                            data[tag_name] = AW_Message.decode_cloud_temp( \
-                                tag_name, str(message_tags[tag_name][0]))
-                    write_cloud_data(timestamp, data)
+                    write_cloud_data(timestamp_s, message_tags,
+                                     config.get('cloud', 'filename'))
 
                 if (config.has_option('awnettextdata', 'filename') and
                     not AW_Message.is_response_message(message)):
