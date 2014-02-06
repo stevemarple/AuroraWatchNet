@@ -826,7 +826,7 @@ while running:
                 # the new data.
                 buf = bytearray()
                 s, remote_addr = device_socket.recvfrom(1024)
-                print(repr(remote_addr))
+
             if len(s) == 0:
                 # end of file
                 running = False
