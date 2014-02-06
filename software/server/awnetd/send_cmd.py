@@ -127,7 +127,7 @@ port = int(config.get('controlsocket', 'port'))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('localhost', port))
-s.settimeout(2)
+s.settimeout(5)
 for cmd in user_cmds:
     cmd_str = cmd['name'] + '=' + cmd['value']
     if args.verbose:
