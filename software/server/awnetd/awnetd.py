@@ -43,6 +43,8 @@ def read_config_file(config_file):
     config.set('daemon', 'user', 'nobody')
     config.set('daemon', 'group', 'nogroup')
     config.set('daemon', 'connection', 'serial')
+    
+    config.set('daemon', 'close_after_write', 'false')
 
     config.add_section('controlsocket')
     # ord('A') = 65, ord('W') = 87 
@@ -103,10 +105,13 @@ def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
     t: seconds since unix epoch
     '''
     tmp_name = time.strftime(fstr, time.gmtime(t))
-    if file_obj is not None and tmp_name != file_obj.name:
-        # Filename has changed
-        file_obj.close()
-        file_obj = None
+    if file_obj is not None:
+        if file_obj.closed:
+            file_obj = None
+        elif file_obj.name != tmp_name:
+            # Filename has changed
+            file_obj.close()
+            file_obj = None
         
     if file_obj is None:
         # File wasn't open or filename changed
@@ -119,86 +124,60 @@ def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
     return file_obj
 
 aw_message_file = None
-def write_message_to_file(t, message, fstr):
-    global aw_message_file        
+def write_message_to_file(t, message, fstr, savekey=None):
+    global aw_message_file
     try:
+        if savekey:
+            AW_Message.put_signature(message, savekey, 
+                                     AW_Message.get_retries(message),
+                                     AW_Message.get_sequence_id(message))
+
         aw_message_file = get_file_for_time(t, aw_message_file, fstr)
         aw_message_file.write(message);
         aw_message_file.flush()
+        global close_after_write
+        if close_after_write:
+            aw_message_file.close()
+
     except Exception as e:
         print('Could not save message: ' + str(e))
     
 # AuroraWatch realtime file
 realtime_file = None
-def write_aurorawatch_realtime_data(timestamp, data):
+def write_aurorawatch_realtime_data(t, message_tags, fstr):
     global realtime_file
-    seconds = long(round(timestamp[0] + (timestamp[1]/32768.0)))
-    tmp_name = time.strftime(config.get('aurorawatchrealtime', 
-                                       'filename'),
-                            time.gmtime(seconds))
-    if realtime_file is not None and tmp_name != realtime_file.name:
-        # Filename has changed
-        realtime_file.close()
-        realtime_file = None
-            
-    if realtime_file is None:
-        # File wasn't open or filename changed
-        p = os.path.dirname(tmp_name)
-        if not os.path.isdir(p):
-            try:
-                os.makedirs(p)
-            except Exception as e:
-                print('Could not make directory ' + p + str(e))
-                return
-        
-        try:
-            realtime_file = open(tmp_name, 'a+', 1)
-        except Exception as e:
-            print('Exception was ' + str(e))
-            realtime_file = None
-    
-    if realtime_file is not None:
-        realtime_file.write('{:05d}'.format(seconds % 86400))
+    try:
+        data = { }
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
-            if tag_name in data:
-                realtime_file.write(' {:.1f}'.format(1e9 * AW_Message.adc_counts_to_tesla(data[tag_name])))
+            if tag_name in message_tags:
+                comp = struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                                     str(message_tags[tag_name][0]))
+                data[tag_name] = comp[1];
+                
+        realtime_file = get_file_for_time(t, realtime_file, fstr)
+        realtime_file.write('{:05d}'.format(int(round(t)) % 86400))
+        for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
+            if tag_name in message_tags:
+                data = struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                                     str(message_tags[tag_name][0]))[1]
+                realtime_file.write(' {:.1f}'.format(1e9 * AW_Message.adc_counts_to_tesla(data)))
             else:
                 realtime_file.write(' nan')
-        realtime_file.write('\n')
+        realtime_file.write('\n')        
+        global close_after_write
+        if close_after_write:
+            realtime_file.close()
+
+    except Exception as e:
+        print('Could not write realtime format data: ' + str(e))
+
 
 # File object to which AuroraWatchNet text data format files are written    
 awnet_text_file = None
-def write_aurorawatchnet_text_data(timestamp, message_tags):
-    if not config.has_option('awnettextdata', 'filename'):
-        return
-    
+def write_aurorawatchnet_text_data(t, message_tags, fstr):
     global awnet_text_file
-    unix_time = timestamp[0] + timestamp[1]/32768.0
-    
-    tmp_name = time.strftime(config.get('awnettextdata', 'filename'),
-                            time.gmtime(unix_time))
-    if awnet_text_file is not None and tmp_name != awnet_text_file.name:
-        # Filename has changed
-        awnet_text_file.close()
-        awnet_text_file = None
-            
-    if awnet_text_file is None:
-        # File wasn't open or filename changed
-        p = os.path.dirname(tmp_name)
-        if not os.path.isdir(p):
-            try:
-                os.makedirs(p)
-            except Exception as e:
-                print('Could not make directory ' + p + str(e))
-                return
-        
-        try:
-            awnet_text_file = open(tmp_name, 'a+', 1)
-        except Exception as e:
-            print('Exception was ' + str(e))
-            awnet_text_file = None
-    
-    if awnet_text_file is not None:
+    try:
+        awnet_text_file = get_file_for_time(t, awnet_text_file, fstr)
         data = [ ]
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
@@ -230,6 +209,14 @@ def write_aurorawatchnet_text_data(timestamp, message_tags):
         awnet_text_file.write('\t')
         awnet_text_file.write('\t'.join(map(str, data)))
         awnet_text_file.write('\n')
+        awnet_text_file.flush()
+        global close_after_write
+        if close_after_write:
+            awnet_text_file.close()
+
+    except Exception as e:
+        print('Could not write aurorawatchnet format data: ' + str(e))
+
 
 # AuroraWatch realtime file
 cloud_file = None
@@ -301,6 +288,10 @@ def write_to_log_file(t, s):
                                         config.get('logfile', 'filename'))
         aw_log_file.write(s)
         aw_log_file.flush()
+        global close_after_write
+        if close_after_write:
+            aw_log_file.close()
+
     except Exception as e:
         logging.exception('Could not write to log file')
 
@@ -674,6 +665,9 @@ else:
 print('Done')
 comms_block_size = int(config.get('serial', 'blocksize'))
 
+close_after_write = config.getboolean('daemon', 'close_after_write')
+print('close_after_write: ' + str(close_after_write))
+
 if args.device:
     device_filename = args.device
 else:
@@ -790,6 +784,13 @@ hmac_key = config.get('magnetometer', 'key').decode('hex')
 if len(hmac_key) != 16:
     print('key must be 32 characters long')
     exit(1)
+
+saved_hmac_key = None
+if config.has_option('awpacket', 'key'):
+    saved_hmac_key = config.get('awpacket', 'key').decode('hex')
+    if len(saved_hmac_key) != 16:
+        print('key must be 32 characters long')
+        exit(1)
 
 buf = bytearray()
 
@@ -923,21 +924,27 @@ while running:
                 if config.has_option('awpacket', 'filename'):
                     # Save the message and response
                     write_message_to_file(timestamp_s, message, 
-                                        config.get('awpacket', 'filename'))
+                                          config.get('awpacket', 'filename'),
+                                          saved_hmac_key)
                     if response is not None:
                         write_message_to_file(timestamp_s, response, 
-                                            config.get('awpacket', 'filename'))
+                                              config.get('awpacket', 'filename'),
+                                              saved_hmac_key)
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
                     not AW_Message.is_response_message(message)):
-                    data = { }
-                    for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
-                        if tag_name in message_tags:
-                            comp = \
-                                struct.unpack(AW_Message.tag_data[tag_name]['format'], 
-                                              str(message_tags[tag_name][0]))
-                            data[tag_name] = comp[1];
-                    write_aurorawatch_realtime_data(timestamp, data)
+                    # data = { }
+                    # for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
+                    #     if tag_name in message_tags:
+                    #         comp = \
+                    #             struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                    #                           str(message_tags[tag_name][0]))
+                    #         data[tag_name] = comp[1];
+                    # write_aurorawatch_realtime_data(timestamp, data)
+                    write_aurorawatch_realtime_data(timestamp_s, 
+                                                        message_tags, 
+                                                        config.get('aurorawatchrealtime', 'filename'))
+
 
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
@@ -959,9 +966,13 @@ while running:
                             data[tag_name] = AW_Message.decode_cloud_temp( \
                                 tag_name, str(message_tags[tag_name][0]))
                     write_cloud_data(timestamp, data)
-                    
-                if (not AW_Message.is_response_message(message)):
-                    write_aurorawatchnet_text_data(timestamp, message_tags)
+
+                if (config.has_option('awnettextdata', 'filename') and
+                    not AW_Message.is_response_message(message)):
+                    write_aurorawatchnet_text_data(timestamp_s, 
+                                                   message_tags,
+                                                   config.get('awnettextdata', 
+                                                              'filename'))
 
                 # Realtime transfer must be last since it alters the
                 # message and response signature.
@@ -1006,3 +1017,4 @@ while running:
                 control_socket_conn = None
         else:
             print('Other: ' + str(fd))
+
