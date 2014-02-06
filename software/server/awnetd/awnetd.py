@@ -842,7 +842,7 @@ while running:
     
             message = AW_Message.validate_packet(buf, hmac_key, 
                                                  args.ignore_digest)
-            reponse = None
+            response = None
 
             if message is not None:
                 if (device and device.isatty()) or device_socket:
