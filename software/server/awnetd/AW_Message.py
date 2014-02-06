@@ -461,36 +461,42 @@ def put_padding(buf, padding_length):
         return
 
     if padding_length == 1:
-        put_data(buf, tag_data['paddingByte']['id'], [])
+        put_data(buf, tag_data['padding_byte']['id'], [])
     elif padding_length == 2:
-        put_data(buf, tag_data['paddingByte']['id'], [])
-        put_data(buf, tag_data['paddingByte']['id'], [])
+        put_data(buf, tag_data['padding_byte']['id'], [])
+        put_data(buf, tag_data['padding_byte']['id'], [])
     else:
         put_data(buf, tag_data['padding']['id'], bytearray(padding_length - 3))
 
 def put_signature(buf, hmac_key, retries, sequence_id):
     if is_signed_message(buf):
-        signedLen = get_packet_length(buf)
+        signed_len = get_packet_length(buf)
     else:
-        signedLen = get_packet_length(buf) + signature_block_length
-        set_packet_length(buf, signedLen)
+        signed_len = get_packet_length(buf) + signature_block_length
+        set_packet_length(buf, signed_len)
 
     buf[flags_offset] |= (1 << flags_signed_message_bit)
     
   
-    i = signedLen - signature_block_length
+    i = signed_len - signature_block_length
     buf[i] = sequence_id;
     i += 1
     buf[i] = retries
     i += 1
     # Now add HMAC-MD5
     hmac_md5 = hmac.new(hmac_key)# , digestmod=hashlib.md5)
-    hmac_md5.update(buf[0:(signedLen - hmac_length)])
+    hmac_md5.update(buf[0:(signed_len - hmac_length)])
     
     # Take least significant bytes
     hmac_bytes = hmac_md5.digest()
-    buf[(signedLen - hmac_length):signedLen] = \
+    buf[(signed_len - hmac_length):signed_len] = \
         hmac_bytes[(len(hmac_bytes)-hmac_length):]
+
+def remove_signature(buf):
+    if is_signed_message(buf):
+        buf[flags_offset] &= ~(1 << flags_signed_message_bit)
+        unsigned_len = get_packet_length(buf) - signature_block_length
+        set_packet_length(buf, unsigned_len)
 
 def make_header(site_id, timestamp, magic=default_magic, 
                version=default_version, flags=0):
