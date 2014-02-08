@@ -3365,11 +3365,11 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 <text x="231.14" y="35.56" size="1.778" layer="91">Fit on master board only</text>
 <text x="241.3" y="93.98" size="1.778" layer="91">Fit on master board only</text>
 <text x="144.78" y="238.76" size="6.4516" layer="91">FLC100 remote board</text>
-<text x="254" y="226.06" size="1.778" layer="91">One master board required for single-axis operation.</text>
-<text x="254" y="220.98" size="1.778" layer="91">Two slaves boards can be added for 3-axis operation.</text>
-<text x="254" y="215.9" size="1.778" layer="91">Slave boards can use independent ADCs if I2C addresses are different.</text>
-<text x="195.58" y="180.34" size="1.778" layer="91">Omit I2C pull-ups on slave boards</text>
-<text x="195.58" y="177.8" size="1.778" layer="91">(Or increase all to 15k - 22k).</text>
+<text x="254" y="226.06" size="1.778" layer="91" align="top-left">One master board required for single-axis operation.
+Two slaves boards can be added for 3-axis operation.
+Slave boards can use independent ADCs if I2C addresses are different.</text>
+<text x="195.58" y="182.88" size="1.778" layer="91" align="top-left">Omit I2C pull-ups on slave boards
+or increase all to 15k - 22k.</text>
 <text x="307.34" y="40.64" size="2.54" layer="91">Mounting holes</text>
 <text x="45.72" y="25.4" size="2.54" layer="91">Temperature sensor</text>
 <text x="45.72" y="20.32" size="1.778" layer="91">Fit on master board only</text>
@@ -3726,7 +3726,7 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </segment>
 <segment>
 <wire x1="172.72" y1="167.64" x2="185.42" y2="167.64" width="0.1524" layer="91"/>
-<label x="170.18" y="167.64" size="1.778" layer="95" rot="MR0"/>
+<label x="195.58" y="167.64" size="1.778" layer="95"/>
 <junction x="185.42" y="167.64"/>
 <wire x1="185.42" y1="167.64" x2="193.04" y2="167.64" width="0.1524" layer="91"/>
 <pinref part="R2" gate="G$1" pin="1"/>
@@ -3984,4 +3984,10 @@ These are standard SMD and PTH capacitors. Normally 10uF, 47uF, and 100uF in ele
 </sheets>
 </schematic>
 </drawing>
+<compatibility>
+<note version="6.3" minversion="6.2.2" severity="warning">
+Since Version 6.2.2 text objects can contain more than one line,
+which will not be processed correctly with this version.
+</note>
+</compatibility>
 </eagle>
