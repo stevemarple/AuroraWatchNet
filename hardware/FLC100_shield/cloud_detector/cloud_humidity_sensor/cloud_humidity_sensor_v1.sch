@@ -750,7 +750,7 @@
 <text x="0.762" y="79.248" size="2.54" layer="94" font="vector">2</text>
 <text x="1.016" y="26.67" size="2.54" layer="94" font="vector">1</text>
 <text x="321.691" y="19.431" size="2.54" layer="94" font="vector">&gt;DRAWING_NAME</text>
-<text x="309.88" y="9.525" size="2.286" layer="94" font="vector">&gt;LAST_DATE_TIME</text>
+<text x="309.88" y="9.398" size="2.286" layer="94" font="vector">&gt;LAST_DATE_TIME</text>
 <text x="368.3" y="4.445" size="2.54" layer="94" font="vector">&gt;SHEET</text>
 <text x="309.88" y="4.318" size="2.54" layer="94">Drawn By:</text>
 <text x="309.88" y="19.558" size="2.54" layer="94">Title:</text>
@@ -2179,6 +2179,8 @@ enable a heater for dew control.</text>
 6 Sensor VCC
 7 SDA
 8 +3V3</text>
+<text x="328.168" y="14.478" size="2.54" layer="94">1.0</text>
+<text x="330.708" y="4.318" size="2.54" layer="94">Steve Marple</text>
 </plain>
 <instances>
 <instance part="FRAME1" gate="G$1" x="0" y="0">
