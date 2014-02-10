@@ -39,7 +39,6 @@ def read_config_file(config_file):
     config = SafeConfigParser()
     
     config.add_section('daemon')
-    config.set('daemon', 'pidfile', '/tmp/test.pid')
     config.set('daemon', 'user', 'nobody')
     config.set('daemon', 'group', 'nogroup')
     config.set('daemon', 'connection', 'serial')
@@ -72,7 +71,6 @@ def read_config_file(config_file):
     config.set('s', 'path', '/s/aurorawatch/net')
     if config_file:
         config_files_read = config.read(config_file)
-        print('## Config files read: ' + ', '.join(config_files_read))
 
     if config.has_option('s', 'siteids'):
         site_ids = config.get('s', 'siteids').split()
@@ -632,6 +630,8 @@ parser = \
 parser.add_argument('-c', '--config-file', 
                     default='/etc/awnet.ini',
                     help='Configuration file')
+parser.add_argument('-d', '--daemon', action='store_true',
+                    help='Run as daemon')
 parser.add_argument('--acknowledge', action='store_true',
                     default=True,
                     help='Transmit acknowledgement');
@@ -655,6 +655,19 @@ if args.ignore_digest and args.acknowledge:
     print('--ignore-digest requires --no-acknowledge or --read-only')
 
 read_config_file(args.config_file)
+
+if args.daemon:
+    import daemon
+    pidfile = None
+    if config.has_option('daemon', 'pidfile'):
+        import lockfile
+        pidfile = lockfile.FileLock(config.get('daemon', 'pidfile'),
+                                    threaded=False)
+        if pidfile.is_locked():
+            print('daemon already running')
+            exit(1)
+    daemon.DaemonContext(pidfile=pidfile).open()
+
 if site_ids:
     print('Site IDs: ' + ', '.join(site_ids))
 else:
