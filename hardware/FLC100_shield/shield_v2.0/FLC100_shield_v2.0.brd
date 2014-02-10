@@ -950,13 +950,12 @@ SOT23-6 package with footprint designed for easier soldering by hand.&lt;/p&gt;<
 <text x="-1.905" y="-3.683" size="0.8128" layer="27">&gt;Value</text>
 </package>
 <package name="RJ11-6">
-<wire x1="11.938" y1="-5.207" x2="11.938" y2="10.414" width="0.2032" layer="21"/>
+<wire x1="11.938" y1="-3" x2="11.938" y2="10.414" width="0.2032" layer="21"/>
 <wire x1="11.938" y1="10.414" x2="-1.778" y2="10.414" width="0.2032" layer="21"/>
-<wire x1="-1.778" y1="10.414" x2="-1.778" y2="-5.207" width="0.2032" layer="21"/>
-<wire x1="11.938" y1="-5.207" x2="-1.778" y2="-5.207" width="0.2032" layer="21"/>
-<wire x1="-1.778" y1="-5.207" x2="-1.778" y2="-8.128" width="0.2032" layer="51"/>
+<wire x1="-1.778" y1="10.414" x2="-1.778" y2="-3" width="0.2032" layer="21"/>
+<wire x1="-1.778" y1="-3" x2="-1.778" y2="-8.128" width="0.2032" layer="51"/>
 <wire x1="-1.778" y1="-8.128" x2="11.938" y2="-8.128" width="0.2032" layer="51"/>
-<wire x1="11.938" y1="-8.128" x2="11.938" y2="-5.207" width="0.2032" layer="51"/>
+<wire x1="11.938" y1="-8.128" x2="11.938" y2="-3" width="0.2032" layer="51"/>
 <pad name="1" x="1.905" y="8.89" drill="1.016" diameter="1.8796"/>
 <pad name="2" x="3.175" y="6.35" drill="1.016" diameter="1.8796"/>
 <pad name="3" x="4.445" y="8.89" drill="1.016" diameter="1.8796"/>
@@ -967,6 +966,7 @@ SOT23-6 package with footprint designed for easier soldering by hand.&lt;/p&gt;<
 <hole x="10.16" y="0" drill="3.2512"/>
 <text x="2.54" y="3.175" size="1.27" layer="25" ratio="10">&gt;NAME</text>
 <text x="2.54" y="1.27" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+<wire x1="-1.778" y1="-3" x2="11.938" y2="-3" width="0.2032" layer="21"/>
 </package>
 </packages>
 </library>
