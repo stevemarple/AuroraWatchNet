@@ -26,7 +26,7 @@ fi
 
 
 
-URL="http://spears.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}"
+URL="http://aurorawatch.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}"
 if [ -n "$action" ]; then
     URL="${URL}&action=${action}"
     if [ "$action" = "reboot" ]; then
