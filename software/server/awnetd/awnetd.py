@@ -262,6 +262,49 @@ def write_cloud_data(t, message_tags, fstr):
     except Exception as e:
         print('Could not save cloud data: ' + str(e))
 
+   
+# AuroraWatch realtime file
+raw_mag_samples_file = None
+def write_raw_magnetometer_samples(t, message_tags, fstr):
+    '''
+    Output format is timestamp, axes, value, raw sample1, raw sample2 ...
+    where for axes 0 = x, 1 = y, 2 = z
+    '''
+    
+    global raw_mag_samples_file
+    # try:
+    if True:
+        raw_mag_samples_file = get_file_for_time(t, raw_mag_samples_file, fstr)
+
+        fmt_sample = lambda n: str(1e9 * AW_Message.adc_counts_to_tesla(n))
+
+        n = 0
+        for comp in ['x', 'y', 'z']:
+            tag_name = 'mag_data_' + comp
+            if tag_name in message_tags:
+                raw_mag_samples_file.write('%.06f\t' % t)
+                raw_mag_samples_file.write(str(n))
+                data = struct.unpack(AW_Message.tag_data[tag_name]['format'], 
+                                  str(message_tags[tag_name][0]))
+                raw_mag_samples_file.write('\t')
+                raw_mag_samples_file.write(fmt_sample(data[1]))
+
+                tag_name = 'mag_data_all_' + comp
+                if tag_name in message_tags:
+                    data = AW_Message.decode_tag_array_of_longs(tag_name, 
+                                                                len(message_tags[tag_name][0]),
+                                                                message_tags[tag_name][0])
+                    raw_mag_samples_file.write('\t')
+                    raw_mag_samples_file.write('\t'.join(map(fmt_sample, data)))
+                    
+                raw_mag_samples_file.write('\n')
+
+        global close_after_write
+        if close_after_write:
+            raw_mag_samples_file.close()        
+    #except Exception as e:
+    #   print('Could not write raw magnetometer samples data: ' + str(e))
+
     
 def iso_timestamp(t):
     '''
@@ -943,14 +986,6 @@ while running:
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
                     not AW_Message.is_response_message(message)):
-                    # data = { }
-                    # for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
-                    #     if tag_name in message_tags:
-                    #         comp = \
-                    #             struct.unpack(AW_Message.tag_data[tag_name]['format'], 
-                    #                           str(message_tags[tag_name][0]))
-                    #         data[tag_name] = comp[1];
-                    # write_aurorawatch_realtime_data(timestamp, data)
                     write_aurorawatch_realtime_data(timestamp_s, 
                                                         message_tags, 
                                                         config.get('aurorawatchrealtime', 'filename'))
@@ -975,6 +1010,12 @@ while running:
                                                    message_tags,
                                                    config.get('awnettextdata', 
                                                               'filename'))
+
+                if (config.has_option('magnetometerrawsamples', 'filename') 
+                    and not AW_Message.is_response_message(message)):
+                    write_raw_magnetometer_samples(timestamp_s, 
+                                                   message_tags, \
+                       config.get('magnetometerrawsamples', 'filename'))
 
                 # Realtime transfer must be last since it alters the
                 # message and response signature.

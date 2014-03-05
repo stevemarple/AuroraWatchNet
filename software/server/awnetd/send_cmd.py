@@ -23,7 +23,7 @@ def read_config(config_file):
     global config
     config = SafeConfigParser()
     config.add_section('controlsocket')
-    config.set('controlsocket', 'interface', 'localhost')
+    # config.set('controlsocket', 'interface', 'localhost')
     config.set('controlsocket', 'port', '6587')
 
 # Valid commands and information about each
@@ -57,6 +57,9 @@ parser.add_argument('-c', '--config-file',
                     default='/etc/awnet.ini',
                     help='Configuration file',
                     metavar='FILE')
+parser.add_argument('--host', 
+                    default='localhost',
+                    help='Hostname where daemon is running')
 parser.add_argument('-v', '--verbose', 
                     action='count',
                     help='Be verbose')
@@ -73,6 +76,15 @@ for k in sorted(aw_cmds.keys()):
                             help=aw_cmds[k].get('help'),
                             metavar=aw_cmds[k].get('metavar'))
 
+eeprom_settings_group = parser.add_mutually_exclusive_group()
+read_cmds = []
+for k in sorted(eeprom.keys()):
+    eeprom_settings_group.add_argument('--read-eeprom-' + k.replace('_', '-'),
+                                       action='store_true',
+                                       help='Read setting: ' + \
+                                           eeprom[k].get('help'))
+    read_cmds.append(k)
+                                       
 # Process the command line arguments
 args = parser.parse_args()
 read_config(args.config_file)
@@ -119,14 +131,24 @@ for k in aw_cmds:
         cmd['name'] = k
         cmd['value'] = s
 
- 
-
     user_cmds.append(cmd)
+
+
+for k in read_cmds:
+    if getattr(args, 'read_eeprom_' + k):
+        user_cmds.append({
+                'name': 'read_eeprom',
+                'value': str(eeprom[k]['address']) + ',' + \
+                    str(struct.calcsize(eeprom[k]['format']))})
+        
+
+
 # interface = config.get('controlsocket', 'interface')
+host = args.host
 port = int(config.get('controlsocket', 'port'))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('localhost', port))
+s.connect((host, port))
 s.settimeout(5)
 for cmd in user_cmds:
     cmd_str = cmd['name'] + '=' + cmd['value']

@@ -60,9 +60,12 @@ firmware_version_max_length = 16
 firmware_block_size = 128
 
 
+def decode_tag_array_of_longs(tag_name, data_len, payload):
+    return list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
+
 def format_tag_array_of_longs(tag_name, data_len, payload):
     return repr(list(struct.unpack('!' + str(data_len/4) + 'l', str(payload))))
-    
+   
 def format_padding(tag_name, data_len, payload):
     return str([0] * data_len)
 

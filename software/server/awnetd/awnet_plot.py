@@ -172,7 +172,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
     ax2.set_position(pos)
     ax2.set_title(activity.make_title())
 
-    min_ylim_range = 800
+    min_ylim_range = 400
     ax2_ylim = ax2.get_ylim()
     if np.diff(ax2_ylim) < min_ylim_range:
         ax2.set_ylim(round_to(np.mean(ax2_ylim), 50) 

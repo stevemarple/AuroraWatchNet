@@ -56,7 +56,8 @@ eeprom = {
         },
     'site_id': {
         'address': 0x30,
-        'format': '<H'
+        'format': '<H',
+        'help': 'site ID',
         },
     'adc_address_list': {
         'address': 0x32,
@@ -154,6 +155,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
+        'help': 'Send all data samples (not just aggregate)',
         },
     'radio_local_id': {
         'address': 0x47,
