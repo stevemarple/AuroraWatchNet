@@ -17,6 +17,7 @@ extern "C" {
 
 extern Stream& console;
 extern uint8_t verbosity;
+extern uint16_t commsBlockSize;
 
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
@@ -70,14 +71,16 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	bytesSent = 0;
 	state = statePowerUp;
 
-	// Append null characters to fill a complete block
-	const uint8_t xrfBlockSize = 12;
-	uint8_t remainder = messageLen % xrfBlockSize;
-	if (remainder) {
-	  uint16_t newLen = messageLen + (xrfBlockSize - remainder);
-	  if (newLen <= messageBufferLen) {
-	    memset(messageBuffer + messageLen, 0, xrfBlockSize - remainder);
-	    messageLen = newLen;
+	if (commsBlockSize) {
+	  // Append null characters to fill a complete block
+	  // const uint8_t xrfBlockSize = 12;
+	  uint8_t remainder = messageLen % commsBlockSize;
+	  if (remainder) {
+	    uint16_t newLen = messageLen + (commsBlockSize - remainder);
+	    if (newLen <= messageBufferLen) {
+	      memset(messageBuffer + messageLen, 0, commsBlockSize - remainder);
+	      messageLen = newLen;
+	    }
 	  }
 	}
       }
@@ -152,7 +155,8 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
       break;
     }
 
-    if (commsPtr->available()) {
+    commsPtr->checkForResponse();
+    if (int avail = commsPtr->available()) {
       if (responseLen >= responseBufferLen) {
 	errno = errorBufferTooSmall;
 	messageLen = 0;
@@ -160,8 +164,10 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	break;
       }
 
-      uint8_t b = commsPtr->read();
-      responseBuffer[responseLen++] = b;
+      for (int i = avail; i; --i) {
+	uint8_t b = commsPtr->read();
+	responseBuffer[responseLen++] = b;
+      }
 
       if (validateResponse(responseBuffer, responseLen)) {
 	// The response in the buffer is valid, but is it a response

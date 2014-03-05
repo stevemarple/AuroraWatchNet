@@ -263,6 +263,9 @@ private:
     };
 
     state_t state;
+
+    uint16_t mcuVoltage_mV;
+    uint8_t vinDivider;
     
     // Data fields
     int16_t mcuTemperature; // hundredths of degrees Celsius

@@ -111,8 +111,6 @@ def format_get_firmware_page(tag_name, data_len, payload):
                page=payload[16]*256 + payload[17])
 
 
-
-
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
 # protocol but elsewhere referred to by name. In tag_data the keys are

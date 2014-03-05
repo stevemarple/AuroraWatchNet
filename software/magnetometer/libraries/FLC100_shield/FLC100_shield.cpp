@@ -333,7 +333,7 @@ void FLC100::I2C::aggregate(void)
 }
 
 
-FLC100::Misc::Misc(void) : state(off)
+FLC100::Misc::Misc(void) : state(off), mcuVoltage_mV(3300), vinDivider(1)
 {
 
 
@@ -342,6 +342,14 @@ FLC100::Misc::Misc(void) : state(off)
 bool FLC100::Misc::initialise(void)
 {
   pinMode(MCU_TEMPERATURE_PWR, OUTPUT);
+  uint16_t tmp = eeprom_read_word((const uint16_t*)EEPROM_MCU_VOLTAGE_MV);
+  if (tmp != 65535)
+    mcuVoltage_mV = tmp;
+
+  uint8_t vinDivTmp = eeprom_read_byte((const uint8_t*)EEPROM_MCU_VOLTAGE_MV);
+  if (vinDivTmp != 255 && vinDivTmp != 0)
+    vinDivider = vinDivTmp;
+  
   return true;
 }
 
@@ -365,15 +373,15 @@ void FLC100::Misc::process(void)
   case getMcuTemp:
     /* Voltage in millivolts is given by (for details see description
      * below for battery voltage)
-     * mV = (100 * count) / 31;
-     * and from LM61 data sheet
-     * hundredthsDegC = 10*mV - 6000
-     * Combining gives
-     * hundredthsDegC = ((1000*count)/31) - 6000
-     * Work as int32_t to avoid overflow
+     * mV = ((count * MCU_VCC_mV) + 512) / 1023
+     * [512 added for rounding to nearest mV value]
+     * From LM61 data sheet
+     * hundredthsDegC = 10 * mv - 6000
+     * hundredthsDegC = (((10 * count * MCU_VCC_mV) + 512) / 1023) - 6000
      */
-    mcuTemperature = ((1000 * int32_t(analogRead(MCU_TEMPERATURE_ADC))) / 31)
-      - 6000;
+    mcuTemperature = (((10 * int32_t(analogRead(MCU_TEMPERATURE_ADC))
+			* mcuVoltage_mV) + 512) / 1023) - 6000;
+
     digitalWrite(MCU_TEMPERATURE_PWR, LOW); // Remove power from the sensor
     state = initialiseVoltage;
     break;
@@ -384,15 +392,14 @@ void FLC100::Misc::process(void)
     break;
     
   case getVoltage:
-    /* Battery voltage is given by
-     * V = (count / 1023) * 3.3
-     * Or for millivolts
-     * mV = (count/1023) * 3300
-     * which gives
-     * mV = (100 * count) / 31;
-     * NB: 100 * 1023 requires 17 bits
+    /* Battery voltage in millivolts is given by
+     * mV = (count * 3300 * VIN_DIVIDER) / 1023
+     * NB: Use 32 bits
+     *
+     * To round to nearest millivolt add 512 before dividing.
      */
-    batteryVoltage = (uint32_t(analogRead(BATTERY_ADC)) * 100) / 31;
+    batteryVoltage = ((uint32_t(analogRead(BATTERY_ADC))
+		       * mcuVoltage_mV * vinDivider) + 512) / 1023;
     state = poweringDown;
     break;
 

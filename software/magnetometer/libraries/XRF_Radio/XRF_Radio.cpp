@@ -169,3 +169,22 @@ void XRF_Radio::poll(void)
   ; // No polling needed
 }
 
+void XRF_Radio::messageStart(void)
+{
+  ;
+}
+
+void XRF_Radio::messageEnd(void)
+{
+  ;
+}
+
+size_t XRF_Radio::messageWriteSize(void)
+{
+  return 1;
+}
+
+void XRF_Radio::checkForResponse(void)
+{
+  ;
+}

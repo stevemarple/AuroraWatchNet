@@ -42,7 +42,6 @@ def read_config_file(config_file):
     config.set('daemon', 'user', 'nobody')
     config.set('daemon', 'group', 'nogroup')
     config.set('daemon', 'connection', 'serial')
-    
     config.set('daemon', 'close_after_write', 'false')
 
     config.add_section('controlsocket')

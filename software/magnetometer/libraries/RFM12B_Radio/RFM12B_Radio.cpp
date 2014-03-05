@@ -60,3 +60,23 @@ void RFM12B_Radio::poll(void)
   stream.poll();
 }
 
+void RFM12B_Radio::messageStart(void)
+{
+  ;
+}
+
+void RFM12B_Radio::messageEnd(void)
+{
+  ;
+}
+
+size_t RFM12B_Radio::messageWriteSize(void)
+{
+  return 1;
+}
+
+void RFM12B_Radio::checkForResponse(void)
+{
+  ;
+}
+
