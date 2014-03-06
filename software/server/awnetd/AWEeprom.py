@@ -228,7 +228,7 @@ eeprom = {
         'metavar': 'NUMBER'
         },
     'remote_ip_port': {
-        'address': 0x58,
+        'address': 0x5a,
         'format': '<H',
         'default': 6588,
         'help': 'Remote IP port',
