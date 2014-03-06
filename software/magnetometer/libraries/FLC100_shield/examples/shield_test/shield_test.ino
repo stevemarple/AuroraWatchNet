@@ -22,10 +22,18 @@ uint8_t xrfResetState = 1;
 uint8_t adcPowerState = 1;
 
 uint8_t xrfOnIndicator = 23;
+
+uint8_t w5100CS = 10;
+
 void setup(void)
 {
   Serial.begin(9600);
   Serial1.begin(9600);
+
+  pinMode(SS, OUTPUT); // Ensure no SPI interrupts can happen
+  pinMode(w5100CS, OUTPUT);
+  digitalWrite(w5100CS, HIGH); // Ensure W5100 not selected on SPI bus
+  
   Wire.begin();
 
   pinMode(XRF_RESET, OUTPUT);
