@@ -13,7 +13,7 @@
 #include <AWPacket.h>
 //#include <FLC100_shield.h>
 #include <SoftWire.h>
-#include <mysofti2cmaster.h>
+//#include <mysofti2cmaster.h>
 #include <MLX90614.h>
 #include <HIH61xx.h>
 #include <HouseKeeping.h>
@@ -689,8 +689,14 @@ void setup(void)
   mlx90614.getSoftWire().setDelay_us(2);
   mlx90614.initialise();
   hih61xx.initialise(A4, A5);
-  houseKeeping.initialise();
-  
+
+  uint16_t mcuVoltage_mV = 
+    eeprom_read_word((const uint16_t*)EEPROM_MCU_VOLTAGE_MV);
+  if (mcuVoltage_mV == 65535)
+    mcuVoltage_mV = 3300;
+  console << "MCU voltage (mV): " << mcuVoltage_mV << endl;
+  houseKeeping.initialise(mcuVoltage_mV, true);
+    
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
   console << "Autoprobing to find RTC\n";
@@ -768,7 +774,7 @@ void setup(void)
   console.flush();
 
   // Select radio; try RFM12B if radioType not set.
-  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_TYPE);
+  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
   uint8_t rfm12bBand
     = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_RFM12B_BAND);
   if (rfm12bBand == 0xff)
@@ -778,7 +784,7 @@ void setup(void)
   if (rfm12bChannel == 0xfff)
     rfm12bChannel = 1600;
   // TODO: Fix pin mapping
-  if (radioType == EEPROM_RADIO_TYPE_RFM12B
+  if (radioType == EEPROM_COMMS_TYPE_RFM12B
       || (radioType == 0xFF
 	  && rfm12b.begin(14, 6, 2, 1, rfm12bBand, rfm12bChannel))) {
     disableJTAG();
