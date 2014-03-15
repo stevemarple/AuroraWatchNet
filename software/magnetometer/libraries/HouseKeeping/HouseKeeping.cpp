@@ -3,13 +3,17 @@
 
 HouseKeeping houseKeeping;
 
-HouseKeeping::HouseKeeping(void) : _state(off)
+HouseKeeping::HouseKeeping(void) : _state(off),
+				   _mcuVoltage_mV(3300),
+				   _readVin(true)
 {
   ;
 }
 
-bool HouseKeeping::initialise(void)
+bool HouseKeeping::initialise(uint16_t mcuVoltage_mV, bool readVin)
 {
+  _mcuVoltage_mV = mcuVoltage_mV;
+  _readVin = readVin;
   if (SYSTEM_TEMPERATURE_PWR != 255)
     pinMode(SYSTEM_TEMPERATURE_PWR, OUTPUT);
   return true;
@@ -69,8 +73,12 @@ void HouseKeeping::process(void)
      * hundredthsDegC = 10 * mv - 6000
      * hundredthsDegC = (((10 * count * MCU_VCC_mV) + 512) / 1023) - 6000
      */
-    _systemTemperature = (((10 * int32_t(analogRead(SYSTEM_TEMPERATURE_ADC)) * MCU_VCC_mV) + 512) / 1023) - 6000;
-    _state = getVin0;
+    _systemTemperature = (((10 * int32_t(analogRead(SYSTEM_TEMPERATURE_ADC))
+			    * _mcuVoltage_mV) + 512) / 1023) - 6000;
+    if (_readVin)
+      _state = getVin0;
+    else
+      _state = ready;
     break;
     
   case getVin0:
@@ -85,7 +93,8 @@ void HouseKeeping::process(void)
      *
      * To round to nearest millivolt add 512 before dividing.
      */
-    _Vin = ((uint32_t(analogRead(VIN_ADC)) * MCU_VCC_mV * VIN_DIVIDER) + 512) 
+    _Vin = ((uint32_t(analogRead(VIN_ADC)) *
+	     _mcuVoltage_mV * VIN_DIVIDER) + 512) 
       / 1023;
     _state = ready;
     break;

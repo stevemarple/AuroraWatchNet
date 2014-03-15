@@ -6,7 +6,7 @@ AsyncDelay samplingInterval;
 void setup(void)
 {
   Serial.begin(9600);
-  houseKeeping.initialise();
+  houseKeeping.initialise(3300, true);
   samplingInterval.start(3000, AsyncDelay::MILLIS);
 }
 
