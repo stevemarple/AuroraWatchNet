@@ -122,6 +122,12 @@ for network_uc, site_uc in network_site.values():
     site_lc = site_uc.lower()
     network_lc = network_uc.lower()
 
+    if not ap.networks.has_key(network_uc):
+        try:
+            __import__('auroraplot.datasets.' + network_lc)
+        except:
+            pass
+    
     ax = None
     t1 = dt64.get_start_of_month(start_time)
     while t1 < end_time:

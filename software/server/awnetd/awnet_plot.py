@@ -129,7 +129,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
         and len(mag_data.channels) == 1 \
         and len(mag_qdc.channels) == 1, \
         'Bad value for channels'
-
+    
     channel = mag_data.channels[0]
     global activity
     activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
@@ -311,7 +311,6 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     # Ensure data gaps are marked as such in the plots. Straight lines
     # across large gaps look bad!
     mag_data = mag_data.mark_missing_data(cadence=2*mag_data.nominal_cadence)
-
    
     # Do day plot. Trim start time for occasions when making a day
     # plot simultaneously with a rolling plot.
@@ -604,6 +603,16 @@ while t1 < end_time:
     attribution_list = []
 
     for network_uc, site_uc in network_site.values():
+        network_lc = network_uc.lower()
+        site_lc = site_uc.lower()
+
+        if not ap.networks.has_key(network_uc):
+            try:
+                __import__('auroraplot.datasets.' + network_lc)
+                logging.debug('imported auroraplot.datasets.' + network_lc)
+            except:
+                pass
+
         site_start_time = ap.get_site_info(network_uc, site_uc, 
                                            info='start_time')
         site_end_time = ap.get_site_info(network_uc, site_uc, 
@@ -613,8 +622,6 @@ while t1 < end_time:
         if site_end_time and t1 >= site_end_time:
             next
 
-        site_lc = site_uc.lower()
-        network_lc = network_uc.lower()
         
         copyright_ = ap.get_site_info(network_uc, site_uc, 'copyright')
         attribution = ap.get_site_info(network_uc, site_uc, 'attribution')
