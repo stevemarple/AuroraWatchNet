@@ -9,19 +9,14 @@
 
 unsigned long FLC100::powerUpDelay_ms = FLC100::defaultPowerUpDelay_ms;
 
-FLC100::FLC100(void)
-{
-  ;
-}
-
-FLC100::I2C::I2C(void) : state(off), axis(0), numSamples(1), useMedian(false), 
+FLC100::FLC100(void) : state(off), axis(0), numSamples(1), useMedian(false), 
 			 trimSamples(false)
 {
 
 }
 
 
-bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
+bool FLC100::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
 			     uint8_t adcChannelList[numAxes])
 {
   powerPin = pp;
@@ -76,7 +71,7 @@ bool FLC100::I2C::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
 }
 
 
-void FLC100::I2C::process(void)
+void FLC100::process(void)
 {
   static uint8_t magNum; // sub-state number
   static uint8_t tmp = 0;
@@ -283,7 +278,7 @@ void FLC100::I2C::process(void)
 }
 
 
-void FLC100::I2C::finish(void)
+void FLC100::finish(void)
 {
   state = finished;
   if (powerUpDelay_ms)
@@ -292,7 +287,7 @@ void FLC100::I2C::finish(void)
 }
 
 
-void FLC100::I2C::aggregate(void)
+void FLC100::aggregate(void)
 {
   for (uint8_t i = 0; i < numAxes; ++i) {
     if (!adcPresent[i])
@@ -333,91 +328,3 @@ void FLC100::I2C::aggregate(void)
 }
 
 
-FLC100::Misc::Misc(void) : state(off), mcuVoltage_mV(3300), vinDivider(1)
-{
-
-
-}
-
-bool FLC100::Misc::initialise(void)
-{
-  pinMode(MCU_TEMPERATURE_PWR, OUTPUT);
-  uint16_t tmp = eeprom_read_word((const uint16_t*)EEPROM_MCU_VOLTAGE_MV);
-  if (tmp != 65535)
-    mcuVoltage_mV = tmp;
-
-  uint8_t vinDivTmp = eeprom_read_byte((const uint8_t*)EEPROM_MCU_VOLTAGE_MV);
-  if (vinDivTmp != 255 && vinDivTmp != 0)
-    vinDivider = vinDivTmp;
-  
-  return true;
-}
-
-void FLC100::Misc::process(void)
-{
-  switch (state) {
-  case off:
-    break;
-
-  case initialiseAdc:
-    power_adc_enable(); // ENable ADC inside the MCU
-    digitalWrite(MCU_TEMPERATURE_PWR, HIGH); // Apply power to the sensor
-    state = initialiseMcuTemp;
-    break;
-
-  case initialiseMcuTemp:
-    analogRead(MCU_TEMPERATURE_ADC); // Thow away first reading
-    state = getMcuTemp;
-    break;
-    
-  case getMcuTemp:
-    /* Voltage in millivolts is given by (for details see description
-     * below for battery voltage)
-     * mV = ((count * MCU_VCC_mV) + 512) / 1023
-     * [512 added for rounding to nearest mV value]
-     * From LM61 data sheet
-     * hundredthsDegC = 10 * mv - 6000
-     * hundredthsDegC = (((10 * count * MCU_VCC_mV) + 512) / 1023) - 6000
-     */
-    mcuTemperature = (((10 * int32_t(analogRead(MCU_TEMPERATURE_ADC))
-			* mcuVoltage_mV) + 512) / 1023) - 6000;
-
-    digitalWrite(MCU_TEMPERATURE_PWR, LOW); // Remove power from the sensor
-    state = initialiseVoltage;
-    break;
-    
-  case initialiseVoltage:
-    analogRead(BATTERY_ADC);
-    state = getVoltage;
-    break;
-    
-  case getVoltage:
-    /* Battery voltage in millivolts is given by
-     * mV = (count * 3300 * VIN_DIVIDER) / 1023
-     * NB: Use 32 bits
-     *
-     * To round to nearest millivolt add 512 before dividing.
-     */
-    batteryVoltage = ((uint32_t(analogRead(BATTERY_ADC))
-		       * mcuVoltage_mV * vinDivider) + 512) / 1023;
-    state = poweringDown;
-    break;
-
-  case poweringDown:
-    power_adc_disable();
-    state = finished;
-    break;
-    
- case finished:
-    // Do nothing, remain in this state
-    break;    
-  }
-
-}
-
-
-void FLC100::Misc::finish(void)
-{
-  state = finished;
-  // Disable ADC?
-}
