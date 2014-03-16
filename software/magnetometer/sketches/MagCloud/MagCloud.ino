@@ -338,7 +338,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 	console << ' ' << flc100.getMagDataSamples(i, j);
       console << '\n';
     }
-    console << "# -----------" << endl;
+    console << " -----------" << endl;
   }
 }
 
@@ -879,16 +879,16 @@ void loop(void)
 	console << '\t' << (flc100.getMagData()[i]);
       console << endl;
       
-      console << "#Timestamp: " << sampleStartTime.getSeconds()
+      console << "Timestamp: " << sampleStartTime.getSeconds()
 	      << ", " << sampleStartTime.getFraction() << endl
-	      << "#Sensor temperature: " << flc100.getSensorTemperature() << endl
-	      << "#MCU temperature: " << flc100.getMcuTemperature() << endl
-	      << "#Battery voltage: " << flc100.getBatteryVoltage() << endl
+	      << "Sensor temperature: " << flc100.getSensorTemperature() << endl
+	//<< "MCU temperature: " << flc100.getMcuTemperature() << endl
+	//     << "Battery voltage: " << flc100.getBatteryVoltage() << endl
 	
-	      << "#MCU temperature: " << houseKeeping.getSystemTemperature()
+	      << "MCU temperature: " << houseKeeping.getSystemTemperature()
 	      << endl;
       if (houseKeeping.getReadVin())
-	console << "#Battery voltage: " << houseKeeping.getVin() << endl;
+	console << "Battery voltage: " << houseKeeping.getVin() << endl;
 
       if (mlx90614Present) {
 	console << "MLX temp: " << mlx90614.getAmbient() << endl
@@ -903,7 +903,7 @@ void loop(void)
      
       
       for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	console << "#magData[" << i << "]: " << (flc100.getMagData()[i])
+	console << "magData[" << i << "]: " << (flc100.getMagData()[i])
 		<< endl;
 
       // Buffer for storing the binary AW packet. Will also be used
@@ -986,10 +986,12 @@ void loop(void)
 			  flc100.getSensorTemperature());
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagMCUTemperature,
-			  flc100.getMcuTemperature());
+			  // flc100.getMcuTemperature());
+			  houseKeeping.getSystemTemperature());
       packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagBatteryVoltage,
-			   flc100.getBatteryVoltage());
+			   houseKeeping.getVin());
+                           //flc100.getBatteryVoltage());
       // Upper 3 nibbles is seconds, lowest nibble is 16ths of second
       packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagSamplingInterval,
@@ -1070,7 +1072,7 @@ void loop(void)
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
     
-      console << "# -----------" << endl;
+      console << " -----------" << endl;
     }
     
     if (startSampling == false &&
