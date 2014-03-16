@@ -43,7 +43,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.01a";
+  "MagCloud-0.02a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
