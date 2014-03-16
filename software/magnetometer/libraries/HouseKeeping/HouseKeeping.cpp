@@ -4,26 +4,36 @@
 HouseKeeping houseKeeping;
 
 HouseKeeping::HouseKeeping(void) : _state(off),
+				   _VinDivider(1),
 				   _mcuVoltage_mV(3300),
-				   _readVin(true)
+				   _readVin(true),
+				   _systemTemperature(0),
+				   _Vin(0)
 {
   ;
 }
 
-bool HouseKeeping::initialise(uint16_t mcuVoltage_mV, bool readVin)
+bool HouseKeeping::initialise(uint8_t VinADC, uint8_t temperatureADC,
+			      uint8_t temperaturePowerPin,
+			      uint16_t mcuVoltage_mV, bool readVin,
+			      bool alwaysOn)
 {
+  _VinADC = VinADC;
+  _temperatureADC = temperatureADC;
+  _temperaturePowerPin = temperaturePowerPin;
+  _alwaysOn = alwaysOn;
   _mcuVoltage_mV = mcuVoltage_mV;
   _readVin = readVin;
-  if (SYSTEM_TEMPERATURE_PWR != 255)
-    pinMode(SYSTEM_TEMPERATURE_PWR, OUTPUT);
+  if (_temperaturePowerPin != 255)
+    pinMode(_temperaturePowerPin, OUTPUT);
   return true;
 }
 
 
 void HouseKeeping::start(void)
 {
-  if (_state == off && SYSTEM_TEMPERATURE_PWR != 255) {
-    digitalWrite(SYSTEM_TEMPERATURE_PWR, HIGH); // Apply power to the sensor
+  if (_state == off && _temperaturePowerPin != 255) {
+    digitalWrite(_temperaturePowerPin, HIGH); // Apply power to the sensor
     _powerUpDelay.start(powerUpDelay_ms, AsyncDelay::MILLIS);
     _state = poweringUp;
   }
@@ -50,7 +60,7 @@ void HouseKeeping::process(void)
     break;
 
   case getSystemTemp0:
-    analogRead(SYSTEM_TEMPERATURE_ADC); // Thow away first reading
+    analogRead(_temperatureADC); // Thow away first reading
     _state = getSystemTemp1;
     break;
     
@@ -73,7 +83,7 @@ void HouseKeeping::process(void)
      * hundredthsDegC = 10 * mv - 6000
      * hundredthsDegC = (((10 * count * MCU_VCC_mV) + 512) / 1023) - 6000
      */
-    _systemTemperature = (((10 * int32_t(analogRead(SYSTEM_TEMPERATURE_ADC))
+    _systemTemperature = (((10 * int32_t(analogRead(_temperatureADC))
 			    * _mcuVoltage_mV) + 512) / 1023) - 6000;
     if (_readVin)
       _state = getVin0;
@@ -82,21 +92,24 @@ void HouseKeeping::process(void)
     break;
     
   case getVin0:
-    analogRead(VIN_ADC); // Thow away first reading
+    analogRead(_VinADC); // Thow away first reading
     _state = getVin1;
     break;
     
   case getVin1:
     /* Battery voltage in millivolts is given by
-     * mV = (count * 3300 * VIN_DIVIDER) / 1023
+     * mV = (count * 3300 * _VinDivider) / 1023
      * NB: Use 32 bits
      *
      * To round to nearest millivolt add 512 before dividing.
      */
-    _Vin = ((uint32_t(analogRead(VIN_ADC)) *
-	     _mcuVoltage_mV * VIN_DIVIDER) + 512) 
+    _Vin = ((uint32_t(analogRead(_VinADC)) *
+	     _mcuVoltage_mV * _VinDivider) + 512) 
       / 1023;
-    _state = ready;
+    if (_alwaysOn)
+      _state = ready;
+    else
+      _state = off;
     break;
     
  case ready:
@@ -109,7 +122,7 @@ void HouseKeeping::process(void)
 
 void HouseKeeping::powerOff(void)
 {
-  if (SYSTEM_TEMPERATURE_PWR != 255)
-    digitalWrite(SYSTEM_TEMPERATURE_PWR, LOW); // Remove power from the sensor
+  if (!_alwaysOn && _temperaturePowerPin != 255)
+    digitalWrite(_temperaturePowerPin, LOW); // Remove power from the sensor
   _state = off;
 }

@@ -1,15 +1,15 @@
 #ifndef HOUSEKEEPING_H
 #define HOUSEKEEPING_H
 
+
 #include <AsyncDelay.h>
 
 // #define MCU_VCC_mV 3300
-#define VIN_ADC 2
-#define VIN_DIVIDER 1
-#define SYSTEM_TEMPERATURE_ADC 7
-#define SYSTEM_TEMPERATURE_PWR A6
+// #define VIN_ADC 2
+// #define VIN_DIVIDER 1
+// #define SYSTEM_TEMPERATURE_ADC 7
+// #define SYSTEM_TEMPERATURE_PWR A6
 
-// State machine for reading SYSTEM temperature and battery voltage
 class HouseKeeping {
 public:
 
@@ -17,7 +17,9 @@ public:
   
   HouseKeeping(void);
     
-  bool initialise(uint16_t mcuVoltage_mV, bool readVin);
+  bool initialise(uint8_t VinADC, uint8_t temperatureADC,
+		  uint8_t temperaturePowerPin, uint16_t mcuVoltage_mV,
+		  bool readVin, bool alwaysOn);
   inline bool isFinished(void) const;
   inline bool isSampling(void) const; // start called, results not ready
   inline bool isPowerOff(void) const;
@@ -36,6 +38,7 @@ public:
   }
 
 private:
+  // State machine for reading system temperature and battery voltage
   enum state_t {
     off,
     poweringUp,
@@ -46,9 +49,14 @@ private:
     getVin1,
     ready,
   };
-  
   state_t _state;
 
+  uint8_t _VinADC;
+  uint8_t _temperatureADC;
+  uint8_t _temperaturePowerPin;
+  uint8_t _VinDivider;
+  bool _alwaysOn;
+  
   // Configuration
   uint16_t _mcuVoltage_mV;
   bool _readVin;
