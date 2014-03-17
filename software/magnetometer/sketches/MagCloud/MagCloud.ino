@@ -43,7 +43,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.02a";
+  "MagCloud-0.03a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -64,13 +64,13 @@ W5100_UDP w5100udp;
 uint8_t verbosity = 1;
 
 FLC100 flc100;
-bool flc100Present = true;
+bool flc100Present = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
 
 MLX90614 mlx90614;
-bool mlx90614Present = true;
+bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
 
 HIH61xx hih61xx;
-bool hih61xxPresent = true;
+bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
 
 CommandHandler commandHandler;
 
@@ -901,10 +901,10 @@ void loop(void)
 	console << "Humidity: " << hih61xx.getRelHumidity() << endl
 		<< "Ambient: " << hih61xx.getAmbientTemp() << endl;
      
-      
-      for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	console << "magData[" << i << "]: " << (flc100.getMagData()[i])
-		<< endl;
+      if (flc100Present)
+	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
+	  console << "magData[" << i << "]: " << (flc100.getMagData()[i])
+		  << endl;
 
       // Buffer for storing the binary AW packet. Will also be used
       // when writing to SD card.
@@ -988,10 +988,10 @@ void loop(void)
 			  AWPacket::tagMCUTemperature,
 			  // flc100.getMcuTemperature());
 			  houseKeeping.getSystemTemperature());
-      packet.putDataUint16(buffer, sizeof(buffer),
-			   AWPacket::tagBatteryVoltage,
-			   houseKeeping.getVin());
-                           //flc100.getBatteryVoltage());
+      if (houseKeeping.getReadVin())
+	packet.putDataUint16(buffer, sizeof(buffer),
+			     AWPacket::tagBatteryVoltage,
+			     houseKeeping.getVin());
       // Upper 3 nibbles is seconds, lowest nibble is 16ths of second
       packet.putDataUint16(buffer, sizeof(buffer),
 			   AWPacket::tagSamplingInterval,
