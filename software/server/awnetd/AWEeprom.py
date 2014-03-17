@@ -234,4 +234,36 @@ eeprom = {
         'help': 'Remote IP port',
         'metavar': 'NUMBER'
         },
-    }
+    'flc100_present': {
+        'address': 0x5c,
+        'format': 'B',
+        'type': safe_eval,
+        'choices': [0, 1],
+        'default': True,
+        'help': 'Flag indicating if FLC100 sensor(s) fitted',
+    },
+    'mlx90614_present': {
+        'address': 0x5d,
+        'format': 'B',
+        'type': safe_eval,
+        'choices': [0, 1],
+        'default': True,
+        'help': 'Flag indicating if MLX90614 IR temperature sensor fitted',
+    },
+    'hih61xx_present': {
+        'address': 0x5e,
+        'format': 'B',
+        'type': safe_eval,
+        'choices': [0, 1],
+        'default': True,
+        'help': 'Flag indicating if HIH61xx humidity sensor fitted',
+    },
+    'as3935_present': {
+        'address': 0x5f,
+        'format': 'B',
+        'type': safe_eval,
+        'choices': [0, 1],
+        'default': True,
+        'help': 'Flag indicating if AS3935 lightning sensor fitted',
+    },
+}
