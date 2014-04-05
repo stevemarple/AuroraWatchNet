@@ -43,7 +43,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.03a";
+  "MagCloud-0.04a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -105,6 +105,9 @@ uint16_t counter2Frequency = 0;
 //uint32_t samplingInterval = 8;
 CounterRTC::Time minSleepInterval(2, 0);
 CounterRTC::Time samplingInterval(30, 0);
+CounterRTC::Time minSamplingInterval(5, 0);
+CounterRTC::Time maxSamplingInterval(600, 0);
+
 bool samplingIntervalChanged = true;
 //bool useSleepMode = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
@@ -388,6 +391,10 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
 	CounterRTC::Time((u16 & 0xFFF0) >> 4,
 			 (u16 & 0x000F) <<
 			 (CounterRTC::fractionsPerSecondLog2 - 4));
+      if (samplingInterval < minSamplingInterval)
+	samplingInterval = minSamplingInterval;
+      else if (samplingInterval > maxSamplingInterval)
+	samplingInterval = maxSamplingInterval;
       samplingIntervalChanged = true;
       (*s) << "SAMPLING INTERVAL CHANGED! "
 	   << samplingInterval.getSeconds() << ',' 
@@ -769,6 +776,11 @@ void setup(void)
 			 (samplingInterval_16th_s & 0x000F) <<
 			 (CounterRTC::fractionsPerSecondLog2 - 4));
   }
+  if (samplingInterval < minSamplingInterval)
+    samplingInterval = minSamplingInterval;
+  else if (samplingInterval > maxSamplingInterval)
+    samplingInterval = maxSamplingInterval;
+  
   console << "Sampling Interval: "
 	  << samplingInterval.getSeconds() << ',' 
 	  << samplingInterval.getFraction() << endl

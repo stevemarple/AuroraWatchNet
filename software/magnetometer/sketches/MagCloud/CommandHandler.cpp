@@ -6,7 +6,7 @@
 
 #include <Arduino.h>
 #include <Streaming.h>
-#include <RTCx.h>
+#include <CounterRTC.h>
 #include <AWPacket.h>
 #include <AwEeprom.h>
 #include "CommandHandler.h"
@@ -14,9 +14,10 @@
 #include "MagCloud.h"
 
 extern uint8_t sdSelect;
-extern uint32_t samplingInterval;
+extern CounterRTC::Time samplingInterval;
+extern const CounterRTC::Time minSamplingInterval;
+extern const CounterRTC::Time maxSamplingInterval;
 extern bool samplingIntervalChanged;
-extern volatile bool startSampling;
 extern uint8_t verbosity;
 
 #if USE_SD_CARD
@@ -162,16 +163,26 @@ void CommandHandler::process(Stream &console)
 	//while (1)
 	//;
       }
-      else if (startsWith_P(PSTR("samplingInterval"), buffer, &ep)) {
+      else if (startsWith_P(PSTR("samplingInterval_16th_s"), buffer, &ep)) {
 	if (*ep++ == '=') {
 	  char *ep2;
 	  long s = strtol(ep, &ep2, 0);
-	  if (s >= 0 && s <= 600 && ep2 != ep && *ep2 == '\0') {
-	    samplingInterval = s;
-	    samplingIntervalChanged = true;
+	  if (s > 0 && ep2 != ep && *ep2 == '\0') {
+	    CounterRTC::Time tmp = 
+	      CounterRTC::Time((s & 0xFFF0) >> 4,
+			       (s & 0x000F) <<
+			       (CounterRTC::fractionsPerSecondLog2 - 4));
+	    if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval) {
+	      samplingInterval = tmp;
+	      samplingIntervalChanged = true;
+	    }
 	  }
 	}
-	console << "samplingInterval:" << samplingInterval << endl;
+	console << "samplingInterval_16th_s:"
+		<< ((samplingInterval.getSeconds() * 16) +
+		    (samplingInterval.getFraction() >> (CounterRTC::fractionsPerSecondLog2 - 4))) << endl;
+	
+	
       }
       else if (startsWith_P(PSTR("sdSelect"), buffer, &ep)) {
 	if (*ep++ == '=') {
@@ -209,17 +220,6 @@ void CommandHandler::process(Stream &console)
 	  
 	}
 	console << "siteId:" << AWPacket::getDefaultSiteId() << endl;
-      }
-      else if (startsWith_P(PSTR("startSampling"), buffer, &ep)) {
-	if (*ep++ == '=') {
-	  char *ep2;
-	  long s = strtol(ep, &ep2, 0);
-	  if (s >= 0 && s <= 1 && ep2 != ep && *ep2 == '\0') {
-	    startSampling = s;
-	  }
-	  
-	}
-	console << "startSampling:" << startSampling << endl;
       }
 #if USE_SD_CARD
       else if (startsWith_P(PSTR("useSd"), buffer, &ep)) {
