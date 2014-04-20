@@ -43,7 +43,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.04a";
+  "MagCloud-0.05a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -373,7 +373,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
       	console << "Time set\n";
       	timeAdjustment = -timeError;
       }
-      if (verbosity > 1) {
+      if (verbosity > 2) {
 	console << "Server time: " << secs << ' ' << frac
 		<< "\nOur time: "  << ourTime.getSeconds() << ' '
 		<< ourTime.getFraction()
@@ -578,7 +578,8 @@ void setup(void)
   Serial.begin(9600);
   Serial1.begin(9600);
 
-  console << "Firmware version: " << firmwareVersion << endl;
+  console.print((__FlashStringHelper*)PSTR("\nFirmware version: "));
+  console.println(firmwareVersion);
 
   // Print fuses
   uint8_t lowFuse = boot_lock_fuse_bits_get(GET_LOW_FUSE_BITS);
@@ -676,23 +677,72 @@ void setup(void)
   if (aggregate == 255)
     aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
   allSamples = eeprom_read_byte((uint8_t*)EEPROM_ALL_SAMPLES);
+
+  __FlashStringHelper* flc100Str = (__FlashStringHelper*)PSTR("FLC100");
+  __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");
+  __FlashStringHelper* hih61xxStr = (__FlashStringHelper*)PSTR("HIH61xx");
+    __FlashStringHelper* initialisingStr
+    = (__FlashStringHelper*)PSTR("Initialising ");
+  __FlashStringHelper* notStr = (__FlashStringHelper*)PSTR(" not");
+  __FlashStringHelper* presentStr = (__FlashStringHelper*)PSTR(" present");
+  __FlashStringHelper* powerUpDelayStr
+    = (__FlashStringHelper*)PSTR(" power-up delay (ms): ");
+
+  if (flc100Present) {
+    console.print(initialisingStr);
+    console.println(flc100Str);
+
+    flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList);
+    flc100.setNumSamples(numSamples, 
+			 aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
+			 aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
+    
+    for (int i = 0; i < FLC100::numAxes; ++i)
+      console << "ADC[" << i << "]: Ox" << _HEX(adcAddressList[i])
+	      << ", channel: " << (adcChannelList[i]) << endl;
+    console << "numSamples: " << numSamples << endl
+	    << "aggregate: " << (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES ? "trimmed " : "")
+	    << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? "median" : "mean") << endl;
+
+    console.flush();
+  }
+
+  console.print(flc100Str);
+  if (!flc100Present)
+    console.print(notStr);
+  console.println(presentStr);
+  if (flc100Present) {
+    console.print(flc100Str);
+    console.print(powerUpDelayStr);
+    console.println(FLC100::powerUpDelay_ms);
+  }
+     
+  if (mlx90614Present) {
+    console.print(initialisingStr);
+    console.println(mlx90614Str);
+    mlx90614.getSoftWire().setDelay_us(2);
+    mlx90614Present = mlx90614.initialise();
+  }
+
+  console.print(mlx90614Str);
+  if (!mlx90614Present)
+    console.print(notStr);
+  console.println(presentStr);
+  if (mlx90614Present) {
+    console.print(mlx90614Str);
+    console.print(powerUpDelayStr);
+    console.println(MLX90614::powerUpDelay_ms);
+  }
   
-  flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList);
-  flc100.setNumSamples(numSamples, 
-		       aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
-		       aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
-
-  for (int i = 0; i < FLC100::numAxes; ++i)
-    console << "ADC[" << i << "]: Ox" << _HEX(adcAddressList[i])
-	    << ", channel: " << (adcChannelList[i]) << endl;
-  console << "numSamples: " << numSamples << endl
-	  << "aggregate: " << (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES ? "trimmed " : "")
-	  << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? "median" : "mean") << endl;
-  console.flush();
-
-  mlx90614.getSoftWire().setDelay_us(2);
-  mlx90614Present = mlx90614.initialise();
-  hih61xxPresent = hih61xx.initialise(A4, A5);
+  if (hih61xxPresent) {
+    console.print(initialisingStr);
+    console.println(hih61xxStr);
+    hih61xxPresent = hih61xx.initialise(A4, A5);
+  }
+  console.print(hih61xxStr);
+  if (!hih61xxPresent)
+    console.print(notStr);
+  console.println(presentStr);
 
   // Identify communications method to be used.
   uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
@@ -780,13 +830,11 @@ void setup(void)
     samplingInterval = minSamplingInterval;
   else if (samplingInterval > maxSamplingInterval)
     samplingInterval = maxSamplingInterval;
-  
-  console << "Sampling Interval: "
-	  << samplingInterval.getSeconds() << ',' 
-	  << samplingInterval.getFraction() << endl
-	  << "FLC100 power-up delay (ms): " << FLC100::powerUpDelay_ms << endl
-	  << "MLX90614 power-up delay (ms): " << MLX90614::powerUpDelay_ms
-	  << endl;
+
+  console.print((__FlashStringHelper*)PSTR("Sampling interval (s): "));
+  console.print(samplingInterval.getSeconds());
+  console.print((__FlashStringHelper*)PSTR(", "));
+  console.println(samplingInterval.getFraction());
   console.flush();
 
   // Configure radio module or Ethernet adaptor.
@@ -824,7 +872,7 @@ void setup(void)
   
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
 
-  console << "... done\n";
+  console.println((__FlashStringHelper*)PSTR("Setup complete\n"));
   console.flush();
   
   setAlarm();
@@ -887,9 +935,9 @@ void loop(void)
     
     if (resultsProcessed == false) {
       resultsProcessed = true;
-      for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	console << '\t' << (flc100.getMagData()[i]);
-      console << endl;
+      // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
+      // 	console << '\t' << (flc100.getMagData()[i]);
+      // console << endl;
       
       console << "Timestamp: " << sampleStartTime.getSeconds()
 	      << ", " << sampleStartTime.getFraction() << endl
@@ -976,29 +1024,37 @@ void loop(void)
       // console << endl;
       console << "Header length: " << AWPacket::getPacketLength(buffer) << endl;
 
-      uint8_t numSamples;
-      bool median;
-      bool trimmed;
-      flc100.getNumSamples(numSamples, median, trimmed);
+      if (flc100Present) {
+	uint8_t numSamples;
+	bool median;
+	bool trimmed;
+	flc100.getNumSamples(numSamples, median, trimmed);
+	
+	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
+	  if (flc100.getAdcPresent(i)) {
+	    packet.putMagData(buffer, sizeof(buffer),
+			      AWPacket::tagMagDataX + i,
+			      flc100.getMagResGain()[i],
+			      flc100.getMagData()[i]);
+	    if (allSamples)
+	      packet.putDataArray(buffer, sizeof(buffer),
+				  AWPacket::tagMagDataAllX + i, 4,
+				  numSamples, flc100.getMagDataSamples(i));
+	  }
+            
+	packet.putDataInt16(buffer, sizeof(buffer),
+			    AWPacket::tagSensorTemperature,
+			    flc100.getSensorTemperature());
+	packet.putDataUint16(buffer, sizeof(buffer),
+			     AWPacket::tagNumSamples, 
+			     (uint16_t(numSamples) << 8) | 
+			     (uint16_t(trimmed) << 1) | 
+			     median);
 
-      for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	if (flc100.getAdcPresent(i)) {
-	  packet.putMagData(buffer, sizeof(buffer),
-			    AWPacket::tagMagDataX + i,
-			    flc100.getMagResGain()[i],
-			    flc100.getMagData()[i]);
-	  if (allSamples)
-	    packet.putDataArray(buffer, sizeof(buffer),
-				AWPacket::tagMagDataAllX + i,
-				4, numSamples, flc100.getMagDataSamples(i));
-	}
+      }
       
       packet.putDataInt16(buffer, sizeof(buffer),
-			  AWPacket::tagSensorTemperature,
-			  flc100.getSensorTemperature());
-      packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagMCUTemperature,
-			  // flc100.getMcuTemperature());
 			  houseKeeping.getSystemTemperature());
       if (houseKeeping.getReadVin())
 	packet.putDataUint16(buffer, sizeof(buffer),
@@ -1010,11 +1066,6 @@ void loop(void)
 			   (uint16_t(samplingInterval.getSeconds() << 4) |
 			    samplingInterval.getFraction() >>
 			    (CounterRTC::fractionsPerSecondLog2 - 4)));
-      packet.putDataUint16(buffer, sizeof(buffer),
-			   AWPacket::tagNumSamples, 
-			   (uint16_t(numSamples) << 8) | 
-			   (uint16_t(trimmed) << 1) | 
-			   median);
 
       if (mlx90614Present) {
 	packet.putDataInt16(buffer, sizeof(buffer),
@@ -1108,7 +1159,6 @@ void loop(void)
 
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
-      // packet.setTimestamp(flc100.getTimestamp());
       CounterRTC::Time now;
       cRTC.getTime(now);
       packet.setTimestamp(now.getSeconds(), now.getFraction());
