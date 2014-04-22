@@ -43,12 +43,13 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.05a";
+  "MagCloud-0.06a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
 uint8_t ledPin = LED_BUILTIN;
+const uint8_t fanPin = 8;
 
 // Flag to indicate if LED should be switched on. To ensure minimal
 // power consumption it is always switched off.
@@ -613,6 +614,18 @@ void setup(void)
   pinMode(14, OUTPUT);    // RFM12B (if fitted)
   digitalWrite(14, HIGH);
 
+  // Fan control
+  if (fanPin != 0xFF) {
+    pinMode(fanPin, OUTPUT);
+    digitalWrite(fanPin, LOW);
+    console.print((__FlashStringHelper*)PSTR("Fan temperature: "));
+    console.println((int16_t)eeprom_read_word((const uint16_t*)
+					      EEPROM_FAN_TEMPERATURE));
+    console.print((__FlashStringHelper*)PSTR("Fan hysteresis: "));
+    console.println((int16_t)eeprom_read_word((const uint16_t*)
+					      EEPROM_FAN_HYSTERESIS));
+  }
+  
 #if USE_SD_CARD
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
   useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
@@ -942,10 +955,7 @@ void loop(void)
       console << "Timestamp: " << sampleStartTime.getSeconds()
 	      << ", " << sampleStartTime.getFraction() << endl
 	      << "Sensor temperature: " << flc100.getSensorTemperature() << endl
-	//<< "MCU temperature: " << flc100.getMcuTemperature() << endl
-	//     << "Battery voltage: " << flc100.getBatteryVoltage() << endl
-	
-	      << "MCU temperature: " << houseKeeping.getSystemTemperature()
+	      << "System temperature: " << houseKeeping.getSystemTemperature()
 	      << endl;
       if (houseKeeping.getReadVin())
 	console << "Battery voltage: " << houseKeeping.getVin() << endl;
@@ -971,7 +981,21 @@ void loop(void)
       const uint16_t bufferLength = SD_SECTOR_SIZE;
       uint8_t buffer[bufferLength]; // Sector size for SD card is 512 bytes
 
-
+      // Check system temperature
+      if (fanPin != 0xFF) {
+	int16_t fanTemperature
+	  = (int16_t)eeprom_read_word((const uint16_t*)EEPROM_FAN_TEMPERATURE);
+	uint16_t fanHysteresis
+	  = eeprom_read_word((const uint16_t*)EEPROM_FAN_HYSTERESIS);
+	if (houseKeeping.getSystemTemperature() >
+	    (fanTemperature + (int16_t)(fanHysteresis/2)))
+	  digitalWrite(fanPin, HIGH);
+	if (houseKeeping.getSystemTemperature() <
+	    (fanTemperature - (int16_t)(fanHysteresis/2)))
+	  digitalWrite(fanPin, LOW);
+      }
+	    
+      
 #if USE_SD_CARD
       if (useSd) {
 	// Check if the SD card circular buffer should be written to disk
@@ -1012,6 +1036,7 @@ void loop(void)
 	}
       }
 #endif
+
       
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));

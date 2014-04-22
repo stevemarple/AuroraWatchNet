@@ -126,5 +126,15 @@
 #define EEPROM_AS3935_PRESENT 0x5f
 #define EEPROM_AS3935_PRESENT_SIZE 1
 
+// Temperature where fan switched on/off (in hundredths deg C)
+#define EEPROM_FAN_TEMPERATURE 0x60
+#define EEPROM_FAN_TEMPERATURE_SIZE 2
 
+// Hysteresis about the switch point
+#define EEPROM_FAN_HYSTERESIS  0x62
+#define EEPROM_FAN_HYSTERESIS_SIZE 2
+
+// Pin used for fan control
+#define EEPROM_FAN_PIN 0x64
+#define EEPROM_FAN_PIN_SIZE 1
 #endif

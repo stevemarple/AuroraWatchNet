@@ -21,18 +21,18 @@ All other dependencies are included as git submodules.
 	3: TX1 XRF TX (via jumper)
 	4: (Reserved for Ethernet shield microSD CS)
 	5: XRF /reset (via jumper)
-	6: RTC / RFM12B radio (selected by jumper)
+	6: (Reserved for AS3935 lightning detector interrupt)
 	7: XRF sleep (via jumper)
-	8: 
+	8: Fan control
 	9: MAX619 shutdown
 	10: SS (Reserved for Ethernet shield WIZ5100 CS)
 	11: MOSI (RFM12B etc)
 	12: MISO (RFM12B etc)
 	13: SCK (RFM12B etc) and LED
-	14: RFM12B radio module CS
+	14: (Reserved for AS3935 lightning detector SDA)
 	15: RTC square-wave output
 	16: JTAG TDI / MLX90614 software SDA
-	17: JTAG TDO 
+	17: JTAG TDO / (Reserved for AS3935 lightning detector SCL)
 	18: JTAG TMS / MLX90614 power
 	19: JTAG TCK / MLX90614 software SCL
 	20: SDA (RTC, MCP3424 etc)
