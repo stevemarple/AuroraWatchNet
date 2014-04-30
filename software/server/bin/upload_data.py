@@ -159,6 +159,9 @@ def get_file_type_data():
 parser = argparse.ArgumentParser(description=\
                                      'Upload AuroraWatch magnetometer data.')
 
+parser.add_argument('-c', '--config-file', 
+                    default='/etc/awnet.ini',
+                    help='Configuration file')
 parser.add_argument('--log-level', 
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
@@ -181,7 +184,7 @@ parser.add_argument('-e', '--end-time',
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
                     default='awnettextdata awpacket aurorawatchrealtime ' \
-                        + 'logfile',
+                        + 'cloud logfile',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 
@@ -222,20 +225,20 @@ logging.debug('Start time: ' + str(start_time))
 logging.debug('End time: ' + str(end_time))
 
 
-config_file = '/etc/awnet.ini'
-if not os.path.exists(config_file):
-    logging.error('Missing config file ' + config_file)
+if not os.path.exists(args.config_file):
+    logging.error('Missing config file ' + args.config_file)
     exit(1)
 
 try:
     config = SafeConfigParser()
     config.add_section('upload')
     config.set('upload', 'method', 'rsync')
-    config.read(config_file)
+    config.set('upload', 'rsync_host', 'awn-data')
+    config.read(args.config_file)
     site = config.get('magnetometer', 'site').upper()
     site_lc = site.lower()
 except Exception as e:
-    logging.error('Bad config file ' + config_file + ': ' + str(e))
+    logging.error('Bad config file ' + args.config_file + ': ' + str(e))
     raise
 
 
@@ -257,7 +260,8 @@ if method in ['rsync', 'rrsync']:
     # Host awn-data
     # Hostname machine.lancs.ac.uk
     # User monty
-    remote_host = 'awn-data'
+    # remote_host = 'awn-data'
+    remote_host = config.get('upload', 'rsync_host')
     if method == 'rrsync':
         # rrsync script in use on remote host. Assume that the target
         # directory for this site is correctly enforced.
