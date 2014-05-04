@@ -22,6 +22,8 @@ def parse_unpack_format(fmt):
 def safe_eval(s):
     return eval(s, {'__builtins__': None}, {})
 
+def safe_eval_mull_100(s):
+    return 100 * safe_eval(s)
 
 def lookup_address(address):
     for k in eeprom.keys():
@@ -265,5 +267,26 @@ eeprom = {
         'choices': [0, 1],
         'default': True,
         'help': 'Flag indicating if AS3935 lightning sensor fitted',
+    },
+    'fan_temperature': {
+        'address': 0x60,
+        'format': '<h',
+        'type': safe_eval_mull_100,
+        'default': 3500,
+        'help': 'Fan temperature setpoint (deg C)',
+    },
+    'fan_temperature_hysteresis': {
+        'address': 0x62,
+        'format': '<H',
+        'type': safe_eval_mull_100,
+        'default': 250,
+        'help': 'Fan temperature setpoint hysteresis (deg C)',
+    },
+    'fan_pin': {
+        'address': 0x64,
+        'format': 'B',
+        'type': safe_eval,
+        'default': 8,
+        'help': 'Fan control pin',
     },
 }
