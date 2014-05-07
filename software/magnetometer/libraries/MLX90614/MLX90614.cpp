@@ -142,7 +142,7 @@ uint16_t MLX90614::read(uint8_t command) const
   uint8_t errors = 0;
   // Send command
   errors += i2c.startWait(address, SoftWire::writeMode);
-  errors += i2c.rawWrite(command);
+  errors += i2c.write(command);
   
   // Read results
   errors += i2c.repeatedStart(address, SoftWire::readMode);
@@ -177,7 +177,7 @@ uint16_t MLX90614::read(uint8_t command) const
 //   // digitalWrite(LED_BUILTIN, HIGH); delayMicroseconds(50);
 
 //   i2c.startWait(address, SoftWire::writeMode);
-//   i2c.rawWrite(command);
+//   i2c.write(command);
     
 //   // read
 //   i2c.repeatedStart(address, SoftWire::readMode);
