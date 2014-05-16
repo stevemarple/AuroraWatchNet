@@ -1,11 +1,13 @@
+#include <avr/eeprom.h>
 #include <avr/power.h>
 #include <HouseKeeping.h>
+#include <AwEeprom.h>
+
 
 HouseKeeping houseKeeping;
 
 HouseKeeping::HouseKeeping(void) : _state(off),
 				   _VinDivider(1),
-				   _mcuVoltage_mV(3300),
 				   _readVin(true),
 				   _systemTemperature(0),
 				   _Vin(0)
@@ -15,14 +17,12 @@ HouseKeeping::HouseKeeping(void) : _state(off),
 
 bool HouseKeeping::initialise(uint8_t VinADC, uint8_t temperatureADC,
 			      uint8_t temperaturePowerPin,
-			      uint16_t mcuVoltage_mV, bool readVin,
-			      bool alwaysOn)
+			      bool readVin, bool alwaysOn)
 {
   _VinADC = VinADC;
   _temperatureADC = temperatureADC;
   _temperaturePowerPin = temperaturePowerPin;
   _alwaysOn = alwaysOn;
-  _mcuVoltage_mV = mcuVoltage_mV;
   _readVin = readVin;
   if (_temperaturePowerPin != 255)
     pinMode(_temperaturePowerPin, OUTPUT);
@@ -44,6 +44,12 @@ void HouseKeeping::start(void)
 
 void HouseKeeping::process(void)
 {
+
+  uint16_t adcRefVoltage_mV
+    = eeprom_read_word((const uint16_t*)EEPROM_ADC_REF_VOLTAGE_MV);
+
+  if (adcRefVoltage_mV == 65535)
+    adcRefVoltage_mV = 3300;
   switch (_state) {
   case off:
     // Stay powered off until told to turn on
@@ -55,7 +61,40 @@ void HouseKeeping::process(void)
     break;
 
   case initialiseAdc:
-    power_adc_enable(); // Enable ADC inside the MCU
+    {
+      power_adc_enable(); // Enable ADC inside the MCU
+      uint8_t adcRefType
+	= eeprom_read_byte((const uint8_t*)EEPROM_ADC_REF_TYPE);
+      
+      switch (adcRefType) {
+      case EEPROM_ADC_REF_TYPE_EXTERNAL:
+	analogReference(EXTERNAL);
+	break;
+	
+      case EEPROM_ADC_REF_TYPE_AVCC:
+	analogReference(DEFAULT);
+	break;
+	
+      case EEPROM_ADC_REF_TYPE_INTERNAL1V1:
+#if defined(INTERNAL1V1)
+	analogReference(INTERNAL1V1);
+#elif defined(INTERNAL) && (defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__) || defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__))
+	analogReference(INTERNAL);
+#else
+#warning "Cannot use  EEPROM_ADC_REF_TYPE_INTERNAL1V1 on this platform"
+#endif
+	break;
+
+      case EEPROM_ADC_REF_TYPE_INTERNAL2V56:
+#if defined(INTERNAL2V56)
+	analogReference(INTERNAL2V56);
+#else
+#warning "Cannot use EEPROM_ADC_REF_TYPE_INTERNAL2V56 reference on this platform"
+#endif
+	break;
+      };
+    }
+    
     _state = getSystemTemp0;
     break;
 
@@ -77,14 +116,14 @@ void HouseKeeping::process(void)
 
     /* Voltage in millivolts is given by (for details see description
      * below for battery voltage)
-     * mV = ((count * MCU_VCC_mV) + 512) / 1023
+     * mV = ((count * ADC_REF_mV) + 512) / 1023
      * [512 added for rounding to nearest mV value]
      * From LM61 data sheet
      * hundredthsDegC = 10 * mv - 6000
-     * hundredthsDegC = (((10 * count * MCU_VCC_mV) + 512) / 1023) - 6000
+     * hundredthsDegC = (((10 * count * ADC_REF_mV) + 512) / 1023) - 6000
      */
     _systemTemperature = (((10 * int32_t(analogRead(_temperatureADC))
-			    * _mcuVoltage_mV) + 512) / 1023) - 6000;
+			    * adcRefVoltage_mV) + 512) / 1023) - 6000;
     if (_readVin)
       _state = getVin0;
     else
@@ -104,7 +143,7 @@ void HouseKeeping::process(void)
      * To round to nearest millivolt add 512 before dividing.
      */
     _Vin = ((uint32_t(analogRead(_VinADC)) *
-	     _mcuVoltage_mV * _VinDivider) + 512) 
+	     adcRefVoltage_mV * _VinDivider) + 512) 
       / 1023;
     if (_alwaysOn)
       _state = ready;

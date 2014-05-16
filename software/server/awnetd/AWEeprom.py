@@ -289,4 +289,18 @@ eeprom = {
         'default': 8,
         'help': 'Fan control pin',
     },
+    'adc_ref_type': {
+        'address': 0x65,
+        'format': 'B',
+        'type': safe_eval,
+        'default': 1,
+        'help': 'ADC reference type; 0=Aref, 1=AVcc (default), 2=1V1, 3=2V56',
+    },
+    'adc_ref_voltage_mv': {
+        'address': 0x66,
+        'format': '<H',
+        'type': safe_eval,
+        'default': 3300,
+        'help': 'ADC reference voltage (mV)',
+    },
 }

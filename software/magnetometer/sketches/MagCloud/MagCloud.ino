@@ -763,14 +763,9 @@ void setup(void)
     // Not set
     radioType = EEPROM_COMMS_TYPE_W5100_UDP;
 
-  uint16_t mcuVoltage_mV = 
-    eeprom_read_word((const uint16_t*)EEPROM_MCU_VOLTAGE_MV);
-  if (mcuVoltage_mV == 65535)
-    mcuVoltage_mV = 3300;
-  console << "MCU voltage (mV): " << mcuVoltage_mV << endl;
   bool readVin = (radioType != EEPROM_COMMS_TYPE_W5100_UDP);
-  houseKeeping.initialise(2, 7, A6, mcuVoltage_mV, readVin, !readVin);
-  
+  houseKeeping.initialise(2, 7, A6, readVin, !readVin);
+			  
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
   console << "Autoprobing to find RTC\n";

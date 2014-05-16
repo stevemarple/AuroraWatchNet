@@ -4,7 +4,6 @@
 
 #include <AsyncDelay.h>
 
-// #define MCU_VCC_mV 3300
 // #define VIN_ADC 2
 // #define VIN_DIVIDER 1
 // #define SYSTEM_TEMPERATURE_ADC 7
@@ -18,7 +17,7 @@ public:
   HouseKeeping(void);
     
   bool initialise(uint8_t VinADC, uint8_t temperatureADC,
-		  uint8_t temperaturePowerPin, uint16_t mcuVoltage_mV,
+		  uint8_t temperaturePowerPin,
 		  bool readVin, bool alwaysOn);
   inline bool isFinished(void) const;
   inline bool isSampling(void) const; // start called, results not ready
@@ -58,7 +57,6 @@ private:
   bool _alwaysOn;
   
   // Configuration
-  uint16_t _mcuVoltage_mV;
   bool _readVin;
   
   // Data fields
