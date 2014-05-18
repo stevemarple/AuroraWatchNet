@@ -175,10 +175,11 @@ awnet_text_file = None
 def write_aurorawatchnet_text_data(t, message_tags, fstr):
     global awnet_text_file
     try:
-        awnet_text_file = get_file_for_time(t, awnet_text_file, fstr)
         data = [ ]
+        found = False
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
+                found = True
                 comp = struct.unpack(AW_Message.tag_data[tag_name]['format'], 
                                      str(message_tags[tag_name][0]))
                 data.append(1e9 * AW_Message.adc_counts_to_tesla(comp[1] + 0.0))
@@ -187,6 +188,7 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
         
         for tag_name in ['magnetometer_temperature', 'system_temperature']:
             if tag_name in message_tags:
+                found = True
                 data.append(struct.unpack(AW_Message.tag_data[tag_name] \
                                               ['format'], 
                                           str(message_tags[tag_name][0]))[0] / 
@@ -195,22 +197,26 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
                 data.append(float('NaN'))
 
         if 'battery_voltage' in message_tags:
+            found = True
             data.append(struct.unpack(AW_Message.tag_data['battery_voltage']['format'], 
                                       str(message_tags['battery_voltage'][0]))[0] 
                         / 1000.0)
         else:
             data.append(float('NaN'))
-        
-        # Write the time
-        awnet_text_file.write('%.06f' % t)
 
-        awnet_text_file.write('\t')
-        awnet_text_file.write('\t'.join(map(str, data)))
-        awnet_text_file.write('\n')
-        awnet_text_file.flush()
-        global close_after_write
-        if close_after_write:
-            awnet_text_file.close()
+        # Write to the file only if relevant tags found
+        if found:
+            awnet_text_file = get_file_for_time(t, awnet_text_file, fstr)
+            # Write the time
+            awnet_text_file.write('%.06f' % t)
+
+            awnet_text_file.write('\t')
+            awnet_text_file.write('\t'.join(map(str, data)))
+            awnet_text_file.write('\n')
+            awnet_text_file.flush()
+            global close_after_write
+            if close_after_write:
+                awnet_text_file.close()
 
     except Exception as e:
         print('Could not write aurorawatchnet format data: ' + str(e))
@@ -221,9 +227,6 @@ cloud_file = None
 def write_cloud_data(t, message_tags, fstr):
     global cloud_file
     try:
-        cloud_file = get_file_for_time(t, cloud_file, fstr)
-        
-
         tag_names = ['cloud_ambient_temperature', 
                      'cloud_object1_temperature']
         if config.getboolean('cloud', 'dual_sensor'):
@@ -232,31 +235,35 @@ def write_cloud_data(t, message_tags, fstr):
 
 
         data = {}
+        found = False
         for tag_name in ['cloud_ambient_temperature', 
                          'cloud_object1_temperature',
                          'cloud_object2_temperature', 
                          'ambient_temperature',
                          'relative_humidity']:
             if tag_name in message_tags:
+                found = True
                 data[tag_name] = AW_Message.decode_cloud_temp( \
                     tag_name, str(message_tags[tag_name][0]))
 
+        
+        if found:
+            cloud_file = get_file_for_time(t, cloud_file, fstr)
+            # Write the time
+            cloud_file.write('%.06f' % t)
 
-        # Write the time
-        cloud_file.write('%.06f' % t)
-       
-        for tag_name in tag_names:
-            if tag_name in message_tags:
-                data = AW_Message.decode_cloud_temp( \
-                    tag_name, str(message_tags[tag_name][0]))
-                cloud_file.write(' {:.2f}'.format(data))
-            else:
-                cloud_file.write(' nan')
-        cloud_file.write('\n')
-        cloud_file.flush()
-        global close_after_write
-        if close_after_write:
-            cloud_file.close()
+            for tag_name in tag_names:
+                if tag_name in message_tags:
+                    data = AW_Message.decode_cloud_temp( \
+                        tag_name, str(message_tags[tag_name][0]))
+                    cloud_file.write(' {:.2f}'.format(data))
+                else:
+                    cloud_file.write(' nan')
+            cloud_file.write('\n')
+            cloud_file.flush()
+            global close_after_write
+            if close_after_write:
+                cloud_file.close()
 
     except Exception as e:
         print('Could not save cloud data: ' + str(e))

@@ -305,11 +305,17 @@ for tag_name in tag_data.keys():
 # Horrid hack because cloud data was originally sent as absolute
 # temperatures, unlike other tags.
 def decode_cloud_temp(tag_name, payload):
-    tmp = (float(struct.unpack(tag_data[tag_name]['format'],
-                               str(payload))[0]) / 100)
-    if tmp > 173.15:
-        tmp -= 273.15
-    return tmp
+    raw_temp = struct.unpack(tag_data[tag_name]['format'], str(payload))[0]
+    if raw_temp == 32767:
+        return float('NaN')
+
+    # Convert to deg C
+    temp = float(raw_temp) / 100
+    
+    # Convert any absolute temperatures to deg C
+    if temp > 173.15:
+        temp -= 273.15
+    return temp
 
 def format_tag_cloud_temp(tag_name, dataLen, payload):
     return str(decode_cloud_temp(tag_name, payload)) + '°C'
