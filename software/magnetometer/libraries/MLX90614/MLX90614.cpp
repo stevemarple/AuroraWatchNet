@@ -4,24 +4,22 @@ unsigned long MLX90614::powerUpDelay_ms = MLX90614::defaultPowerUpDelay_ms;
 
 int16_t MLX90614::convertToCentiC(uint16_t data)
 {
-  if (data & 0x8000)
-    // MSB does seem to be set for some devices when error exists
-    return 32767;
+  // Check for error bit set
+  if (data & 0x8000U)
+    return 0x7FFF;
   
-  data <<= 1; // Convert from units of 0.02K to 0.01K
-  --data;
-  return int16_t(data) - 27315;
+  // Convert from units of 0.02K to 0.01K then subtract 273.15 degC
+  return int16_t(data << 1U) - 27315;
 }
 
 
 uint16_t MLX90614::convertToCentiK(uint16_t data)
 {
-  uint16_t r = data;
-  // Remove MSB (error bit, ignored for temperatures)
-  r &= 0x7FFF;
-  r <<= 1; // Convert from units of 0.02K to 0.01K
-  --r;
-  return r;
+  // Check for error bit set
+  if (data & 0x8000U)
+    return 0xFFFFU;
+
+  return data << 1U;
 }
 
 MLX90614::MLX90614(void) : state(off),
@@ -30,7 +28,6 @@ MLX90614::MLX90614(void) : state(off),
   ;
 }
 
-//bool MLX90614::initialise(uint8_t sda, uint8_t scl, uint8_t power)
 bool MLX90614::initialise(void)
 {
   // For Calunium
@@ -90,15 +87,24 @@ void MLX90614::process(void)
     break;
 
   case readingAmbient:
-    if (!delay.isExpired())
-      break;
-    
-    ambient = convertToCentiC(read(addressAmbient));
-    state = readingObject1;
+    if (delay.isExpired()) {
+      uint16_t value;
+      if (read(addressAmbient, value))
+	ambient = convertToCentiC(value);
+      else
+	ambient = 0x7FFF;
+      state = readingObject1;
+    }
     break;
 
   case readingObject1:
-    object1 = convertToCentiC(read(addressObject1));
+    {
+      uint16_t value;
+      if (read(addressObject1, value))
+	object1 = convertToCentiC(value);
+      else
+	object1 = 0x7FFF;
+    }
     if (dualSensor)
       state = readingObject2;
     else
@@ -106,7 +112,13 @@ void MLX90614::process(void)
     break;
 
   case readingObject2:
-    object2 = convertToCentiC(read(addressObject2));
+    {
+      uint16_t value;
+      if (read(addressObject2, value))
+	object2 = convertToCentiC(value);
+      else
+	object2 = 0x7FFF;
+    }
     state = poweringDown;
     break;
 
@@ -123,8 +135,6 @@ void MLX90614::process(void)
 
 void MLX90614::finish(void)
 {
-  //pinMode(sdaPin, INPUT);
-  //pinMode(sclPin, INPUT);
   i2c.setSdaHigh();
   i2c.setSclHigh();
   if (powerPin != 255)
@@ -132,62 +142,34 @@ void MLX90614::finish(void)
   state = finished;
 }
 
-uint16_t MLX90614::read(uint8_t command) const
+
+bool MLX90614::read(uint8_t command, uint16_t &value) const
 {
   uint8_t address = 0x5A;
   uint8_t dataLow = 0;
   uint8_t dataHigh = 0;
   uint8_t pec = 0;
 
-  uint8_t errors = 0;
-  // Send command
-  errors += i2c.startWait(address, SoftWire::writeMode);
-  errors += i2c.write(command);
-  
-  // Read results
-  errors += i2c.repeatedStart(address, SoftWire::readMode);
-  errors += i2c.readThenAck(dataLow);  // Read 1 byte and then send ack
-  errors += i2c.readThenAck(dataHigh); // Read 1 byte and then send ack
-  errors += i2c.readThenNack(pec);
+  bool r = !(i2c.startWait(address, SoftWire::writeMode) ||
+	     i2c.write(command) || // Command sent
+	     i2c.repeatedStart(address, SoftWire::readMode) || // Read results
+	     i2c.readThenAck(dataLow) ||  // Read 1 byte and then send ack
+	     i2c.readThenAck(dataHigh) || // Read 1 byte and then send ack
+	     i2c.readThenNack(pec));
   i2c.stop();
+  if (r) {
+    uint8_t crc = 0;
+    crc = SoftWire::crc8_update(crc, address << 1U); // Write address
+    crc = SoftWire::crc8_update(crc, command);
+    crc = SoftWire::crc8_update(crc, (address << 1U) + 1U); // Read address
+    crc = SoftWire::crc8_update(crc, dataLow);
+    crc = SoftWire::crc8_update(crc, dataHigh);
+    crc = SoftWire::crc8_update(pec, pec);
 
-  if (errors)
-    return 0xFFFF;
-  
-  uint8_t crc = 0;
-  crc = SoftWire::crc8_update(crc, address << 1); // Write address
-  crc = SoftWire::crc8_update(crc, command);
-  crc = SoftWire::crc8_update(crc, (address << 1) + 1); // Read address
-  crc = SoftWire::crc8_update(crc, dataLow);
-  crc = SoftWire::crc8_update(crc, dataHigh);
-  crc = SoftWire::crc8_update(pec, pec);
-
-  if (crc)
-    return 0xFFFF;
-  return (uint16_t(dataHigh) << 8) | dataLow;
+    if (crc)
+      return false;
+    value = (uint16_t(dataHigh) << 8U) | dataLow;
+    return true;
+  }
+  return false;
 }
-
-// uint16_t MLX90614::read(uint8_t command) const
-// {
-//   int address = 0x5A << 1;
-//   int dataLow = 0;
-//   int dataHigh = 0;
-//   int pec = 0;
-  
-//   // digitalWrite(LED_BUILTIN, HIGH); delayMicroseconds(50);
-
-//   i2c.startWait(address, SoftWire::writeMode);
-//   i2c.write(command);
-    
-//   // read
-//   i2c.repeatedStart(address, SoftWire::readMode);
-//   dataLow = i2c_readAck();  // Read 1 byte and then send ack
-//   dataHigh = i2c_readAck(); // Read 1 byte and then send ack
-//   pec = i2c_readNak();
-//   i2c_stop();
-//   //digitalWrite(LED_BUILTIN, LOW);
-
-//   return (uint16_t(dataHigh) << 8) | dataLow;
-// }
-
-   

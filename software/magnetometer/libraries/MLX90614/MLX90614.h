@@ -39,7 +39,8 @@ public:
   void process(void); // Call often to process state machine
   void finish(void); // Force completion and power-down
 
-  uint16_t read(uint8_t address) const;
+  // Return true to indicate success
+  bool read(uint8_t address, uint16_t &value) const;
 
   
   
