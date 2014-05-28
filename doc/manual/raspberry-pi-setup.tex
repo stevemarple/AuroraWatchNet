@@ -15,6 +15,9 @@ Raspberry Pi web site. \textbf{Copying the compressed image to a \fat\
 \helpbox{In the command window you can press the \keypress{Tab} key
   to have Linux complete the command or filename.}
 
+\helpbox{If you are not familiar with the \code{nano} text editor read
+  \href{http://www.howtogeek.com/howto/42980/the-beginners-guide-to-nano-the-linux-command-line-text-editor/}{The Beginner's Guide to Nano, the Linux Command-Line Text Editor}}
+
 Raspbian is most easily configured by booting the new image. If you
 are able to discover the \ip\ address (for instance, by checking the
 \dhcp\ tables of your home router) you can do this over the network
@@ -66,6 +69,50 @@ Select \code{Advanced Options} and then \code{Memory
 Finally select \code{Expand Filesystem}. Although the first option
 do this last. Choose \code{Finish} and then reboot.
 
+
+\subsection{Configure proxy server}
+Not all networks require a proxy server (or web cache) to be used,
+your network adminstrator should be able to advise. If it is necessary
+the setting should be configured in two places.
+
+As user \rootUser
+\begin{Cmd}
+nano /etc/environment  
+\end{Cmd}
+
+At the end of the file add a line similar to
+\begin{Cmd}
+http_proxy=''http://proxyhost:port/''
+\end{Cmd}
+You must replace \code{proxyhost} and \code{port} with the correct
+settings for your network. If the proxy server requires a username and
+password the line should be similar to
+\begin{Cmd}
+http_proxy=''http://username:password@proxyhost:port/''  
+\end{Cmd}
+Replace \code{username} and \code{password} with the values your
+network administrator has provided.
+
+Repeat for the procedure, as \rootUser
+\begin{Cmd}
+nano /etc/apt/apt.conf.d/10proxy
+\end{Cmd}
+
+At a line similar to
+\begin{Cmd}
+Acquire::http::Proxy "http://proxyhost:port";
+\end{Cmd}
+Or, is a password is required, similar to
+\begin{Cmd}
+Acquire::http::Proxy "http://username:password@proxyhost:port";
+\end{Cmd}
+
+Proxy settings will not take effect until you log back in. Type
+\begin{Cmd}
+logout
+\end{Cmd}
+and then log back in.
+
 \subsection{Install missing software packages}
 As user \rootUser
 \begin{Cmd}
@@ -101,6 +148,9 @@ below.
 \begin{Cmd}
 /dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
 \end{Cmd}
+
+
+
 
 
 \section{Installing the AuroraWatchNet server software}
