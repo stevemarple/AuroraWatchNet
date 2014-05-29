@@ -98,16 +98,17 @@ Repeat for the procedure, as \rootUser
 nano /etc/apt/apt.conf.d/10proxy
 \end{Cmd}
 
-At a line similar to
+Add a line similar to
 \begin{Cmd}
 Acquire::http::Proxy "http://proxyhost:port";
 \end{Cmd}
-Or, is a password is required, similar to
+Or, if a password is required, similar to
 \begin{Cmd}
 Acquire::http::Proxy "http://username:password@proxyhost:port";
 \end{Cmd}
 
-Proxy settings will not take effect until you log back in. Type
+Proxy settings will not take effect until you log out and log back
+in. Type
 \begin{Cmd}
 logout
 \end{Cmd}
@@ -118,8 +119,6 @@ As user \rootUser
 \begin{Cmd}
 apt-get install screen lsof python-pip ipython python-matplotlib \textbackslash
     python-scipy avahi-daemon dnsutils
-
-dpkg -i {\mytilde}pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
 
 \subsection{Remove swap file}
@@ -165,9 +164,17 @@ git clone --recursive https://github.com/stevemarple/xboot.git
 mkdir \mytilde/bin
 cd \mytilde/bin
 ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
+ln -s ../AuroraWatchNet/software/server/awnetd/send_cmd.py
 ln -s ../AuroraWatchNet/software/server/bin/log_ip
 ln -s ../AuroraWatchNet/software/server/bin/upload_data.py
 cd \mytilde
+\end{Cmd}
+
+\subsection{Install python numpy library}
+
+As user \rootUser
+\begin{Cmd}
+dpkg -i /home/pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
 
 \subsection{Configure python}
@@ -192,10 +199,11 @@ As user \piUser
 crontab -e
 \end{Cmd}
 
-In the \filename{nano} editor add the following lines to periodically
-report that the Raspberry Pi is operating, which helps the AuroraWatch
-administrators monitor which stations are active. This reporting step can be
-omitted if you prefer.
+In the \filename{nano} editor add the following two lines to
+periodically report that the Raspberry Pi is operating, make sure you
+terminate the last line by pressing the \myreturn\ key. This helps
+the AuroraWatch administrators monitor which stations are active. This
+reporting step can be omitted if you prefer.
 \begin{Cmd}
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
