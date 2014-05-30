@@ -15,6 +15,7 @@
 #include <SoftWire.h>
 #include <MLX90614.h>
 #include <HIH61xx.h>
+#include <AS3935.h>
 #include <HouseKeeping.h>
 
 #include <RTCx.h>
@@ -43,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.07a";
+  "MagCloud-0.08a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -72,6 +73,10 @@ bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
 
 HIH61xx hih61xx;
 bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
+
+AS3935 as3935;
+bool as3935Present = eeprom_read_byte((uint8_t*)EEPROM_AS3935_PRESENT);
+CounterRTC::Time as3935Timestamp;
 
 CommandHandler commandHandler;
 
@@ -569,6 +574,21 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
   return false;
 }
 
+
+void as3935InterruptHandler(void)
+{
+  // The AS3935 interrupt handler is inline code
+  as3935.interruptHandler(); 
+}
+
+
+// Record current time
+void as3935TimestampCB(void)
+{
+  cRTC.getTime(as3935Timestamp);
+}
+
+
 void setup(void)
 {
   get_mcusr();
@@ -691,16 +711,14 @@ void setup(void)
     aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
   allSamples = eeprom_read_byte((uint8_t*)EEPROM_ALL_SAMPLES);
 
-  __FlashStringHelper* flc100Str = (__FlashStringHelper*)PSTR("FLC100");
-  __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");
-  __FlashStringHelper* hih61xxStr = (__FlashStringHelper*)PSTR("HIH61xx");
-    __FlashStringHelper* initialisingStr
+  __FlashStringHelper* initialisingStr
     = (__FlashStringHelper*)PSTR("Initialising ");
   __FlashStringHelper* notStr = (__FlashStringHelper*)PSTR(" not");
   __FlashStringHelper* presentStr = (__FlashStringHelper*)PSTR(" present");
   __FlashStringHelper* powerUpDelayStr
     = (__FlashStringHelper*)PSTR(" power-up delay (ms): ");
 
+  __FlashStringHelper* flc100Str = (__FlashStringHelper*)PSTR("FLC100");
   if (flc100Present) {
     console.print(initialisingStr);
     console.println(flc100Str);
@@ -729,7 +747,8 @@ void setup(void)
     console.print(powerUpDelayStr);
     console.println(FLC100::powerUpDelay_ms);
   }
-     
+  
+  __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");   
   if (mlx90614Present) {
     console.print(initialisingStr);
     console.println(mlx90614Str);
@@ -746,7 +765,8 @@ void setup(void)
     console.print(powerUpDelayStr);
     console.println(MLX90614::powerUpDelay_ms);
   }
-  
+
+  __FlashStringHelper* hih61xxStr = (__FlashStringHelper*)PSTR("HIH61xx");
   if (hih61xxPresent) {
     console.print(initialisingStr);
     console.println(hih61xxStr);
@@ -757,6 +777,35 @@ void setup(void)
     console.print(notStr);
   console.println(presentStr);
 
+  __FlashStringHelper* as3935Str = (__FlashStringHelper*)PSTR("AS3935");
+  if (as3935Present) {
+    console.print(initialisingStr);
+    console.println(as3935Str);
+    // TODO: Have tunCap read from EEPROM or calibrate (which requires
+    // accurate clock, not RC oscillator).
+    uint8_t tunCap = eeprom_read_byte((uint8_t*)EEPROM_AS3935_TUN_CAP) & 0x0f;
+    as3935Present = as3935.initialise(14, 17, 0x03, tunCap, false,
+				      as3935TimestampCB);
+    if (as3935Present) {
+      // Start and set register values. Unlike other sensors this is
+      // kept powered so needs starting only once, not at every
+      // sampling interval.
+      AsyncDelay d;
+      as3935.start();
+      d.start(1000, AsyncDelay::MILLIS);
+      while (!d.isExpired())
+	as3935.process();
+      
+      as3935.setNoiseFloor(0);
+      as3935.setSpikeRejection(0);
+    }
+  }
+  console.print(as3935Str);
+  if (!as3935Present)
+    console.print(notStr);
+  console.println(presentStr);
+
+  
   // Identify communications method to be used.
   uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
   if (radioType == 0xFF)
@@ -905,6 +954,8 @@ void loop(void)
     if (!hih61xx.isSampling())
       hih61xx.start();
 
+    // AS3935 does not need starting here. It is kept powered.
+    
     if (!houseKeeping.isSampling())
       houseKeeping.start();
      
@@ -926,6 +977,8 @@ void loop(void)
     mlx90614.process();
   if (hih61xxPresent)
     hih61xx.process();
+  if (as3935Present)
+    as3935.process();
   houseKeeping.process();
 
   if (commsHandler.process(responseBuffer, responseBufferLen))
