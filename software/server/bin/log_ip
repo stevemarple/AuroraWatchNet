@@ -24,9 +24,11 @@ else
     action="$1"
 fi
 
-
-
-URL="http://aurorawatch.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}"
+# Include date/time since Raspberry Pi is dependent upon NTP for
+# accurate time and some networks block access to the standard NTP
+# servers used by Raspbian.
+datetime=`date --utc '+%Y%m%dT%H%M%SZ'`
+URL="http://aurorawatch.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}&time=${datetime}"
 if [ -n "$action" ]; then
     URL="${URL}&action=${action}"
     if [ "$action" = "reboot" ]; then
