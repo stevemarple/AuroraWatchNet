@@ -98,7 +98,7 @@ def http_upload(file_name, url):
         # some of the file can be sent
         h = hashlib.md5(fh.read(int(head_req.headers['Content-Length'])))
 
-        if h.hexdigest().lower() == head_req.headers['MD5-Sum'].lower():
+        if h.hexdigest().lower() == head_req.headers['X-MD5-Sum'].lower():
             # First portion matches
             if os.path.getsize(file_name) == \
                     int(head_req.headers['Content-Length']):
