@@ -18,15 +18,17 @@
 # password and realm to use; the username is derived from the site
 # name. Files to be uploaded can be selected on the basis of date
 # range, and also archive type. Before a file is transferred to the
-# AuroraWatch server a HEAD request is made. If the file is missing it
-# is transferred immediately, otherwise the content length and MD5 sum
-# for the file on the server are compared to the local copy. If both
-# are the same then no upload for that file is required. If the local
-# file is larger but the corresponding part on the server matches
-# (based on the MD5 sum) then only the additional data is uploaded,
-# otherwise the entire file is uploaded. This approach greatly reduces
-# the data transferred when an updating daily file is transferred at
-# regular intervals (10 minutes or less).
+# AuroraWatch server a GET request is made which indicates if the file
+# is present on the server, and if so its size and MD5 sum are also
+# returned. If the file is missing it is transferred immediately,
+# otherwise the content length and MD5 sum for the file on the server
+# are compared to the local copy. If both are the same then no upload
+# for that file is required. If the local file is larger but the
+# corresponding part on the server matches (based on the MD5 sum) then
+# only the additional data is uploaded, otherwise the entire file is
+# uploaded. This approach greatly reduces the data transferred when an
+# updating daily file is transferred at regular intervals (10 minutes
+# or less).
 
 import argparse
 import copy
@@ -77,38 +79,38 @@ def make_remote_rsync_directory(remote_host, remote_dir):
     subprocess.call(cmd)
 
 
-def head_request(file_name, url):
-    request = urllib2.Request(url + file_name)
-    request.get_method = lambda : 'HEAD'
-    try:
-        response = urllib2.urlopen(request)
-        return response
-    except:
-        return None
-    
-
 def http_upload(file_name, url):
     logging.debug('Uploading ' + file_name)
     values = {'file_name': file_name}
     fh = open(file_name, 'r')
 
-    head_req = head_request(file_name, url)
-    if head_req:
+    url_for_get = url + '?' + urllib.urlencode({'file_name': file_name})
+    logging.debug('GET: ' + url_for_get)
+    get_req = urllib2.urlopen(url_for_get)
+    file_details = SafeConfigParser()
+    file_details.readfp(get_req)
+    section_name = os.path.basename(file_name)
+    if int(file_details.get(section_name, 'found')):
         # File is on server, check if the file is complete, or if only
         # some of the file can be sent
-        h = hashlib.md5(fh.read(int(head_req.headers['Content-Length'])))
+        content_length = file_details.get(section_name, 'content_length')
+        md5_sum = file_details.get(section_name, 'md5_sum')
+        logging.debug('file exists on server, content_length=' + 
+                      str(content_length) +
+                      ', md5_sum=' + md5_sum)
 
-        if h.hexdigest().lower() == head_req.headers['X-MD5-Sum'].lower():
+        h = hashlib.md5(fh.read(int(content_length)))
+
+        if h.hexdigest().lower() == md5_sum.lower():
             # First portion matches
-            if os.path.getsize(file_name) == \
-                    int(head_req.headers['Content-Length']):
+            if os.path.getsize(file_name) == int(content_length):
                 # Same size so complete
                 fh.close()
                 logging.info(file_name + ' already uploaded')
                 return True
             else:
                 logging.info(file_name + ' already partially uploaded')
-                values['file_offset'] = head_req.headers['Content-Length']
+                values['file_offset'] = content_length
         else:
             # Portion on server differs, upload everything
             logging.info(file_name + ' is different')
@@ -116,6 +118,8 @@ def http_upload(file_name, url):
     else:
         # Missing, send all of file
         values['file_offset'] = 0
+        
+    get_req.close()
 
     logging.debug('File offset: ' + str(values['file_offset']))
     fh.seek(int(values['file_offset']))
@@ -125,6 +129,7 @@ def http_upload(file_name, url):
     post_data = urllib.urlencode(values)
 
     try:
+        logging.debug('POST: ' + url)
         request = urllib2.Request(url, post_data)
         response = urllib2.urlopen(request)
         if response.code == 200:
