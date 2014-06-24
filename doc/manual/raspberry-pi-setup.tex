@@ -83,12 +83,14 @@ nano /etc/environment
 At the end of the file add a line similar to
 \begin{Cmd}
 http_proxy='http://proxyhost:port/'
+https_proxy='http://proxyhost:port/'
 \end{Cmd}
 You must replace \code{proxyhost} and \code{port} with the correct
 settings for your network. If the proxy server requires a username and
-password the line should be similar to
+password the lines should be similar to
 \begin{Cmd}
 http_proxy='http://username:password@proxyhost:port/'
+https_proxy='http://username:password@proxyhost:port/'
 \end{Cmd}
 Replace \code{username} and \code{password} with the values your
 network administrator has provided.
@@ -106,6 +108,8 @@ Or, if a password is required, similar to
 \begin{Cmd}
 Acquire::http::Proxy "http://username:password@proxyhost:port";
 \end{Cmd}
+A separate line for HTTPS is not required in
+\code{/etc/apt/apt.conf.d/10proxy}.
 
 Proxy settings will not take effect until you log out and log back
 in. Type
