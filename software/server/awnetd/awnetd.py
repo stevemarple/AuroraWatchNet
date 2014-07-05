@@ -65,6 +65,13 @@ def read_config_file(config_file):
     config.add_section('firmware')
     config.set('firmware', 'path', '/tmp/firmware')
     
+    # Monitor for the existence of a file to indicate possible adverse
+    # data quality
+    config.add_section('dataqualitymonitor')
+    config.set('dataqualitymonitor', 'filename', 
+               '/var/aurorawatchnet/data_quality_warning')
+    config.set('dataqualitymonitor', 'extension', '.bad')
+
     # TOD: Handle multiple stations 
     config.add_section('s')
     config.set('s', 'path', '/s/aurorawatch/net')
@@ -97,11 +104,15 @@ def read_config_file(config_file):
                             'key': hmac_key})
                     
 
-def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
+def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
+                      extension=None):
     '''
     t: seconds since unix epoch
     '''
     tmp_name = time.strftime(fstr, time.gmtime(t))
+    if extension is not None:
+        tmp_name += extension
+
     if file_obj is not None:
         if file_obj.closed:
             file_obj = None
@@ -121,7 +132,7 @@ def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0):
     return file_obj
 
 aw_message_file = None
-def write_message_to_file(t, message, fstr, savekey=None):
+def write_message_to_file(t, message, fstr, savekey=None, extension=None):
     global aw_message_file
     try:
         if savekey:
@@ -129,7 +140,8 @@ def write_message_to_file(t, message, fstr, savekey=None):
                                      AW_Message.get_retries(message),
                                      AW_Message.get_sequence_id(message))
 
-        aw_message_file = get_file_for_time(t, aw_message_file, fstr)
+        aw_message_file = get_file_for_time(t, aw_message_file, fstr,
+                                            extension=extension)
         aw_message_file.write(message);
         aw_message_file.flush()
         global close_after_write
@@ -141,7 +153,7 @@ def write_message_to_file(t, message, fstr, savekey=None):
     
 # AuroraWatch realtime file
 realtime_file = None
-def write_aurorawatch_realtime_data(t, message_tags, fstr):
+def write_aurorawatch_realtime_data(t, message_tags, fstr, extension):
     global realtime_file
     try:
         data = { }
@@ -151,7 +163,8 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr):
                                      str(message_tags[tag_name][0]))
                 data[tag_name] = comp[1];
                 
-        realtime_file = get_file_for_time(t, realtime_file, fstr)
+        realtime_file = get_file_for_time(t, realtime_file, fstr,
+                                          extension=extension)
         realtime_file.write('{:05d}'.format(int(round(t)) % 86400))
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
@@ -172,7 +185,7 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr):
 
 # File object to which AuroraWatchNet text data format files are written    
 awnet_text_file = None
-def write_aurorawatchnet_text_data(t, message_tags, fstr):
+def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
     global awnet_text_file
     try:
         data = [ ]
@@ -206,7 +219,8 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
 
         # Write to the file only if relevant tags found
         if found:
-            awnet_text_file = get_file_for_time(t, awnet_text_file, fstr)
+            awnet_text_file = get_file_for_time(t, awnet_text_file, fstr, 
+                                                extension=extension)
             # Write the time
             awnet_text_file.write('%.06f' % t)
 
@@ -224,7 +238,7 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr):
 
 # AuroraWatch realtime file
 cloud_file = None
-def write_cloud_data(t, message_tags, fstr):
+def write_cloud_data(t, message_tags, fstr, extension):
     global cloud_file
     try:
         tag_names = ['cloud_ambient_temperature', 
@@ -248,7 +262,8 @@ def write_cloud_data(t, message_tags, fstr):
 
         
         if found:
-            cloud_file = get_file_for_time(t, cloud_file, fstr)
+            cloud_file = get_file_for_time(t, cloud_file, fstr, 
+                                           extension=extension)
             # Write the time
             cloud_file.write('%.06f' % t)
 
@@ -271,7 +286,7 @@ def write_cloud_data(t, message_tags, fstr):
    
 # AuroraWatch realtime file
 raw_mag_samples_file = None
-def write_raw_magnetometer_samples(t, message_tags, fstr):
+def write_raw_magnetometer_samples(t, message_tags, fstr, extension):
     '''
     Output format is timestamp, axes, value, raw sample1, raw sample2 ...
     where for axes 0 = x, 1 = y, 2 = z
@@ -280,7 +295,8 @@ def write_raw_magnetometer_samples(t, message_tags, fstr):
     global raw_mag_samples_file
     # try:
     if True:
-        raw_mag_samples_file = get_file_for_time(t, raw_mag_samples_file, fstr)
+        raw_mag_samples_file = get_file_for_time(t, raw_mag_samples_file,
+                                                 fstr, extension=extension)
 
         fmt_sample = lambda n: str(1e9 * AW_Message.adc_counts_to_tesla(n))
 
@@ -854,7 +870,7 @@ if config.has_option('awpacket', 'key'):
 buf = bytearray()
 
 
-
+data_quality_extension = None
 running = True
 while running:
     try:
@@ -907,8 +923,27 @@ while running:
             response = None
 
             if message is not None:
+                message_received = time.time()
+                if os.path.isfile(config.get('dataqualitymonitor', 
+                                             'filename')):
+                    if data_quality_extension is None:
+                        write_to_log_file( \
+                            message_received, 
+                            iso_timestamp(message_received) +
+                            ' D Data quality warning detected\n')
+                        
+                    data_quality_extension = \
+                        config.get('dataqualitymonitor', 'extension')
+                else:
+                    if data_quality_extension is not None:
+                        write_to_log_file( \
+                            message_received, 
+                            iso_timestamp(message_received) +
+                            ' D Data quality warning removed\n')
+                    data_quality_extension = None
+                
                 if (device and device.isatty()) or device_socket:
-                    message_time = time.time()
+                    message_time = message_received
                 else:
                     message_time = None
                 if args.verbosity:
@@ -984,17 +1019,20 @@ while running:
                     # Save the message and response
                     write_message_to_file(timestamp_s, message, 
                                           config.get('awpacket', 'filename'),
-                                          saved_hmac_key)
+                                          savekey=saved_hmac_key,
+                                          extension=data_quality_extension)
                     if response is not None:
                         write_message_to_file(timestamp_s, response, 
                                               config.get('awpacket', 'filename'),
-                                              saved_hmac_key)
+                                              savekey=saved_hmac_key,
+                                              extension=data_quality_extension)
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
                     not AW_Message.is_response_message(message)):
                     write_aurorawatch_realtime_data(timestamp_s, 
-                                                        message_tags, 
-                                                        config.get('aurorawatchrealtime', 'filename'))
+                                                    message_tags, 
+                                                    config.get('aurorawatchrealtime', 'filename'),
+                                                    data_quality_extension)
 
 
                 # Keep logfile of important events
@@ -1008,20 +1046,24 @@ while running:
                 if (config.has_option('cloud', 'filename') and
                     not AW_Message.is_response_message(message)):
                     write_cloud_data(timestamp_s, message_tags,
-                                     config.get('cloud', 'filename'))
+                                     config.get('cloud', 'filename'),
+                                     data_quality_extension)
 
                 if (config.has_option('awnettextdata', 'filename') and
                     not AW_Message.is_response_message(message)):
                     write_aurorawatchnet_text_data(timestamp_s, 
                                                    message_tags,
                                                    config.get('awnettextdata', 
-                                                              'filename'))
+                                                              'filename'),
+                                                   data_quality_extension)
 
                 if (config.has_option('magnetometerrawsamples', 'filename') 
                     and not AW_Message.is_response_message(message)):
-                    write_raw_magnetometer_samples(timestamp_s, 
-                                                   message_tags, \
-                       config.get('magnetometerrawsamples', 'filename'))
+                    write_raw_magnetometer_samples( \
+                        timestamp_s, message_tags, 
+                        config.get('magnetometerrawsamples', 'filename'), 
+                        data_quality_extension)
+
 
                 # Realtime transfer must be last since it alters the
                 # message and response signature.

@@ -81,24 +81,24 @@ config.read(args.config_file)
 
 device = args.port
 if not device:
-    if config.has_option('ftdi_monitor', 'port'):
-        device = config.read('ftdi_monitor', 'port')
+    if config.has_option('dataqualitymonitor', 'port'):
+        device = config.read('dataqualitymonitor', 'port')
     else:
         raise Exception('FTDI device not specified')
 
 filename = args.filename
 if not filename:
-    if config.has_option('ftdi_monitor', 'filename'):
-        device = config.read('ftdi_monitor', 'filename')
+    if config.has_option('dataqualitymonitor', 'filename'):
+        device = config.read('dataqualitymonitor', 'filename')
     else:
         raise Exception('Filename not specified')
 
 if args.daemon:
     import daemon
     pidfile = None
-    if config.has_option('ftdi_monitor', 'pidfile'):
+    if config.has_option('dataqualitymonitor', 'pidfile'):
         import lockfile
-        pidfile = lockfile.FileLock(config.get('ftdi_monitor', 'pidfile'),
+        pidfile = lockfile.FileLock(config.get('dataqualitymonitor', 'pidfile'),
                                     threaded=False)
         if pidfile.is_locked():
             print('daemon already running')
