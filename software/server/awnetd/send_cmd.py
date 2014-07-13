@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import logging
 import re
 import socket
 import struct
@@ -18,13 +19,19 @@ else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
 
+logger = logging.getLogger(__name__)
+
+
 # TODO: merge with awnetd.py readConfig()
 def read_config(config_file):
+    logger.info('Reading config file ' + args.config_file)
     global config
     config = SafeConfigParser()
     config.add_section('controlsocket')
     # config.set('controlsocket', 'interface', 'localhost')
     config.set('controlsocket', 'port', '6587')
+    config_files_read = config.read(config_file)
+    logger.debug('Successfully read ' + ', '.join(config_files_read))
 
 # Valid commands and information about each
 # TODO: use a standard naming convention
@@ -60,6 +67,15 @@ parser.add_argument('-c', '--config-file',
 parser.add_argument('--host', 
                     default='localhost',
                     help='Hostname where daemon is running')
+parser.add_argument('--log-level', 
+                    choices=['debug', 'info', 'warning', 'error', 'critical'],
+                    default='warning',
+                    help='Control how much details is printed',
+                    metavar='LEVEL')
+parser.add_argument('--log-format',
+                    default='%(levelname)s:%(message)s',
+                    help='Set format of log messages',
+                    metavar='FORMAT')
 parser.add_argument('-v', '--verbose', 
                     action='count',
                     help='Be verbose')
@@ -87,6 +103,10 @@ for k in sorted(eeprom.keys()):
                                        
 # Process the command line arguments
 args = parser.parse_args()
+if __name__ == '__main__':
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                        format=args.log_format)
+
 read_config(args.config_file)
 user_cmds = []
 
