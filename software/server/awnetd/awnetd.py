@@ -19,6 +19,8 @@ import hmac
 import AW_Message
 import AWEeprom
 
+logger = logging.getLogger(__name__)
+
 if sys.version_info[0] >= 3:
     import configparser
     from configparser import SafeConfigParser
@@ -34,8 +36,8 @@ else:
 rt_transfer = []
 
 def read_config_file(config_file):
+    logger.info('Reading config file ' + args.config_file)
     global config
-    global site_ids
     config = SafeConfigParser()
     
     config.add_section('daemon')
@@ -72,16 +74,10 @@ def read_config_file(config_file):
                '/var/aurorawatchnet/data_quality_warning')
     config.set('dataqualitymonitor', 'extension', '.bad')
 
-    # TOD: Handle multiple stations 
-    config.add_section('s')
-    config.set('s', 'path', '/s/aurorawatch/net')
     if config_file:
         config_files_read = config.read(config_file)
+        logger.debug('Successfully read ' + ', '.join(config_files_read))
 
-    if config.has_option('s', 'siteids'):
-        site_ids = config.get('s', 'siteids').split()
-    else:
-        site_ids = []
 
     # Read realtime transfer details
     global rt_transfer
@@ -354,7 +350,7 @@ def write_to_log_file(t, s):
             aw_log_file.close()
 
     except Exception as e:
-        logging.exception('Could not write to log file')
+        logger.exception('Could not write to log file')
 
 
 def log_message_events(t, message_tags, is_response=False):
@@ -733,10 +729,6 @@ if args.daemon:
             exit(1)
     daemon.DaemonContext(pidfile=pidfile).open()
 
-if site_ids:
-    print('Site IDs: ' + ', '.join(site_ids))
-else:
-    print('Site IDs: none')
     
 print('Done')
 comms_block_size = int(config.get('serial', 'blocksize'))
