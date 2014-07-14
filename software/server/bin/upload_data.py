@@ -32,6 +32,7 @@
 
 import argparse
 import copy
+import datetime
 import hashlib
 import logging
 import os
@@ -48,30 +49,13 @@ import urlparse
 import urllib
 import urllib2
 
-import datetime
-now = datetime.datetime.utcnow()
-today = now.replace(hour=0,minute=0,second=0,microsecond=0)
-yesterday = today - datetime.timedelta(days=1)
-tomorrow = today + datetime.timedelta(days=1)
-
-
-def parse_datetime(s):
-    # Parse datetime relative to 'now' variable, which in test mode
-    # may not be the current time.
-    if s == 'tomorrow':
-        return tomorrow
-    elif s == 'now':
-        return now
-    elif s == 'today':
-        return today
-    elif s == 'yesterday':
-        return yesterday
-    else:
-        return datetime.datetime.strptime(s, '%Y-%m-%d')
-
+import aurorawatchnet as awn
     
+logger = logging.getLogger(__name__)
+
+
 def make_remote_rsync_directory(remote_host, remote_dir):
-    logging.debug('Calling rsync to make remote directory, ' 
+    logger.debug('Calling rsync to make remote directory, ' 
                   + remote_host + ':' + remote_dir)
     cmd = ['rsync', '/dev/null', remote_host + ':' + remote_dir + '/']
     if args.verbose:
@@ -80,12 +64,12 @@ def make_remote_rsync_directory(remote_host, remote_dir):
 
 
 def http_upload(file_name, url):
-    logging.debug('Uploading ' + file_name)
+    logger.debug('Uploading ' + file_name)
     values = {'file_name': file_name}
     fh = open(file_name, 'r')
 
     url_for_get = url + '?' + urllib.urlencode({'file_name': file_name})
-    logging.debug('GET: ' + url_for_get)
+    logger.debug('GET: ' + url_for_get)
     get_req = urllib2.urlopen(url_for_get)
     file_details = SafeConfigParser()
     file_details.readfp(get_req)
@@ -95,7 +79,7 @@ def http_upload(file_name, url):
         # some of the file can be sent
         content_length = file_details.get(section_name, 'content_length')
         md5_sum = file_details.get(section_name, 'md5_sum')
-        logging.debug('file exists on server, content_length=' + 
+        logger.debug('file exists on server, content_length=' + 
                       str(content_length) +
                       ', md5_sum=' + md5_sum)
 
@@ -106,14 +90,14 @@ def http_upload(file_name, url):
             if os.path.getsize(file_name) == int(content_length):
                 # Same size so complete
                 fh.close()
-                logging.info(file_name + ' already uploaded')
+                logger.info(file_name + ' already uploaded')
                 return True
             else:
-                logging.info(file_name + ' already partially uploaded')
+                logger.info(file_name + ' already partially uploaded')
                 values['file_offset'] = content_length
         else:
             # Portion on server differs, upload everything
-            logging.info(file_name + ' is different')
+            logger.info(file_name + ' is different')
             values['file_offset'] = 0
     else:
         # Missing, send all of file
@@ -121,7 +105,7 @@ def http_upload(file_name, url):
         
     get_req.close()
 
-    logging.debug('File offset: ' + str(values['file_offset']))
+    logger.debug('File offset: ' + str(values['file_offset']))
     fh.seek(int(values['file_offset']))
     values['file_data'] = fh.read()
     fh.close()
@@ -129,17 +113,17 @@ def http_upload(file_name, url):
     post_data = urllib.urlencode(values)
 
     try:
-        logging.debug('POST: ' + url)
+        logger.debug('POST: ' + url)
         request = urllib2.Request(url, post_data)
         response = urllib2.urlopen(request)
         if response.code == 200:
-            logging.info('Uploaded ' + file_name)
+            logger.info('Uploaded ' + file_name)
         else:
-            logging.error('Failed to upload ' + file_name)
+            logger.error('Failed to upload ' + file_name)
             
         return response
     except:
-        logging.error('Failed to upload ' + file_name)
+        logger.error('Failed to upload ' + file_name)
 
     
 
@@ -160,6 +144,10 @@ def get_file_type_data():
                 break
     return file_type_data
 
+now = datetime.datetime.utcnow()
+today = now.replace(hour=0,minute=0,second=0,microsecond=0)
+yesterday = today - datetime.timedelta(days=1)
+tomorrow = today + datetime.timedelta(days=1)
 
 parser = argparse.ArgumentParser(description=\
                                      'Upload AuroraWatch magnetometer data.')
@@ -211,8 +199,9 @@ rsync_grp.add_argument('-v', '--verbose',
 
 
 args = parser.parse_args()
-logging.basicConfig(level=getattr(logging, args.log_level.upper()),
-                    format=args.log_format)
+if __name__ == '__main__':
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                        format=args.log_format)
 
 
 if args.start_time is None:
@@ -225,25 +214,21 @@ if args.end_time is None:
 else:
     end_time = parse_datetime(args.end_time)
 
-logging.debug('Now: ' + str(now))
-logging.debug('Start time: ' + str(start_time))
-logging.debug('End time: ' + str(end_time))
+logger.debug('Now: ' + str(now))
+logger.debug('Start time: ' + str(start_time))
+logger.debug('End time: ' + str(end_time))
 
 
 if not os.path.exists(args.config_file):
-    logging.error('Missing config file ' + args.config_file)
+    logger.error('Missing config file ' + args.config_file)
     exit(1)
 
 try:
-    config = SafeConfigParser()
-    config.add_section('upload')
-    config.set('upload', 'method', 'rsync')
-    config.set('upload', 'rsync_host', 'awn-data')
-    config.read(args.config_file)
+    config = awn.read_config_file(args.config_file)
     site = config.get('magnetometer', 'site').upper()
     site_lc = site.lower()
 except Exception as e:
-    logging.error('Bad config file ' + args.config_file + ': ' + str(e))
+    logger.error('Bad config file ' + args.config_file + ': ' + str(e))
     raise
 
 
@@ -253,10 +238,10 @@ else:
     method = config.get('upload', 'method')
 
 if args.all and method not in ['rsync', 'rrsync']:
-    logging.error('--all can only be used with rsync and rrsync methods')
+    logger.error('--all can only be used with rsync and rrsync methods')
     exit(1)
 
-logging.debug('Upload method: ' + method)
+logger.debug('Upload method: ' + method)
 if method in ['rsync', 'rrsync']:
     # Upload by rsync, use SSH tunnelling. Assume that the SSH config
     # file defines an entry for "awn-data". It should look similar
@@ -293,10 +278,10 @@ if method in ['rsync', 'rrsync']:
         
     if args.all:
         if args.start_time is not None:
-            logging.error('--start-time cannot be specified with --all')
+            logger.error('--start-time cannot be specified with --all')
             exit(1)
         if args.end_time is not None:
-            logging.error('--end-time cannot be specified with --all')
+            logger.error('--end-time cannot be specified with --all')
             exit(1)
 
         # Append src directory. Trailing slash is important, it means the
@@ -304,7 +289,7 @@ if method in ['rsync', 'rrsync']:
         src_dir = os.path.join(os.sep, 'data', 'aurorawatchnet', site_lc)
         cmd.append(src_dir + os.sep)
         cmd.append(remote_host + ':' + remote_site_dir)
-        logging.info('cmd: ' + ' '.join(cmd))
+        logger.info('cmd: ' + ' '.join(cmd))
         if args.verbose:
             print(' '.join(cmd))
             
@@ -326,16 +311,16 @@ if method in ['rsync', 'rrsync']:
                 interval = file_type_data[ft]['interval']
                 t2 = t
                 while t2 < t_next_day:
-                    logging.debug('time: ' + str(t2))
+                    logger.debug('time: ' + str(t2))
                     file_name = t2.strftime(fstr)
                     if os.path.exists(file_name):
-                        logging.debug('Found ' + file_name)
+                        logger.debug('Found ' + file_name)
                         file_list.append(file_name)
                     else:
-                        logging.debug('Missing ' + file_name)
+                        logger.debug('Missing ' + file_name)
                     t2 += interval
             if len(file_list) == 0:
-                logging.info('No files to transfer')
+                logger.info('No files to transfer')
             else:
                 target_dir = remote_site_dir + t.strftime('/%Y/%m')
                 # Ensure yearly directory is made, unless we have
@@ -352,7 +337,7 @@ if method in ['rsync', 'rrsync']:
                 # out if only one file is to be transferred and the
                 # target directory is missing).
                 cmd2.append(remote_host + ':' + target_dir + '/')
-                logging.info('cmd: ' + ' '.join(cmd2))
+                logger.info('cmd: ' + ' '.join(cmd2))
                 if args.verbose:
                     print(' '.join(cmd2))
                 subprocess.call(cmd2)
@@ -367,7 +352,7 @@ elif method in ('http', 'https'):
     # If method is https then URL ought to use that scheme, but using
     # https URL for http upload is ok.
     if method == 'https' and urlparse.urlparse(url).scheme == 'http':
-        logging.error('https upload method specified but url scheme is http')
+        logger.error('https upload method specified but url scheme is http')
         exit(1)
 
     # Store details for each file type. Compute the interval between
@@ -390,14 +375,14 @@ elif method in ('http', 'https'):
         interval = file_type_data[ft]['interval']
         t = start_time
         while t < end_time:
-            logging.debug('time: ' + str(t))
+            logger.debug('time: ' + str(t))
             file_name = t.strftime(fstr)
             if os.path.exists(file_name):
                 response = http_upload(file_name, url)
                 if not response:
                     all_ok = False
             else:
-                logging.debug('Missing ' + file_name)
+                logger.debug('Missing ' + file_name)
             t += interval
     
 else:
