@@ -146,6 +146,9 @@ def get_file_type_data():
 
 now = datetime.datetime.utcnow()
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
+yesterday = today - datetime.timedelta(days=1)
+tomorrow = today + datetime.timedelta(days=1)
+
 parser = argparse.ArgumentParser(description=\
                                      'Upload AuroraWatch magnetometer data.')
 

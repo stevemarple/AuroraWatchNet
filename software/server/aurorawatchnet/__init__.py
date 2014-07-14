@@ -39,12 +39,12 @@ def read_config_file(filename):
     config.set('ethernet', 'local_port', '6588')
     config.set('ethernet', 'local_ip', '')
 
-#    config.add_section('magnetometer')
-#    config.set('magnetometer', 'datatransferdelay', '2')
-
     config.add_section('firmware')
     config.set('firmware', 'path', '/tmp/firmware')
     
+    config.add_section('upload')
+    # User must add appropriate values
+
     # Monitor for the existence of a file to indicate possible adverse
     # data quality
     config.add_section('dataqualitymonitor')
