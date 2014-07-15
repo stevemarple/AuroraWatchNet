@@ -60,7 +60,13 @@ def read_config_file(filename):
 
 
 def get_rt_tranfer_info(config):
-    '''Read realtime transfer details.'''
+    '''Read realtime transfer details.
+
+    Return a list of hosts to transfer data to in real time. Messages,
+    and daemon responses, are sent as UDP packets to each host on the
+    list. List items are dicts containing 'hostname', 'ip', 'port' and
+    'key'. Each message is signed with the host's key.'''
+
     sec = 'realtime_transfer'
     r = []
     if config.has_section(sec):
