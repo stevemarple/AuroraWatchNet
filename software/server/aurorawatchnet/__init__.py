@@ -82,7 +82,7 @@ def get_rt_tranfer_info(config):
                               'port': int(config.get(sec, 'remote_port' 
                                                      + suf)),
                               'key': hmac_key})
-
+    return r
 
 
 def parse_datetime(s, now=None):
