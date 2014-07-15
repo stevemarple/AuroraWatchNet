@@ -19,7 +19,7 @@ import hmac
 
 import aurorawatchnet as awn
 import aurorawatchnet.eeprom
-import aurorawatchnet.message as message
+import aurorawatchnet.message
 # import AW_Message
 # import AWEeprom
 
@@ -67,9 +67,9 @@ def write_message_to_file(t, message, fstr, savekey=None, extension=None):
     global aw_message_file
     try:
         if savekey:
-            message.put_signature(message, savekey, 
-                                     message.get_retries(message),
-                                     message.get_sequence_id(message))
+            awn.message.put_signature(message, savekey, 
+                                      awn.message.get_retries(message),
+                                      awn.message.get_sequence_id(message))
 
         aw_message_file = get_file_for_time(t, aw_message_file, fstr,
                                             extension=extension)
@@ -90,7 +90,7 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr, extension):
         data = { }
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
-                comp = struct.unpack(message.tag_data[tag_name]['format'], 
+                comp = struct.unpack(awn.message.tag_data[tag_name]['format'], 
                                      str(message_tags[tag_name][0]))
                 data[tag_name] = comp[1];
                 
@@ -99,9 +99,9 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr, extension):
         realtime_file.write('{:05d}'.format(int(round(t)) % 86400))
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
-                data = struct.unpack(message.tag_data[tag_name]['format'], 
+                data = struct.unpack(awn.message.tag_data[tag_name]['format'], 
                                      str(message_tags[tag_name][0]))[1]
-                realtime_file.write(' {:.1f}'.format(1e9 * message.adc_counts_to_tesla(data)))
+                realtime_file.write(' {:.1f}'.format(1e9 * awn.message.adc_counts_to_tesla(data)))
             else:
                 realtime_file.write(' nan')
         realtime_file.write('\n')
@@ -124,16 +124,16 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
         for tag_name in ['mag_data_x', 'mag_data_y', 'mag_data_z']:
             if tag_name in message_tags:
                 found = True
-                comp = struct.unpack(message.tag_data[tag_name]['format'], 
+                comp = struct.unpack(awn.message.tag_data[tag_name]['format'], 
                                      str(message_tags[tag_name][0]))
-                data.append(1e9 * message.adc_counts_to_tesla(comp[1] + 0.0))
+                data.append(1e9 * awn.message.adc_counts_to_tesla(comp[1] + 0.0))
             else:
                 data.append(float('NaN'));
         
         for tag_name in ['magnetometer_temperature', 'system_temperature']:
             if tag_name in message_tags:
                 found = True
-                data.append(struct.unpack(message.tag_data[tag_name] \
+                data.append(struct.unpack(awn.message.tag_data[tag_name] \
                                               ['format'], 
                                           str(message_tags[tag_name][0]))[0] / 
                             100.0)
@@ -142,7 +142,7 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
 
         if 'battery_voltage' in message_tags:
             found = True
-            data.append(struct.unpack(message.tag_data['battery_voltage']['format'], 
+            data.append(struct.unpack(awn.message.tag_data['battery_voltage']['format'], 
                                       str(message_tags['battery_voltage'][0]))[0] 
                         / 1000.0)
         else:
@@ -188,7 +188,7 @@ def write_cloud_data(t, message_tags, fstr, extension):
                          'relative_humidity']:
             if tag_name in message_tags:
                 found = True
-                data[tag_name] = message.decode_cloud_temp( \
+                data[tag_name] = awn.message.decode_cloud_temp( \
                     tag_name, str(message_tags[tag_name][0]))
 
         
@@ -200,7 +200,7 @@ def write_cloud_data(t, message_tags, fstr, extension):
 
             for tag_name in tag_names:
                 if tag_name in message_tags:
-                    data = message.decode_cloud_temp( \
+                    data = awn.message.decode_cloud_temp( \
                         tag_name, str(message_tags[tag_name][0]))
                     cloud_file.write(' {:.2f}'.format(data))
                 else:
@@ -229,7 +229,7 @@ def write_raw_magnetometer_samples(t, message_tags, fstr, extension):
         raw_mag_samples_file = get_file_for_time(t, raw_mag_samples_file,
                                                  fstr, extension=extension)
 
-        fmt_sample = lambda n: str(1e9 * message.adc_counts_to_tesla(n))
+        fmt_sample = lambda n: str(1e9 * awn.message.adc_counts_to_tesla(n))
 
         n = 0
         for comp in ['x', 'y', 'z']:
@@ -237,16 +237,16 @@ def write_raw_magnetometer_samples(t, message_tags, fstr, extension):
             if tag_name in message_tags:
                 raw_mag_samples_file.write('%.06f\t' % t)
                 raw_mag_samples_file.write(str(n))
-                data = struct.unpack(message.tag_data[tag_name]['format'], 
+                data = struct.unpack(awn.message.tag_data[tag_name]['format'], 
                                   str(message_tags[tag_name][0]))
                 raw_mag_samples_file.write('\t')
                 raw_mag_samples_file.write(fmt_sample(data[1]))
 
                 tag_name = 'mag_data_all_' + comp
                 if tag_name in message_tags:
-                    data = message.decode_tag_array_of_longs(tag_name, 
-                                                                len(message_tags[tag_name][0]),
-                                                                message_tags[tag_name][0])
+                    data = awn.message.decode_tag_array_of_longs\
+                        (tag_name, len(message_tags[tag_name][0]),
+                         message_tags[tag_name][0])
                     raw_mag_samples_file.write('\t')
                     raw_mag_samples_file.write('\t'.join(map(fmt_sample, data)))
                     
@@ -313,7 +313,7 @@ def log_message_events(t, message_tags, is_response=False):
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
                 tag_repr, data_repr, data_len = \
-                    message.decode_tag_payload(tag_name, tag_payload)
+                    awn.message.decode_tag_payload(tag_name, tag_payload)
                 if data_len:
                     lines.append(prefix + tag_name + ' ' + data_repr + '\n')
                 else:
@@ -328,15 +328,15 @@ def log_message_events(t, message_tags, is_response=False):
 
 
 def send_rt_message(host_info, message, response):
-    message.put_signature(message, host_info['key'], 
-                             message.get_retries(message),
-                             message.get_sequence_id(message))
+    awn.message.put_signature(message, host_info['key'], 
+                             awn.message.get_retries(message),
+                             awn.message.get_sequence_id(message))
     rt_socket.sendto(message, (host_info['ip'], host_info['port']))
 
     if response is not None:
-        message.put_signature(response, host_info['key'], 
-                                 message.get_retries(response),
-                                 message.get_sequence_id(response))
+        awn.message.put_signature(response, host_info['key'], 
+                                  awn.message.get_retries(response),
+                                  awn.message.get_sequence_id(response))
         rt_socket.sendto(response, (host_info['ip'], host_info['port']))
 
 
@@ -382,7 +382,7 @@ def handle_control_message(buf, pending_tags):
             val = float(cmd.replace('sampling_interval=', '', 1)) * 16
             # pending_tags['sampling_interval'] = struct.pack('!L', val)
             pending_tags['sampling_interval'] = \
-                struct.pack(message.tag_data['sampling_interval']['format'],
+                struct.pack(awn.message.tag_data['sampling_interval']['format'],
                             val)
             r.append('sampling_interval:' + str(val / 16))
         
@@ -411,7 +411,7 @@ def handle_control_message(buf, pending_tags):
                     r.append('ERROR: bad value for size')
                 else:
                     pending_tags['read_eeprom'] = struct\
-                        .pack(message.tag_data['read_eeprom']['format'],
+                        .pack(awn.message.tag_data['read_eeprom']['format'],
                               address, sz)
                     r.append('read_eeprom:' + str(address) + ',' + str(sz))
         
@@ -436,14 +436,14 @@ def handle_control_message(buf, pending_tags):
             num_ctrl = map(int, 
                           str(cmd.replace('num_samples=', '', 1)).split(','))
             pending_tags['num_samples'] = \
-                struct.pack(message.tag_data['num_samples']['format'], 
+                struct.pack(awn.message.tag_data['num_samples']['format'], 
                             num_ctrl[0], num_ctrl[1])
             r.append('num_samples:' + str(num_ctrl[0]) + ',' + str(num_ctrl[1]))
         
         elif cmd.startswith('all_samples='):
             flag = (int(cmd.replace('all_samples=', '', 1)) != 0)
             pending_tags['all_samples'] = \
-                struct.pack(message.tag_data['all_samples']['format'],
+                struct.pack(awn.message.tag_data['all_samples']['format'],
                             flag)
             r.append('all_samples:' + str(flag))
         elif cmd == 'pending_tags':
@@ -468,9 +468,9 @@ def get_firmware_details(version):
     firmware = firmware_file.read();
     firmware_file.close()
     
-    if len(firmware) % message.firmware_block_size != 0:
+    if len(firmware) % awn.message.firmware_block_size != 0:
         raise Exception('firmware file ' + filename + ' not a multiple  of '
-                        + str(message.firmware_block_size) + ' bytes')
+                        + str(awn.message.firmware_block_size) + ' bytes')
 
     # Be paranoid about the CRC file
     crc_file = open(crc_filename)
@@ -495,27 +495,27 @@ def get_firmware_details(version):
     else:
         padded_firmware = firmware
     
-    actual_crc = message.crc16(padded_firmware)
+    actual_crc = awn.message.crc16(padded_firmware)
     if actual_crc != stated_crc:
         raise Exception('Firmware CRC does not match with ' + crc_filename + ' ' + str(actual_crc) + ' ' + str(stated_crc))
     if version != stated_version:
         raise Exception('Version does not match with ' + crc_filename)
-    return stated_crc, len(firmware) / message.firmware_block_size
+    return stated_crc, len(firmware) / awn.message.firmware_block_size
 
 def handle_cmd_upgrade_firmware(version):
-    if len(version) > message.firmware_version_max_length:
+    if len(version) > awn.message.firmware_version_max_length:
         raise Exception('Bad version')
     
     version_str = str(version)
     # crc, num_pages = get_firmware_details(version.decode('ascii'))
     crc, num_pages = get_firmware_details(version_str)
-    padded_version = version + ('\0' * (message.firmware_version_max_length
+    padded_version = version + ('\0' * (awn.message.firmware_version_max_length
                                       - len(version)))
     args = list(padded_version)
     args.append(num_pages)
     args.append(crc)
     pending_tags['upgrade_firmware'] = \
-        struct.pack(message.tag_data['upgrade_firmware']['format'], *args)
+        struct.pack(awn.message.tag_data['upgrade_firmware']['format'], *args)
     
     
 # Deal with any item requested in the incoming packet
@@ -532,19 +532,19 @@ def handle_packet_requests(message_tags):
 def packet_req_get_firmware_page(data):
     global requested_tags
     unpacked_data = \
-        struct.unpack(message.tag_data['get_firmware_page']['format'],
+        struct.unpack(awn.message.tag_data['get_firmware_page']['format'],
                       buffer(data)) 
-    version = ''.join(unpacked_data[0:message.firmware_version_max_length])
+    version = ''.join(unpacked_data[0:awn.message.firmware_version_max_length])
     version_str = version.split('\0', 1)[0]
                                                          
-    page_number, = unpacked_data[message.firmware_version_max_length:]
-    image_filename = message.get_image_filename(version_str)
+    page_number, = unpacked_data[awn.message.firmware_version_max_length:]
+    image_filename = awn.message.get_image_filename(version_str)
     image_file = open(image_filename)
     
     # Ensure file is closed in the case of any error
     try:   
-        image_file.seek(message.firmware_block_size * page_number)
-        fw_page = image_file.read(message.firmware_block_size)
+        image_file.seek(awn.message.firmware_block_size * page_number)
+        fw_page = image_file.read(awn.message.firmware_block_size)
     except:
         print('SOME ERROR')
         # Some error, so don't try adding to requested_tags
@@ -557,7 +557,7 @@ def packet_req_get_firmware_page(data):
     args.append(page_number)
     args.extend(list(fw_page))
     requested_tags['firmware_page'] = \
-        struct.pack(message.tag_data['firmware_page']['format'], *args) 
+        struct.pack(awn.message.tag_data['firmware_page']['format'], *args) 
 
 
 def get_termios_baud_rate(baud):
@@ -847,8 +847,8 @@ while running:
 #            else:
 #                print(hex(ord(s)))
     
-            message = message.validate_packet(buf, hmac_key, 
-                                                 args.ignore_digest)
+            message = awn.message.validate_packet(buf, hmac_key, 
+                                                  args.ignore_digest)
             response = None
 
             if message is not None:
@@ -879,22 +879,22 @@ while running:
                     # print('=============')
                     # if device.isatty():
                     #     print('Valid message received ' + str(time.time()))
-                    message.print_packet(message, message_time=message_time)
+                    awn.message.print_packet(message, message_time=message_time)
                 
-                timestamp = message.get_timestamp(message)
+                timestamp = awn.message.get_timestamp(message)
                 timestamp_s = timestamp[0] + timestamp[1]/32768.0
-                message_tags = message.parse_packet(message)
-                message.tidy_pending_tags(pending_tags, message_tags)
+                message_tags = awn.message.parse_packet(message)
+                awn.message.tidy_pending_tags(pending_tags, message_tags)
                 
                 # if fd.isatty() and args.acknowledge:
                 if args.acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
-                    message.put_header(response,
-                                          site_id=message.get_site_id(message),
-                                          timestamp=timestamp,
-                                          flags=(1 << message.flags_response_bit))
-                    message.put_current_epoch_time(response)
+                    awn.message.put_header(response,
+                                           site_id=awn.message.get_site_id(message),
+                                           timestamp=timestamp,
+                                           flags=(1 << awn.message.flags_response_bit))
+                    awn.message.put_current_epoch_time(response)
                     
                     # Handle packet requests. These tags live only for the 
                     # duration between receiving the request and sending the
@@ -902,39 +902,39 @@ while running:
                     requested_tags = {}
                     handle_packet_requests(message_tags)
                     for tag_name in requested_tags:
-                        message.put_data(response, 
-                                            message.tag_data[tag_name]['id'], 
-                                            requested_tags[tag_name])
+                        awn.message.put_data\
+                            (response, awn.message.tag_data[tag_name]['id'], 
+                             requested_tags[tag_name])
                     
 
                     for tag_name in pending_tags:
                         if tag_name != 'reboot':
-                            message.put_data(response, 
-                                                message.tag_data[tag_name] \
-                                                    ['id'],
-                                                pending_tags[tag_name])
-                        # del pending_tags[tag]
+                            awn.message.put_data\
+                                (response, 
+                                 awn.message.tag_data[tag_name]['id'],
+                                 pending_tags[tag_name])
                     
                             
                     # Send the reboot command last
                     if pending_tags.has_key('reboot'):
-                        message.put_data(response, 
-                                            message.tag_data['reboot']['id'],
-                                            pending_tags['reboot'])
+                        awn.message.put_data\
+                            (response, 
+                             awn.message.tag_data['reboot']['id'],
+                             pending_tags['reboot'])
                     
 
                     # Add padding to round up to a multiple of block size
                     padding_length = (comms_block_size - 
-                                     ((message.get_packet_length(response) +
-                                       message.signature_block_length) %
+                                     ((awn.message.get_packet_length(response) +
+                                       awn.message.signature_block_length) %
                                       comms_block_size))
-                    message.put_padding(response, padding_length)
-                    message.put_signature(response, hmac_key, 
-                                             message.get_retries(message), 
-                                             message.get_sequence_id(message))
+                    awn.message.put_padding(response, padding_length)
+                    awn.message.put_signature(response, hmac_key, 
+                                             awn.message.get_retries(message), 
+                                             awn.message.get_sequence_id(message))
                     
                     # Trim spare bytes from end of buffer
-                    del response[message.get_packet_length(response):]
+                    del response[awn.message.get_packet_length(response):]
                     if fd == device:
                         device.write(response)
                     else:
@@ -942,7 +942,8 @@ while running:
 
                     if args.verbosity:   
                         # print('Response: ------')
-                        message.print_packet(response, message_time=message_time)
+                        awn.message.print_packet(response, 
+                                                 message_time=message_time)
                     
                 if config.has_option('awpacket', 'filename'):
                     # Save the message and response
@@ -957,7 +958,7 @@ while running:
                                               extension=data_quality_extension)
 
                 if (config.has_option('aurorawatchrealtime', 'filename') and
-                    not message.is_response_message(message)):
+                    not awn.message.is_response_message(message)):
                     write_aurorawatch_realtime_data(timestamp_s, 
                                                     message_tags, 
                                                     config.get('aurorawatchrealtime', 'filename'),
@@ -967,19 +968,19 @@ while running:
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
                     log_message_events(timestamp_s, message_tags, 
-                                       is_response=message.is_response_message(message))
+                                       is_response=awn.message.is_response_message(message))
                     if response is not None:
                         log_message_events(timestamp_s, response, 
                                                is_response=True)
 
                 if (config.has_option('cloud', 'filename') and
-                    not message.is_response_message(message)):
+                    not awn.message.is_response_message(message)):
                     write_cloud_data(timestamp_s, message_tags,
                                      config.get('cloud', 'filename'),
                                      data_quality_extension)
 
                 if (config.has_option('awnettextdata', 'filename') and
-                    not message.is_response_message(message)):
+                    not awn.message.is_response_message(message)):
                     write_aurorawatchnet_text_data(timestamp_s, 
                                                    message_tags,
                                                    config.get('awnettextdata', 
@@ -987,7 +988,7 @@ while running:
                                                    data_quality_extension)
 
                 if (config.has_option('magnetometerrawsamples', 'filename') 
-                    and not message.is_response_message(message)):
+                    and not awn.message.is_response_message(message)):
                     write_raw_magnetometer_samples( \
                         timestamp_s, message_tags, 
                         config.get('magnetometerrawsamples', 'filename'), 
