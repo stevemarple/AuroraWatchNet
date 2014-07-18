@@ -25,7 +25,7 @@ start_stop_server() {
         start)
 	    echo -n "Starting $DESC: awnetd"
 	    if [ -z "$pid" ]; then
-		su -c "screen -d -m -S awnetd ~pi/bin/awnetd.py -v -v -v -v" - $USER
+		su -c "screen -d -m -S awnetd ~${USER}/bin/awnetd.py -v -v -v -v" - $USER
 	    fi
 	    echo "."
             ;;
