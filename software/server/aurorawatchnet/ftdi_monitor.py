@@ -35,8 +35,9 @@ else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
 
+import aurorawatchnet as awn
 
-# Derived from 
+# Inspired by
 # http://stackoverflow.com/questions/492519/timeout-on-a-python-function-call
 def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
 
@@ -72,12 +73,7 @@ parser.add_argument('--port', metavar='FILE', help='USB device')
 parser.add_argument('--filename', metavar='FILE', help='Semaphore file')
 
 args = parser.parse_args()
-
-# This part ought to be replaced by a common read_config_file function
-# which sets up common defaults
-config = SafeConfigParser()
-config.read(args.config_file)
-# (end)
+config = awn.read_config_file(args.config_file)
 
 device = args.port
 if not device:

@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 import site
 import logging
 
@@ -39,6 +40,20 @@ if user == 'root':
     sys.exit(1)
 elif user != 'pi':
     logger.warning('User is not pi')
+
+
+# Check all required python modules/packages are installed
+missing_packages = []
+for package in ['serial']:
+    try:
+        __import__(package)
+    except ImportError as e:
+        missing_packages.append(package)
+        
+if missing_packages:
+    logger.error('Please install the following missing python packages: '
+                 + ', '.join(missing_packages))
+    sys.exit(1)
 
 
 # Set up python user site packages directory before attempting to
