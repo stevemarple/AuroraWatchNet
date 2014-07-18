@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 parser = \
     argparse.ArgumentParser(description='Set up python etc.')
 
+parser.add_argument('-c', '--config-file', 
+                    default='/etc/awnet.ini',
+                    help='Configuration file',
+                    metavar='FILE')
 parser.add_argument('--log-level', 
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='info',
@@ -28,6 +32,17 @@ if __name__ == '__main__':
                         format=args.log_format)
 
 
+# Check current username
+user = os.getlogin()
+if user == 'root':
+    logger.error('This program should not be run as root')
+    sys.exit(1)
+elif user != 'pi':
+    logger.warning('User is not pi')
+
+
+# Set up python user site packages directory before attempting to
+# import any AuroraWatchNet packages or modules.
 if not os.path.isdir(site.getusersitepackages()):
     logger.info('Creating directory ' + site.getusersitepackages())
     os.makedirs(site.getusersitepackages())
@@ -35,17 +50,28 @@ else:
     logger.debug('Directory ' + site.getusersitepackages()
                  + ' already exists')
 
-module_paths = ['auroraplot',
-                os.path.join('AuroraWatchNet', 'software', 
-                             'server', 'aurorawatchnet')]
+package_paths = ['auroraplot',
+                 os.path.join('AuroraWatchNet', 'software', 
+                              'server', 'aurorawatchnet')]
     
-for mpath in module_paths:
+for mpath in package_paths:
     link_name = os.path.join(site.getusersitepackages(), 
                              os.path.basename(mpath))
     link_target = os.path.join(os.path.expanduser('~'), mpath)
-    logger.debug('Test link ' + link_name + ' -> ' + link_target)
-    if not os.path.lexists(link_name):
-        # Create link
+    # Test if file, directory or symbolic link exists. If it is a link
+    # assume the target is correct.
+    if os.path.lexists(link_name):
+        logger.debug(link_name + ' already exists')
+    else:
+        # Create suitable link
         logger.info('Creating link ' + link_name + ' -> ' + link_target)
         os.symlink(link_target, link_name)
 
+
+import aurorawatchnet as awn
+# Check user can read config file
+try:
+    config = awn.read_config_file(args.config_file)
+except Exception as e:
+    config.error('Cannot read config file ' + args.config_file 
+                 + ', ' + str(e))
