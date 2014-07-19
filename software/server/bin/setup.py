@@ -1,13 +1,40 @@
 #!/usr/bin/env python
 
 import argparse
+import logging
 import os
 import re
 import sys
 import site
-import logging
+import subprocess
+
 
 logger = logging.getLogger(__name__)
+
+
+def query_sudo_cmd(cmd):
+    if args.sudo is not None:
+        if args.sudo:
+            # Execute without prompting
+            subprocess.check_call(cmd)
+            return True
+        else:
+            return False
+    else:
+        while True:
+            try:
+                sys.stdout.write('\a\n')
+                prompt = 'Ok to run "' + ' '.join(cmd) + '"? '
+                response = raw_input(prompt + ' (Y/N) ?')
+                if response.lower() == 'y':
+                    # User accepted, run cmd
+                    subprocess.check_call(cmd)
+                    return True
+                elif response.lower() == 'n':
+                    return False;
+            except Exception as e:
+                pass
+
 
 user = os.getlogin()
 
@@ -69,6 +96,14 @@ parser.add_argument('--auroraplot-repository',
                     default=default_auroraplot_repo_path,
                     help='Path to auroraplot repository',
                     metavar='PATH')
+parser.add_argument('--sudo',
+                    default=None,
+                    action='store_true',
+                    help='Fix problems automatically using sudo')
+parser.add_argument('--no-sudo',
+                    action='store_false',
+                    dest='sudo',
+                    help='Never use sudo to fix problems')
 
 
 # Process the command line arguments
@@ -141,21 +176,45 @@ except Exception as e:
                  + ', ' + str(e))
 
 
-# Check contents of ~/bin
+# Check contents of ~/bin has the correct symlinks
 bin_dir = os.path.join(os.path.expanduser('~' + user), 'bin')
-# Check ~/bin/awnetd.py is correct
-awnetd_py = os.path.join(args.aurorawatchnet_repository, 'software',
-                         'server', 'aurorawatchnet',  'awnetd.py')
-awnetd_py_symlink = os.path.join(bin_dir, 'awnetd.py')
-if os.path.lexists(awnetd_py_symlink):
-    if os.readlink(awnetd_py_symlink) == awnetd_py:
-        logger.debug(awnetd_py_symlink + ' correct (-> ' + awnetd_py + ')')
+bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository, 
+                                       'software', 'server', 
+                                       'bin',  'awnetd.py'),
+             'log_ip': os.path.join(args.aurorawatchnet_repository, 
+                                    'software', 'server', 'bin', 'log_ip'),
+             'send_cmd.py': os.path.join(args.aurorawatchnet_repository, 
+                                         'software', 'server', 'bin', 
+                                         'send_cmd.py'),
+             'upload_data.py': os.path.join(args.aurorawatchnet_repository, 
+                                            'software', 'server', 'bin', 
+                                            'upload_data.py'),
+             }
+logger.info('Checking symlinks in ' + bin_dir)
+for link_name,target in bin_links.items():
+    symlink = os.path.join(bin_dir, link_name)
+    # Check that target exists as expected
+    if os.path.exists(target):
+        if os.path.lexists(symlink):
+            if os.path.islink(symlink):
+                if os.readlink(symlink) == target:
+                    logger.debug(symlink + ' correct (-> ' + target + ')')
+                else:
+                    logger.info('Deleting incorrect symlink ' + symlink)
+                    os.unlink(symlink)
+            else:
+                logger.warning(symlink + 
+                               ' exists but is not symlink, leaving alone')
+
+        if not os.path.lexists(symlink):
+            logger.info('Creating symlink ' + symlink + ' -> ' + target)
+            os.symlink(target, symlink)
     else:
-        logger.info('Deleting incorrect symlink ' + awnetd_py_symlink)
-        os.unlink(awnetd_py_symlink)
+        logger.error('Missing ' + target)
 
-if not os.path.lexists(awnetd_py_symlink):
-    logger.info('Creating symlink ' + awnetd_py_symlink + ' -> ' +
-                awnetd_py)
-    os.symlink(awnetd_py, awnetd_py_symlink)
-
+# Check /etc/init.d/awnetd
+symlink = '/etc/init.d/awnetd'
+target = bin_links['awnetd.py']
+if not os.path.lexists(symlink) or os.readlink(symlink) != target:
+    logger.error('Service startup link ' + symlink + ' missing or incorrect')
+    query_sudo_cmd(['sudo', 'ln', '-s', '-f', symlink, target])
