@@ -43,7 +43,7 @@ start_stop_server() {
             start_stop_server start
             ;;
 
-	# status are zap are found in Gentoo runscripts but are useful
+	# status and zap are found in Gentoo runscripts but are useful
 	# so included here.
 	status)
 	    echo -n "Status for $DESC: "
@@ -73,7 +73,7 @@ start_stop_server() {
 
 action="$1"
 
-# DISPLAY is not needed and if set can cuase su to emit unwanted warnings.
+# DISPLAY is not needed and if set can cause su to emit unwanted warnings.
 unset DISPLAY
 
 if [ -z "$action" ]; then
