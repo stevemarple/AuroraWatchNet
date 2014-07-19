@@ -214,7 +214,8 @@ for link_name,target in bin_links.items():
 
 # Check /etc/init.d/awnetd
 symlink = '/etc/init.d/awnetd'
-target = bin_links['awnetd.py']
+target = os.path.join(args.aurorawatchnet_repository, 
+                      'software', 'server', 'bin',  'awnetd.sh'),
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
     logger.error('Service startup link ' + symlink + ' missing or incorrect')
     query_sudo_cmd(['sudo', 'ln', '-s', '-f', symlink, target])
