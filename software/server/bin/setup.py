@@ -128,7 +128,7 @@ elif user != 'pi':
 
 # Check all required python modules/packages are installed
 missing_packages = []
-for package in ['serial']:
+for package in ['serial', 'daemon', 'lockfile']:
     try:
         __import__(package)
     except ImportError as e:
@@ -216,7 +216,7 @@ for link_name,target in bin_links.items():
 symlink = '/etc/init.d/awnetd'
 target = os.path.join(args.aurorawatchnet_repository, 
                       'software', 'server', 'bin',  'awnetd.sh')
-print(target)
+
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
     logger.error('Service startup link ' + symlink + ' missing or incorrect')
     query_sudo_cmd(['sudo', 'ln', '-s', '-f', symlink, target])
