@@ -29,6 +29,7 @@ import logging
 import os
 import signal
 import re
+import signal
 import sys
 import time
 from serial import Serial
@@ -73,8 +74,10 @@ class FtdiMonitor():
         
     def run(self, daemon_mode=True):
         if (daemon_mode):
-            logger.info('daemon starting, device=' + device 
+            logger.info('Daemon starting, device=' + device 
                         + ', filename=' + filename)
+            # Set up signal handler
+            signal.signal(signal.SIGTERM, signal_handler)
 
         ser = Serial(device)
 
@@ -158,6 +161,11 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
         signal.alarm(0)
 
     return result
+
+
+def signal_handler (signum, frame):
+    logger.info('Daemon terminating with signal ' + str(signum))
+    sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -249,5 +257,8 @@ if __name__ == '__main__':
         daemon_runner = daemon.runner.DaemonRunner(fm)
         if log_filehandle:
             daemon_runner.daemon_context.files_preserve=[log_filehandle.stream]
-        daemon_runner.do_action()
+        try:
+            daemon_runner.do_action()
+        except Exception as e:
+            logger.error('Daemon terminating with exception: ' + str(e)) 
 
