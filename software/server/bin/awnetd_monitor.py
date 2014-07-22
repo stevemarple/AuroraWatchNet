@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+### BEGIN INIT INFO
+# Provides:          awnetd_monitor
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       AuroraWatchNet data quality monitor
+### END INIT INFO
+
 # Program to monitor a serial port to detect change of state in CTS,
 # indicating a push-switch has been pressed. Switch presses toggle the
 # existence or removal of a semaphore file. The serial control line
@@ -43,14 +52,16 @@ import aurorawatchnet as awn
 
 logger = logging.getLogger(__name__)
 
-
 class FtdiMonitor():
     def __init__(self, progname, device=None, filename=None,
-                 pidfile_path=None, pidfile_timeout=None):
+                 pidfile_path=None, pidfile_timeout=None, 
+                 username='nobody', group=None):
         self.progname = progname
         self.device = device
         self.filename = filename
-        
+        self.username = username
+        self.group = group
+
         self.stdin_path = '/dev/null'
         self.stdout_path = '/dev/tty'
         self.stderr_path = '/dev/tty'
@@ -59,17 +70,18 @@ class FtdiMonitor():
             self.pidfile_path = '/var/run/' + progname + '.pid'
             
         self.pidfile_timeout = pidfile_timeout
-
+        
     def run(self, daemon_mode=True):
         if (daemon_mode):
             logger.info('daemon starting, device=' + device 
                         + ', filename=' + filename)
 
         ser = Serial(device)
-        wait_signals = (TIOCM_RNG |
-                        TIOCM_DSR |
-                        TIOCM_CD  |
-                        TIOCM_CTS)
+
+        # wait_signals = (TIOCM_RNG |
+        #                 TIOCM_DSR |
+        #                 TIOCM_CD  |
+        #                 TIOCM_CTS)
 
         ser.setDTR(True)
         file_exists = os.path.isfile(filename)
@@ -149,6 +161,7 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
 
 
 if __name__ == '__main__':
+
     # Parse command line arguments
     progname = os.path.basename(sys.argv[0]).partition('.')[0]
     config_basename = re.sub('_monitor.*$', '', progname)
@@ -199,6 +212,10 @@ if __name__ == '__main__':
     else:
         log_filehandle = None
 
+    awn.drop_root_privileges(username=config.get('dataqualitymonitor', 
+                                                 'username'),
+                             group=config.get('dataqualitymonitor', 
+                                              'group'))
 
     device = args.port
     if not device:
@@ -219,7 +236,8 @@ if __name__ == '__main__':
     else:
         pidfile_path = None
     fm = FtdiMonitor(progname, device=device, filename=filename,
-                     pidfile_path=pidfile_path)
+                     pidfile_path=pidfile_path, 
+                     username=config.get('dataqualitymonitor', 'username'))
 
     if args.foreground:
         logger.info('running in foreground')

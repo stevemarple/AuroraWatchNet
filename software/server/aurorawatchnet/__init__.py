@@ -1,8 +1,12 @@
 import datetime
+import grp
 import logging
+import os
+import pwd
 import re
 import socket
 import sys
+
 if sys.version_info[0] >= 3:
     import configparser
     from configparser import SafeConfigParser
@@ -52,6 +56,8 @@ def read_config_file(filename):
     config.set('dataqualitymonitor', 'filename', 
                '/var/aurorawatchnet/data_quality_warning')
     config.set('dataqualitymonitor', 'extension', '.bad')
+    config.set('dataqualitymonitor', 'username', 'pi')
+    config.set('dataqualitymonitor', 'group', 'dialout')
 
     if filename:
         config_files_read = config.read(filename)
@@ -108,3 +114,29 @@ def parse_datetime(s, now=None):
     else:
         return datetime.datetime.strptime(s, '%Y-%m-%d')
     
+
+def drop_root_privileges(username='nobody', group=None):
+    if os.getuid() != 0:
+        # Not root
+        return
+
+    # Get the UID and GID
+    pwnam = pwd.getpwnam(username)
+
+    # Remove group privileges
+    os.setgroups([])
+
+    # Set to new GID (whilst still have root privileges)
+    if group is None:
+        # No group specified, use user's default group
+        os.setgid(pwnam.pw_gid)
+    else:
+        grnam = grp.getgrnam(group)
+        os.setgid(grnam.gr_gid)
+
+    # Change to new UID
+    os.setuid(pwnam.pw_uid)
+
+    # Set umask
+    old_umask = os.umask(0o22)
+
