@@ -27,12 +27,11 @@ import daemon
 import daemon.runner
 import logging
 import os
-import signal
 import re
 import signal
 import sys
 import time
-from serial import Serial
+from serial import Serial, SerialException, SerialTimeoutException
 from fcntl import  ioctl
 from termios import (
     TIOCMIWAIT,
@@ -72,6 +71,7 @@ class FtdiMonitor():
             
         self.pidfile_timeout = pidfile_timeout
         
+           
     def run(self, daemon_mode=True):
         if (daemon_mode):
             logger.info('Daemon starting, device=' + device 
@@ -79,65 +79,89 @@ class FtdiMonitor():
             # Set up signal handler
             signal.signal(signal.SIGTERM, signal_handler)
 
-        ser = Serial(device)
-
-        # wait_signals = (TIOCM_RNG |
-        #                 TIOCM_DSR |
-        #                 TIOCM_CD  |
-        #                 TIOCM_CTS)
-
-        ser.setDTR(True)
-        file_exists = os.path.isfile(filename)
-        previous_file_exists = file_exists
-        ser.setDTR(not file_exists)
+        previous_device_state = 'none'
+        previous_file_exists = os.path.isfile(filename)
 
         while True:
-            # ioctl(ser.fd, TIOCMIWAIT, TIOCM_CTS)
-            r = timeout(ioctl, [ser.fd, TIOCMIWAIT, TIOCM_CTS], 
-                        timeout_duration=1)
+            try:
+                file_exists = os.path.isfile(filename)
+                if file_exists != previous_file_exists:
+                    # File existence has changed whilst serial device
+                    # is not available, cannot signal the change in
+                    # state here.
+                    if file_exists:
+                        logger.info(filename + ' created externally')
+                    else:
+                        logger.info(filename + ' removed externally')
 
-            file_exists = os.path.isfile(filename)
-            ser.setDTR(not file_exists)
+                ser = Serial(device)
+                logger.info('Opened ' + device)
+                ser.setDTR(not file_exists)
 
-            if file_exists != previous_file_exists:
-                # File existence has changed. 
-                if file_exists:
-                    logger.info(filename + ' created externally')
-                else:
-                    logger.info(filename + ' removed externally')
-                # Don't allow accept any switch presses for a second.
-                time.sleep(1)
+                while True:
+                    r = timeout(ioctl, [ser.fd, TIOCMIWAIT, TIOCM_CTS], 
+                                timeout_duration=10)
 
-            elif r is not None:
-                # CTS changed state (or system call interrupted). Read
-                # CTS, sample 5 times in 250mS for switch debouncing
-                cts_count = 0
-                for i in range(5):
-                    time.sleep(0.050)
-                    if ser.getCTS():
-                        cts_count += 1
-
-                if cts_count >= 3:
-                    file_exists = not file_exists
+                    file_exists = os.path.isfile(filename)
                     ser.setDTR(not file_exists)
-                    try:
+
+                    if file_exists != previous_file_exists:
+                        # File existence has changed, serial device is
+                        # available so indicate the change. Don't act
+                        # on any switch input since it might be
+                        # inverse to what was intended. Wait a short
+                        # while before reading the switch again so
+                        # that the user can recognise the
+                        # externally-induced state change.
                         if file_exists:
-                            fh = open(filename, 'a')
-                            fh.close()
-                            logger.info(filename + ' created')
+                            logger.info(filename + ' created externally')
                         else:
-                            os.remove(filename)
-                            logger.info(filename + ' removed')
-                        # Dont' allow state to be changed immediately
+                            logger.info(filename + ' removed externally')
                         time.sleep(1)
-                    except Exception as e:
-                        logger.error(str(e))
-                        for i in range(10):
-                            ser.setDTR(i % 2)
-                            time.sleep(0.2)
 
-            previous_file_exists = file_exists
+                    elif r is not None:
+                        # CTS changed state (or system call
+                        # interrupted). Read CTS, sample 5 times in
+                        # 250mS for switch debouncing
+                        cts_count = 0
+                        for i in range(5):
+                            time.sleep(0.050)
+                            if ser.getCTS():
+                                cts_count += 1
 
+                        if cts_count >= 3:
+                            file_exists = not file_exists
+                            ser.setDTR(not file_exists)
+                            try:
+                                if file_exists:
+                                    fh = open(filename, 'a')
+                                    fh.close()
+                                    logger.info(filename + ' created')
+                                else:
+                                    os.remove(filename)
+                                    logger.info(filename + ' removed')
+                                # Dont' allow state to be changed
+                                # immediately
+                                time.sleep(1)
+                            except Exception as e:
+                                logger.error(str(e))
+                                for i in range(10):
+                                    ser.setDTR(i % 2)
+                                    time.sleep(0.2)
+
+                    previous_file_exists = file_exists
+                    previous_device_state = 'opened'
+
+            except (SerialTimeoutException, IOError):
+                if previous_device_state == 'opened':
+                    logger.error('Cannot access ' + device
+                                 + ', waiting for it to appear')
+                elif previous_device_state == 'none':
+                    logger.error('Cannot open ' + device 
+                                 + ', waiting for it to appear')
+                previous_device_state = 'error'
+                previous_file_exists = file_exists
+                time.sleep(5)
 
 
 # Inspired by
@@ -260,5 +284,6 @@ if __name__ == '__main__':
         try:
             daemon_runner.do_action()
         except Exception as e:
-            logger.error('Daemon terminating with exception: ' + str(e)) 
+            logger.error('Daemon terminating with exception: ' + str(e) 
+                         + ', type: ' + str(type(e)))
 
