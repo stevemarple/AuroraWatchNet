@@ -1,8 +1,10 @@
 # -*- coding: iso-8859-15 -*-
 
+import random
 import re
 
 import aurorawatchnet as awn
+
 
 # Parse the struct pack format string
 # Returns array: order, quantity, type. Quantity is not he same as
@@ -33,6 +35,20 @@ def lookup_address(address):
             return k
     return None
 
+def make_hmac_key(key=None):
+    '''Generate a HMAC key, returns an array of ints'''
+
+    # Calculate key length from the pattern, not the size reserved for it
+    hmac_key_length = parse_unpack_format(eeprom['hmac_key']['format'])[1]
+    if key is None:
+        # Create  a random key
+        k = []
+        for i in range(hmac_key_length):
+            k.append(random.randint(0, 255))
+        return k
+    elif key == 'blank':
+        return [0xFF] * hmac_key_length
+                             
 # EEPROM address details. The key is derived from the C language name
 # and becomes the command line option when generating an EEPROM image
 # file. The value is a dict with the following entries:
@@ -306,3 +322,4 @@ eeprom = {
         'help': 'ADC reference voltage (mV)',
     },
 }
+
