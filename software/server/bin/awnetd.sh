@@ -15,7 +15,7 @@ DESC="AuroraWatchNet data collection"
 
 
 get_pid() {
-    su -c "screen -list" - $USER | grep awnetd | cut -d. -f1
+    su -c "screen -list" - $USER | grep awnetd | cut -d. -f1 | tr -d '[:blank:]'
 }
 
 
