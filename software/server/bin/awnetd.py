@@ -342,6 +342,8 @@ def send_rt_message(host_info, message, response):
 
 def open_control_socket():
     if config.has_option('controlsocket', 'filename'):
+        if config.get('controlsocket', 'filename').lower() == 'none':
+            return None
         if os.path.exists(config.get('controlsocket', 'filename')):
             os.remove(config.get('controlsocket', 'filename'))
         control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -350,12 +352,14 @@ def open_control_socket():
         # control_socket.setblocking(False)
         control_socket.listen(1)
     else:
+        port_str = config.get('controlsocket', 'port')
+        if port_str.lower() == 'none':
+            return None
         control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # ord('A') = 65, ord('W') = 87 
-        control_socket.bind(('localhost', 
-                             int(config.get('controlsocket', 'port'))))
+        control_socket.bind(('localhost', int(port_str)))
         control_socket.setblocking(False)
         control_socket.listen(0)
     return control_socket
@@ -629,12 +633,14 @@ parser.add_argument('-c', '--config-file',
 parser.add_argument('-d', '--daemon', action='store_true',
                     help='Run as daemon')
 parser.add_argument('--acknowledge', action='store_true',
-                    default=True,
+                    default=None,
                     help='Transmit acknowledgement');
 parser.add_argument('--no-acknowledge', action='store_false',
                     dest='acknowledge',
+                    default=None,
                     help="Don't transmit acknowledgement")
 parser.add_argument('--read-only', action='store_true',
+                    default=None,
                     help='Open device file read-only (implies --no-acknowledge)')
 parser.add_argument('--ignore-digest', action='store_true',
                     help='Ignore HMAC-MD5 digest')
@@ -643,15 +649,34 @@ parser.add_argument('-v', '--verbose', dest='verbosity', action='count',
                      default=0, help='Increase verbosity')
 
 args = parser.parse_args()
-if args.read_only:
-    args.acknowledge = False
-
-# Do not ignore digest when acknowledgements are required
-if args.ignore_digest and args.acknowledge:
-    print('--ignore-digest requires --no-acknowledge or --read-only')
 
 config = awn.read_config_file(args.config_file)
 rt_transfer = awn.get_rt_tranfer_info(config)
+
+# Should the device be opened read-only? Some need setup strings
+# writing to them even if acknowledgements are not sent.
+if args.read_only is not None:
+    read_only = args.read_only
+elif config.has_key('daemon', 'read_only'):
+    read_only = config.get('daemon', 'read_only')
+else:
+    read_only = False
+
+# Should acknowledgements be sent?
+if read_only:
+    # Can never acknowledge in read-only mode
+    acknowledge = False
+elif args.acknowledge is not None:
+    acknowledge = args.acknowledge
+elif config.has_key('daemon', 'acknowledge'):
+    acknowledge = config.get('daemon', 'acknowledge')
+else:
+    acknowledge = True
+
+# Do not ignore digest when acknowledgements are required
+if args.ignore_digest and acknowledge:
+    print('--ignore-digest requires --no-acknowledge or --read-only')
+
 
 
 if args.daemon:
@@ -680,7 +705,7 @@ else:
 if device_filename == '-':
     device = os.sys.stdin
     device_socket = None
-    args.acknowledge = False # Cannot send acknowledgements
+    acknowledge = False # Cannot send acknowledgements
 
 elif config.get('daemon', 'connection') == 'ethernet':
     # Connect via ethnernet
@@ -688,18 +713,15 @@ elif config.get('daemon', 'connection') == 'ethernet':
     local_port = int(config.get('ethernet', 'local_port'))
     local_ip = config.get('ethernet', 'local_ip')
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-    # device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#    device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     device_socket.bind((local_ip, local_port))
     device_socket.setblocking(False)
-    # device_socket.listen(3)
     control_socket = open_control_socket()
 
     write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
                           + ' D Daemon started\n')
 
 else:
-    if args.read_only:
+    if read_only:
         device = open(device_filename, 'rb', 0)
     else:
         device = open(device_filename, 'a+b', 0)
@@ -709,7 +731,7 @@ else:
 
     device_socket = None
 
-if device_filename == '-':
+if device_filename == '-' or acknowledge == False:
     control_socket = None
     
 elif device:
@@ -756,7 +778,7 @@ elif device:
         device.close()
         device = open(device_filename, 'r', 0)
         control_socket = None
-        args.acknowledge = False
+        acknowledge = False
 
         
 control_socket_conn = None
@@ -886,8 +908,7 @@ while running:
                 message_tags = awn.message.parse_packet(message)
                 awn.message.tidy_pending_tags(pending_tags, message_tags)
                 
-                # if fd.isatty() and args.acknowledge:
-                if args.acknowledge:
+                if acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
                     awn.message.put_header(response,
