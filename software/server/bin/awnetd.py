@@ -996,9 +996,11 @@ while running:
 
 
                 # Realtime transfer must be last since it alters the
-                # message and response signature.
-                for rt in rt_transfer:
-                    send_rt_message(rt, message, response)
+                # message and response signature. Don't forward any
+                # messages is there is an issue with data quality.
+                if data_quality_extension is None:
+                    for rt in rt_transfer:
+                        send_rt_message(rt, message, response)
                         
             else:
                 response = None
