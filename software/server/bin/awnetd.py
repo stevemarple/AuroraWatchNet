@@ -657,7 +657,7 @@ rt_transfer = awn.get_rt_tranfer_info(config)
 # writing to them even if acknowledgements are not sent.
 if args.read_only is not None:
     read_only = args.read_only
-elif config.has_key('daemon', 'read_only'):
+elif config.has_option('daemon', 'read_only'):
     read_only = config.get('daemon', 'read_only')
 else:
     read_only = False
@@ -668,7 +668,7 @@ if read_only:
     acknowledge = False
 elif args.acknowledge is not None:
     acknowledge = args.acknowledge
-elif config.has_key('daemon', 'acknowledge'):
+elif config.has_option('daemon', 'acknowledge'):
     acknowledge = config.get('daemon', 'acknowledge')
 else:
     acknowledge = True
