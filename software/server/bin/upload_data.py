@@ -312,12 +312,18 @@ if method in ['rsync', 'rrsync']:
                 t2 = t
                 while t2 < t_next_day:
                     logger.debug('time: ' + str(t2))
-                    file_name = t2.strftime(fstr)
-                    if os.path.exists(file_name):
-                        logger.debug('Found ' + file_name)
-                        file_list.append(file_name)
-                    else:
-                        logger.debug('Missing ' + file_name)
+                    file_base_name = t2.strftime(fstr)
+                    # Try standard filenames as well as appending
+                    # '.bad' or other extension signifying a data
+                    # quality problem.
+                    for ext in ['', config.get('dataqualitymonitor',
+                                               'extension')]:
+                        file_name = file_base_name + ext
+                        if os.path.exists(file_name):
+                            logger.debug('Found ' + file_name)
+                            file_list.append(file_name)
+                        else:
+                            logger.debug('Missing ' + file_name)
                     t2 += interval
             if len(file_list) == 0:
                 logger.info('No files to transfer')
