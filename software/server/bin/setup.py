@@ -219,4 +219,4 @@ target = os.path.join(args.aurorawatchnet_repository,
 
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
     logger.error('Service startup link ' + symlink + ' missing or incorrect')
-    query_sudo_cmd(['sudo', 'ln', '-s', '-f', symlink, target])
+    query_sudo_cmd(['sudo', 'ln', '-s', '-f', target, symlink])
