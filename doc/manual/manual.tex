@@ -29,6 +29,7 @@
 \definecolor{MyLightBlue}{rgb}{.8,.8,1}
 \definecolor{MyQuoteColor}{rgb}{0,.6,0}
 \definecolor{MyLightMagenta}{rgb}{1,.2,1}
+\definecolor{MyYellow}{rgb}{1,1,.6}
 
 %% For landscape pages printed, but rotated on screen
 \usepackage{pdflscape}
@@ -262,6 +263,11 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newcommand{\helpbox}[1]{\noindent
   \colorbox{MyLightBlue}{\parbox[l]{\textwidth}{%
       \begin{helplist}\item #1\end{helplist}}} \newline}
+\newcommand{\examplebox}[1]{\noindent
+  \colorbox{MyYellow}{\parbox[l]{\textwidth}{Example: \vspace*{1ex} \newline %
+      #1 %
+      \vspace*{1ex}}} \newline}
+
 
 %% Verbatim-like environment for code.
 \DefineVerbatimEnvironment{Code}{Verbatim}%
@@ -373,8 +379,9 @@ Please attribute this work as \documentAttribution
 
 \include{updates}
 
-%%\appendix
+\appendix
+\include{config-file}
 
-%%\include{custom-ras-pi-imagaes}
+%%\include{custom-ras-pi-images}
 \end{document}
 
