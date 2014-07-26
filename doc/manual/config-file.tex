@@ -1,0 +1,182 @@
+\chapter{Configuration file options}
+
+% \newcommand{\configexample}[1]{\examplebox{\code{#1}}}
+\newcommand{\configexample}[1]{\examplebox{#1}}
+
+\section{Introduction}
+Many of the AuroraWatchNet programs read a common configuration file,
+typically located at \filename{/etc/awnet.ini}. The configuration file
+is broken into sections, each of which starts with a section header in
+square brackets (\code({[like_this]}). Other line contain key names
+and values, written like \code{key = value}. Leading and trailing
+whitespace around both the key and value is ignored. Section headers
+and key names do not contain whitspace, words may be separated with an
+underscore). The configuration file can also contain comments, which
+are entered with a hash (\code{\#}) or semi-colon (\code{;}) as the
+first character.
+
+The configuration file is parsed using Python's SafeConfigParser
+module. This allows values defined in the same section, or in the
+\code{[DEFAULT]} section to be inserted into other key value
+definitions.
+
+\section{\code{[DEFAULT]}}
+
+The \code{[DEFAULT]} section is special as it defines values which can
+used elsewhere in the configuration file.
+
+\subsection{site}
+Define the site code, typically a three letter abbreviation. This is
+used elsewhere within the configuration file, \eg, data filenames.
+
+Default: none.
+
+\configexample{\code{site = lan1}}
+
+\section{\code{[awnettextdata]}}
+
+Options associated with the standard text-format output data file.
+
+\subsection{filename}
+\label{sec:config-data-filename}
+Define the filename used for text-format data files. This string is
+expanded as a \code{strftime} format string and accepts the normal
+\code{strftime} format specifiers. \todo{list strftime format
+  specifiers somewhere}. However, since Python expands the string
+first any percent characters used as part of a \code{strftime} format
+specifier must be repeated.
+
+Default: none.\\
+Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}
+
+\configexample{Define the filename, \code{\%(site)} is replaced with
+  the site abbreviation which was defined previously in the
+  \code{[DEFAULT]} section. Notice how the \code{strftime} format
+  specifiers require two \% characters.\newline 
+  \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}\newline%
+  For June 20th 2014 and the site \code{cwx} this would expand to\newline %
+  \code{filename = /data/aurorawatchnet/cwx/2014/06/cwx_20140620.txt}
+}
+
+\section{\code{[awpacket]}}
+Options associated with the standard binary output format. This format
+is incovenient to read but preserves the received data messages from
+the magnetometer, and the responses sent back from the recording
+daemon. It is possible to play back these files to the recording
+daemon and regenerate other data formats.
+
+\subsection{filename}
+
+See section~\ref{sec:config-data-filename} for a description.
+
+Default: none\\
+Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.awp}
+
+\subsection{key}
+By default the binary data packets are written out with their original
+signing key. If you plan to make the binary data format available you
+should then for security reasons you should probably set a different
+signing key. You will then be able to share this key without
+compromising the communication channel with the magnetometer. The key
+is a 32 character hexadecial string, without any \code{0x} prefix.
+
+Default: none
+Typically set to a simple code, \code{key = 00000000000000000000000000000000}
+
+\section{\code{[logfile]}}
+Options associated with the recorded log files. 
+
+\subsection{filename}
+
+See section~\ref{sec:config-data-filename} for a description.
+
+Default: none\\
+Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.log}
+
+
+\section{\code[daemon]}
+Options relating to the data-recording daemon.
+
+\subsection{\code{connection}}
+Defines the connection between the daemon and the magnetometer. Radio
+communication emulates a serial port connection. If the magnetometer
+is \PoE\ model the communication should be set to \code{ethernet}.
+
+Default: \code{serial}
+
+\section{\code{[serial]}}
+Options relating to serial data communication between the magnetometer
+and data recording daemon. This section is not used when communication
+uses ethernet.
+
+\subsection{\code{port}}
+The filename of the serial port. For the Ciseco \emph{Slice of Radio} module
+this should be set to \filename{/dev/ttyAMA0}, for the Ciseco
+\emph{URF} module this will probably be \filename{/dev/ttyACM0}.
+
+Default: \filename{/dev/ttyACM0}
+
+\subsection{\code{baudrate}}
+Baud rate used with the serial port. For the Ciseco \emph{Slice of
+  Radio} module this should be set to \code{9600}, for the Ciseco
+\emph{URF} module a higher rate of \code{57600} can be used.
+
+Default: \code{9600}
+
+\subsection{\code{setup}}
+The set-up string which should be sent to the serial device, for
+defining the channel number used for communication \etc.
+
+Default: none.\\
+Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
+channel number defined here matches the setting programmed into the
+magnetometer's \eeprom.
+
+\section{\code{[controlsocket]}}
+
+It is possible for the \code{send_cmd.py} program to send commands to
+the magnetometer via the data recording daemon. Communication is via a
+\udp\ socket or a unix domain socket. 
+
+\subsection{\code{filename}}
+Use a unix domain socket for communication with the data recording
+daemon, with the given filename. If set to \code{none} then a
+control socket will not be created. If the \code{filename} option is
+present it takes priority over any \code{port} option.
+
+Default: none.
+
+\subsection{\code{port}}
+Use a \udp\ socket for communication with the data recording
+daemon, with the given port number. If set to \code{none} then a
+control socket will not be created. If the \code{filename} option is
+present it takes priority over the \code{port} option.
+
+Default: \code{6587}
+
+\configexample{\code{port = 6587}}
+
+\section{\code{[magnetometer]}}
+
+Settings associated with the magneometer.
+
+\subsection{\code{siteid}}
+
+The numeric site identifier for the magnetometer. The recording daemon
+will ignore data packets where the site ID does not match the value
+set in the configuration file. The site ID should be set as an integer
+number in the range 0 to 255 inclusive.
+
+Default: none.
+
+\subsection{\code{key}}
+The \hmac-\mdfive\ key used to sign communication messages sent between
+the magnetometer and data recording daemon. This key should be kept
+secret. The key is a 32 character hexadecial string, without any
+\code{0x} prefix.
+
+Default: none.\\
+Typically set to a simple code, \code{key = 00000000000000000000000000000000}
+
+\configexample{key = 65f024a22214ea2511ca60f251d7fb74}
+
