@@ -15,12 +15,13 @@ PROG=`basename $0`
 # Check for any site-specific variation. If so expect the daemon to be
 # called as awnetd_<SITE>
 SITE=`/bin/echo $PROG | sed 's/^awnetd_//g;'`
-if [ -n "$SITE" ]; then
-    SITE_SUFFIX="_${SITE}"
-    DESC="AuroraWatchNet data collection for ${SITE}"
-else
+if [ "$SITE" = "awnetd" ]; then
+    SITE=""
     SITE_SUFFIX=""
     DESC="AuroraWatchNet data collection"
+else
+    SITE_SUFFIX="_${SITE}"
+    DESC="AuroraWatchNet data collection for ${SITE}"
 fi
 
 # User to run the daemon as
