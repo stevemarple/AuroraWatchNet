@@ -41,20 +41,23 @@ Options associated with the standard text-format output data file.
 \label{sec:config-data-filename}
 Define the filename used for text-format data files. This string is
 expanded as a \code{strftime} format string and accepts the normal
-\code{strftime} format specifiers. \todo{list strftime format
-  specifiers somewhere}. However, since Python expands the string
-first any percent characters used as part of a \code{strftime} format
-specifier must be repeated.
+\code{strftime} format specifiers; for a list of the acceptable format
+specifiers see
+\url{https://docs.python.org/2/library/time.html#time.strftime}. However,
+since Python expands the string first any percent characters used as
+part of a \code{strftime} format specifier must be repeated.
 
 Default: none.\\
 Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}
 
-\configexample{Define the filename, \code{\%(site)} is replaced with
-  the site abbreviation which was defined previously in the
-  \code{[DEFAULT]} section. Notice how the \code{strftime} format
-  specifiers require two \% characters.\newline 
-  \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}\newline%
-  For June 20th 2014 and the site \code{cwx} this would expand to\newline %
+\configexample{
+  \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}%
+  \newline \newline % 
+  \code{\%(site)} is replaced with the site abbreviation which was
+  defined previously in the \code{[DEFAULT]} section. Notice how the
+  \code{strftime} format specifiers require two \% characters.\newline
+  \newline For June 20th 2014 with the site abbreviation
+  \code{cwx} this would expand to\newline %
   \code{filename = /data/aurorawatchnet/cwx/2014/06/cwx_20140620.txt}
 }
 
@@ -104,6 +107,30 @@ is \PoE\ model the communication should be set to \code{ethernet}.
 
 Default: \code{serial}
 
+\subsection{\code{close_after_write}}
+Have the daemon close the data and log files after each write. It is
+recommended that this option only be used on an \nfs\ file system,
+when used on a file sytem store on flash memory (such as the Raspberry
+Pi) this may cause excessive writes and early failure of the flash
+memory. This option may be required for real-time data collection
+daemons where the data files are also received by \code{rsync} or
+\code{HTTP} uploads.
+
+\subsection{\code{acknowledge}}
+If set to \code{false} then acknowledgements are not sent in response
+to magnetometer data messages.
+
+Default: true.
+
+\subsection{\code{read_only}}
+If set to \code{true} then for serial connections the device is opened
+read-only and no set up commands are sent.
+
+Read-only mode implies that acknowledgements are not sent, regardless
+of the setting of the \code{acknowledge} option.
+
+Default: false.
+
 \section{\code{[serial]}}
 Options relating to serial data communication between the magnetometer
 and data recording daemon. This section is not used when communication
@@ -132,11 +159,35 @@ Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
 channel number defined here matches the setting programmed into the
 magnetometer's \eeprom.
 
+\section{\code{[ethernet]}}
+
+These configuration options are used by the data recording daemon only
+when an ethernet connection with the magnetometer is in use.
+
+\subsection{\code{local_address}}
+The local \ip\ address used for the data recording daemon. By default
+the daemon listens on all available interfaces.
+
+Default: empty string.
+
+\subsection{\code{local_port}}
+The port number of which the recording daemon should listen for
+magnetometer data packets.
+
+Default: 6588.
+
+\subsection{\code{remote_address}}
+The \ip\ address of the magnetometer.
+
+\subsection{\code{remote_port}}
+The port on which the magnetometer expects to receive
+acknowledgements.
+
 \section{\code{[controlsocket]}}
 
-It is possible for the \code{send_cmd.py} program to send commands to
-the magnetometer via the data recording daemon. Communication is via a
-\udp\ socket or a unix domain socket. 
+It is possible for the \filename{send_cmd.py} program to send commands
+to the magnetometer via the data recording daemon. Communication is
+via a \udp\ socket or a unix domain socket.
 
 \subsection{\code{filename}}
 Use a unix domain socket for communication with the data recording
@@ -179,4 +230,112 @@ Default: none.\\
 Typically set to a simple code, \code{key = 00000000000000000000000000000000}
 
 \configexample{key = 65f024a22214ea2511ca60f251d7fb74}
+
+\section{\code{[upload]}}
+Configuration details for the \filename{upload_data.py} program.
+
+\subsection{\code{method}}
+Define the upload method in use. Valid options are: \code{rsync},
+\code{rrsync}, \code{http}, and \code{https}. \code{rsync} uses the
+\filename{rsync} program to efficiently transfer only the portions of
+data files which have changed since the last upoad; \code{rrsync} is
+similar. Both are tunnelled through \ssh\ and thus require the network
+to permit outward \tcp\ connections to port 22.
+
+The \code{http} and \code{https} upload methods make use of the standard
+\http(s) protocol, and therefore require outgoing \tcp\ connections to
+port 80 and 443 respectively. 
+
+\subsection{\code{rsync_host}}
+Name of the \filename{rsync} host. No facility to set the user is
+provided so use the \ssh\ \filename{config} file to set the
+appropriate details.
+
+\examplebox[Example \ssh\ \filename{config} file:]{%
+  \code{Host awn-data\\Hostname host.domain.com\\User monty}}
+
+\subsection{\code{url}}
+The \URL\ to which data is sent.
+
+\subsection{\code{password}}
+The upload password. Digest authentication is used.
+
+\subsection{\code{realm}}
+The \emph{realm} used for digest authentication.
+
+\section{\code{[realtime_transfer]}}
+
+The data recording daemon is capable of forwarding the incoming binary
+packets to a remote host. When this is enabled data is transferred in
+real-time. The remote host can use the same data recording daemon but
+it should be configured to be read-only so that it does not send
+acknowledgements.
+
+When data packets are forwarded in this way the daemon does not check
+that they have been delivered successfully. It is recommended that
+this method is used in conjunction with the \filename{upload_data.py}
+program to ensure any data packets which were not delivered are
+transferred by some other means.
+
+\subsection{\code{remote_host}}
+The hostname or \ip\ address to which data packets are sent.
+
+\subsection{\code{remote_port}}
+The \udp\ port to which data packets are sent.
+
+\subsection{\code{remote_key}}
+The \hmac-\mdfive\ key used to sign the data packets. This should be
+different to the key used to communicate with the magnetometer.
+
+\section{\code{[dataqualitymonitor]}}
+
+The data recording daemon can monitor for the existence of a file
+indicating that data quality may be compromised (\eg, due to local
+site activities such as cutting grass). If the file is present an
+extension is appended to the data files to clearly separate the poor
+quality data. Any real time data transfers in operation are
+suspended. When the file is removed the normal filenames are used
+again and real time data transfer resume as normal.
+
+\subsection{\code{port}}
+Defines the serial port used by the \filename{awnetd_monitor}
+daemon. If using a \usb\ device it is recommended to modify the
+\code{udev} rules so that a fixed device name is generated based on
+the serial number. 
+
+\examplebox[Example \code{udev} rule to create a symbolic link for an
+FTDI \usb\ serial adaptor, save to
+\filename{/etc/udev/rules.d/90-usb_serial.rules} or similar:]{%
+\small
+\# Have symlinks based on serial number for FTDI devices. Used for \\
+\# awnetd_monitor\\
+SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", \textbackslash \\
+ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"}
+
+Default: none.
+
+\subsection{\code{filename}}
+The name of the file which when present indicates reduced data
+quality. This file can be created by the \filename{awnetd_monitor}
+daemon or an external process.
+
+Default: \filename{/var/aurorawatchnet/data_quality_warning}
+
+\subsection{\code{extension}}
+The extension which is appended to files to indicate reduced data
+quality.
+
+Default: \filename{.bad}
+
+\subsection{\code{pidfile}}
+A file containing the process ID of the \filename{awnetd_monitor}
+daemon.
+
+Default: none.
+
+\subsection{\code{logfile}}
+The file where the log output of the \filename{awnetd_monitor}
+daemon is written.
+
+Default: none.
 
