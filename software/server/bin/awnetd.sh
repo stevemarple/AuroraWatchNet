@@ -9,13 +9,40 @@
 # Description:       AuroraWatchNet data collection
 ### END INIT INFO
 
+# Get daemon name
+PROG=`basename $0`
 
+# Check for any site-specific variation. If so expect the daemon to be
+# called as awnetd_<SITE>
+SITE=`/bin/echo $PROG | sed 's/^awnetd_//g;'`
+if [ -n "$SITE" ]; then
+    SITE_SUFFIX="_${SITE}"
+    DESC="AuroraWatchNet data collection for ${SITE}"
+else
+    SITE_SUFFIX=""
+    DESC="AuroraWatchNet data collection"
+fi
+
+# User to run the daemon as
 USER="pi"
-DESC="AuroraWatchNet data collection"
+
+# Path to the daemon
+DAEMON="/home/pi/bin/awnetd.py"
+DAEMON_OPTIONS="-v -v -v -v"
+
+# The name of the awnet.ini file.
+INI_FILE="/etc/awnet${SITE_SUFFIX}.ini"
+
+# Does a shell config file exist to alter these settings?
+CONF_FILE="/etc/awnetd${SITE_SUFFIX}.conf"
+if [ -e "$CONF_FILE" ]; then
+    # Yes, source the file
+    . "$CONF_FILE"
+fi
 
 
 get_pid() {
-    su -c "screen -list" - $USER | grep awnetd | cut -d. -f1 | tr -d '[:blank:]'
+    su -c "screen -list" - $USER | grep awnetd${SITE_SUFFIX} | cut -d. -f1 | tr -d '[:blank:]'
 }
 
 
@@ -23,15 +50,15 @@ start_stop_server() {
     pid=`get_pid`
     case "$1" in
         start)
-	    echo -n "Starting $DESC: awnetd"
+	    echo -n "Starting ${DESC}: ${PROG}"
 	    if [ -z "$pid" ]; then
-		su -c "screen -d -m -S awnetd ~${USER}/bin/awnetd.py -v -v -v -v" - $USER
+		su -c "screen -d -m -S awnetd${SITE_SUFFIX} ${DAEMON} -c ${INI_FILE} ${DAEMON_OPTIONS}" - $USER
 	    fi
 	    echo "."
             ;;
 
         stop)
-	    echo -n "Stopping $DESC: awnetd"
+	    echo -n "Stopping ${DESC}: ${PROG}"
 	    if [ -n "$pid" ]; then
 		kill $pid
 	    fi
@@ -46,7 +73,7 @@ start_stop_server() {
 	# status and zap are found in Gentoo runscripts but are useful
 	# so included here.
 	status)
-	    echo -n "Status for $DESC: "
+	    echo -n "Status for ${DESC}: "
 	    if [ -n "$pid" ]; then
 		echo -n "running (PID = $pid)"
 	    else
