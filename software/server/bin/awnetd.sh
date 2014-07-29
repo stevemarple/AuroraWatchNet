@@ -12,6 +12,11 @@
 # Get daemon name
 PROG=`basename $0`
 
+if [ "`id -u -n`" != "root" ]; then
+    echo "This program must be run by root"
+    exit
+fi
+
 # Check for any site-specific variation. If so expect the daemon to be
 # called as awnetd_<SITE>
 SITE=`/bin/echo $PROG | sed 's/^awnetd_//g;'`
@@ -90,6 +95,11 @@ start_stop_server() {
 		su -c "screen -wipe" - $USER > /dev/null 2>&1
 	    fi
 	    echo "."
+	    ;;
+	run)
+	    if [ -z "$pid" ]; then
+		start_stop_server start
+	    fi
 	    ;;
 
         *)
