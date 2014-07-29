@@ -96,12 +96,6 @@ start_stop_server() {
 	    fi
 	    echo "."
 	    ;;
-	run)
-	    if [ -z "$pid" ]; then
-		start_stop_server start
-	    fi
-	    ;;
-
         *)
 	    echo "Unknown action: $1"
 	    return 1
