@@ -13,6 +13,7 @@ import struct
 import sys
 import termios
 import time
+import traceback
 import tty
 
 import hmac
@@ -33,8 +34,12 @@ else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
 
-
-
+def log_uncaught_exception(ex_cls, ex, tb):
+    logger.critical(''.join(traceback.format_tb(tb)))
+    t = time.time()
+    write_to_log_file(t, iso_timestamp(t) + ' D Uncaught exception:' 
+                      + ''.join(traceback.format_tb(tb)) + '\n')
+    
 def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
                       extension=None):
     '''
@@ -621,6 +626,9 @@ def describe_pending_tags():
     return ','.join(r)
 
 # ==========================================================================
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+sys.excepthook = log_uncaught_exception
 
 daemon_start_time = time.time()
 # Parse command line arguments
