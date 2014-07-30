@@ -3,6 +3,7 @@
 import argparse
 import binascii
 from curses import ascii 
+import hmac
 import logging
 import math
 import os
@@ -16,13 +17,10 @@ import time
 import traceback
 import tty
 
-import hmac
 
 import aurorawatchnet as awn
 import aurorawatchnet.eeprom
 import aurorawatchnet.message
-# import AW_Message
-# import AWEeprom
 
 
 logger = logging.getLogger(__name__)
@@ -34,11 +32,13 @@ else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
 
+
 def log_uncaught_exception(ex_cls, ex, tb):
     logger.critical(''.join(traceback.format_tb(tb)))
     t = time.time()
     write_to_log_file(t, iso_timestamp(t) + ' D Uncaught exception:' 
                       + ''.join(traceback.format_tb(tb)) + '\n')
+
     
 def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
                       extension=None):
@@ -332,6 +332,14 @@ def log_message_events(t, message_tags, is_response=False):
         write_to_log_file(t, ''.join(lines))
 
 
+def log_exception():
+    t = time.time()
+    message = ['Exception:']
+    message.extend(traceback.format_exc().rstrip('\n').split('\n'))
+    prefix = iso_timestamp(t) + ' D '
+    write_to_log_file(t,  ''.join(map(lambda s: prefix + s + '\n', message)))
+
+
 def send_rt_message(host_info, message, response):
     awn.message.put_signature(message, host_info['key'], 
                              awn.message.get_retries(message),
@@ -343,6 +351,17 @@ def send_rt_message(host_info, message, response):
                                   awn.message.get_retries(response),
                                   awn.message.get_sequence_id(response))
         rt_socket.sendto(response, (host_info['ip'], host_info['port']))
+
+
+def sendto_or_log_error(sock, data, address):
+    try:
+        return sock.sendto(data, address)
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        logger.exception('Failed to send UDP packet')
+        log_exception()
+        return None
 
 
 def open_control_socket():
@@ -491,7 +510,8 @@ def get_firmware_details(version):
     crc_cols = crc_lines[0].split()
     stated_crc_hex = crc_cols[0]
     stated_version = crc_cols[1]
-    stated_crc = int(struct.unpack('>H', binascii.unhexlify(stated_crc_hex))[0])
+    stated_crc = int(struct.unpack('>H', 
+                                   binascii.unhexlify(stated_crc_hex))[0])
     
     # The CRC check must be computed over the entire temporary 
     # application section; extend as necessary
@@ -500,13 +520,16 @@ def get_firmware_details(version):
         padding = chr(0xFF) * (temp_app_size - len(firmware))
         padded_firmware = firmware + padding
     elif len(firmware) > temp_app_size:
-        raise Exception('Firmware image too large (' + str(len(firmware)) + ' bytes)')
+        raise Exception('Firmware image too large (' 
+                        + str(len(firmware)) + ' bytes)')
     else:
         padded_firmware = firmware
     
     actual_crc = awn.message.crc16(padded_firmware)
     if actual_crc != stated_crc:
-        raise Exception('Firmware CRC does not match with ' + crc_filename + ' ' + str(actual_crc) + ' ' + str(stated_crc))
+        raise Exception('Firmware CRC does not match with ' 
+                        + crc_filename + ' ' + str(actual_crc) 
+                        + ' ' + str(stated_crc))
     if version != stated_version:
         raise Exception('Version does not match with ' + crc_filename)
     return stated_crc, len(firmware) / awn.message.firmware_block_size
