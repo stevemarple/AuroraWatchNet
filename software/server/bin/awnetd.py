@@ -691,7 +691,7 @@ rt_transfer = awn.get_rt_tranfer_info(config)
 if args.read_only is not None:
     read_only = args.read_only
 elif config.has_option('daemon', 'read_only'):
-    read_only = config.get('daemon', 'read_only')
+    read_only = config.getboolean('daemon', 'read_only')
 else:
     read_only = False
 
@@ -702,7 +702,7 @@ if read_only:
 elif args.acknowledge is not None:
     acknowledge = args.acknowledge
 elif config.has_option('daemon', 'acknowledge'):
-    acknowledge = config.get('daemon', 'acknowledge')
+    acknowledge = config.getboolean('daemon', 'acknowledge')
 else:
     acknowledge = True
 
