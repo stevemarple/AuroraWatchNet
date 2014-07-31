@@ -344,13 +344,15 @@ def send_rt_message(host_info, message, response):
     awn.message.put_signature(message, host_info['key'], 
                              awn.message.get_retries(message),
                              awn.message.get_sequence_id(message))
-    rt_socket.sendto(message, (host_info['ip'], host_info['port']))
+    sendto_or_log_error(rt_socket, message, 
+                        (host_info['ip'], host_info['port']))
 
     if response is not None:
         awn.message.put_signature(response, host_info['key'], 
                                   awn.message.get_retries(response),
                                   awn.message.get_sequence_id(response))
-        rt_socket.sendto(response, (host_info['ip'], host_info['port']))
+        sendto_or_log_error(rt_socket, response, 
+                            (host_info['ip'], host_info['port']))
 
 
 def sendto_or_log_error(sock, data, address):
