@@ -184,17 +184,15 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
     r = [activity]
 
     if k_index_filename is not None:
-        if mag_data.network == 'AURORAWATCHNET':
-            # Filter
-            md_filt = ap.tools.sgolay_filt(mag_data,
-                                           np.timedelta64(630,'s'), 3)
-            md_filt.set_cadence(np.timedelta64(5, 'm'), inplace=True)
-        else:
-            md_filt = mag_data
-        k_index = ap.auroralactivity.KIndex(magdata=md_filt, 
-                                            magqdc=mag_qdc,
-                                            # TODO: define scale for each site
-                                            scale=530e-9)
+        md_filt = mag_data
+        if ap.has_site_info(mag_data.network, mag_data.site, 
+                            'k_index_filter'):
+            kfilt = ap.get_site_info(mag_data.network, mag_data.site, 
+                                      'k_index_filter')
+            if kfilt is not None:
+                md_filt = kfil(mag_data)
+
+        k_index = ap.auroralactivity.KIndex(magdata=md_filt, magqdc=mag_qdc)
         # Fix the start/end times to the data, not the 3h K index samples
         k_index.start_time = md_filt.start_time
         k_index.end_time = md_filt.end_time
