@@ -21,10 +21,14 @@ def parse_unpack_format(fmt):
         m[2] = int(m[2])
     return m[1:4]
     
-# Use eval but without allowing the user to access builtin functions
-# or locals
+
 def safe_eval(s):
-    return eval(s, {'__builtins__': None}, {})
+    '''Like eval but prevent access to builtins and locals.
+
+    Certain safe builtins are permitted, including True and False.'''
+    return eval(s, {'__builtins__': {'True': True,
+                                     'False': False}}, {})
+
 
 def safe_eval_mull_100(s):
     return 100 * safe_eval(s)
