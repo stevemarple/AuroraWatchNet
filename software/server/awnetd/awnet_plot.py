@@ -190,7 +190,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
             kfilt = ap.get_site_info(mag_data.network, mag_data.site, 
                                       'k_index_filter')
             if kfilt is not None:
-                md_filt = kfil(mag_data)
+                md_filt = kfilt(mag_data)
 
         k_index = ap.auroralactivity.KIndex(magdata=md_filt, magqdc=mag_qdc)
         # Fix the start/end times to the data, not the 3h K index samples
