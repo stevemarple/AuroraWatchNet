@@ -196,15 +196,17 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     progname = os.path.basename(sys.argv[0]).partition('.')[0]
-    config_basename = re.sub('_monitor.*$', '', progname)
     default_config_file = \
-        os.path.join(os.path.sep, 'etc', config_basename + '.ini')
+        os.path.join(os.path.sep, 'etc', progname + '.ini')
+    if not os.path.exists(default_config_file):
+        default_config_file = \
+            os.path.join(os.path.sep, 'etc', 'awnet.ini')
 
     parser = \
         argparse.ArgumentParser(description='AuroraWatch data quality monitor')
 
     parser.add_argument('-c', '--config-file', 
-                        default='/etc/awnet.ini',
+                        default=default_config_file,
                         help='Configuration file')
     parser.add_argument('--port', metavar='FILE', help='USB device')
     parser.add_argument('--filename', metavar='FILE', help='Semaphore file')
