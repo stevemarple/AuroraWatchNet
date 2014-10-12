@@ -271,7 +271,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if MLX90614 IR temperature sensor fitted',
     },
     'hih61xx_present': {
@@ -279,7 +279,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if HIH61xx humidity sensor fitted',
     },
     'as3935_present': {
@@ -287,7 +287,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if AS3935 lightning sensor fitted',
     },
     'fan_temperature': {
@@ -325,5 +325,16 @@ eeprom = {
         'default': 3300,
         'help': 'ADC reference voltage (mV)',
     },
+    # Support for AS3935 to be added
+    
+    'local_mac_address': {
+        'address': 0x70,
+        'format': '6B',
+        'default': [0x02, 0x00, 0x00, 0x00, 0x00, 0x00],
+        'help': 'Local MAC address',
+        'metavar': 'MAC_ADDRESS'
+        },
+
+
 }
 
