@@ -21,10 +21,14 @@ def parse_unpack_format(fmt):
         m[2] = int(m[2])
     return m[1:4]
     
-# Use eval but without allowing the user to access builtin functions
-# or locals
+
 def safe_eval(s):
-    return eval(s, {'__builtins__': None}, {})
+    '''Like eval but prevent access to builtins and locals.
+
+    Certain safe builtins are permitted, including True and False.'''
+    return eval(s, {'__builtins__': {'True': True,
+                                     'False': False}}, {})
+
 
 def safe_eval_mull_100(s):
     return 100 * safe_eval(s)
@@ -267,7 +271,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if MLX90614 IR temperature sensor fitted',
     },
     'hih61xx_present': {
@@ -275,7 +279,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if HIH61xx humidity sensor fitted',
     },
     'as3935_present': {
@@ -283,7 +287,7 @@ eeprom = {
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if AS3935 lightning sensor fitted',
     },
     'fan_temperature': {
@@ -321,5 +325,16 @@ eeprom = {
         'default': 3300,
         'help': 'ADC reference voltage (mV)',
     },
+    # Support for AS3935 to be added
+    
+    'local_mac_address': {
+        'address': 0x70,
+        'format': '6B',
+        'default': [0x02, 0x00, 0x00, 0x00, 0x00, 0x00],
+        'help': 'Local MAC address',
+        'metavar': 'MAC_ADDRESS'
+        },
+
+
 }
 

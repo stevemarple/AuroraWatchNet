@@ -3,6 +3,7 @@
 import argparse
 import binascii
 from curses import ascii 
+import hmac
 import logging
 import math
 import os
@@ -13,15 +14,13 @@ import struct
 import sys
 import termios
 import time
+import traceback
 import tty
 
-import hmac
 
 import aurorawatchnet as awn
 import aurorawatchnet.eeprom
 import aurorawatchnet.message
-# import AW_Message
-# import AWEeprom
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,13 @@ else:
     from ConfigParser import SafeConfigParser
 
 
+def log_uncaught_exception(ex_cls, ex, tb):
+    logger.critical(''.join(traceback.format_tb(tb)))
+    t = time.time()
+    write_to_log_file(t, iso_timestamp(t) + ' D Uncaught exception:' 
+                      + ''.join(traceback.format_tb(tb)) + '\n')
 
+    
 def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
                       extension=None):
     '''
@@ -327,21 +332,44 @@ def log_message_events(t, message_tags, is_response=False):
         write_to_log_file(t, ''.join(lines))
 
 
+def log_exception():
+    t = time.time()
+    message = ['Exception:']
+    message.extend(traceback.format_exc().rstrip('\n').split('\n'))
+    prefix = iso_timestamp(t) + ' D '
+    write_to_log_file(t,  ''.join(map(lambda s: prefix + s + '\n', message)))
+
+
 def send_rt_message(host_info, message, response):
     awn.message.put_signature(message, host_info['key'], 
                              awn.message.get_retries(message),
                              awn.message.get_sequence_id(message))
-    rt_socket.sendto(message, (host_info['ip'], host_info['port']))
+    sendto_or_log_error(rt_socket, message, 
+                        (host_info['ip'], host_info['port']))
 
     if response is not None:
         awn.message.put_signature(response, host_info['key'], 
                                   awn.message.get_retries(response),
                                   awn.message.get_sequence_id(response))
-        rt_socket.sendto(response, (host_info['ip'], host_info['port']))
+        sendto_or_log_error(rt_socket, response, 
+                            (host_info['ip'], host_info['port']))
+
+
+def sendto_or_log_error(sock, data, address):
+    try:
+        return sock.sendto(data, address)
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        logger.exception('Failed to send UDP packet')
+        log_exception()
+        return None
 
 
 def open_control_socket():
     if config.has_option('controlsocket', 'filename'):
+        if config.get('controlsocket', 'filename').lower() == 'none':
+            return None
         if os.path.exists(config.get('controlsocket', 'filename')):
             os.remove(config.get('controlsocket', 'filename'))
         control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -350,12 +378,14 @@ def open_control_socket():
         # control_socket.setblocking(False)
         control_socket.listen(1)
     else:
+        port_str = config.get('controlsocket', 'port')
+        if port_str.lower() == 'none':
+            return None
         control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # ord('A') = 65, ord('W') = 87 
-        control_socket.bind(('localhost', 
-                             int(config.get('controlsocket', 'port'))))
+        control_socket.bind(('localhost', int(port_str)))
         control_socket.setblocking(False)
         control_socket.listen(0)
     return control_socket
@@ -482,7 +512,8 @@ def get_firmware_details(version):
     crc_cols = crc_lines[0].split()
     stated_crc_hex = crc_cols[0]
     stated_version = crc_cols[1]
-    stated_crc = int(struct.unpack('>H', binascii.unhexlify(stated_crc_hex))[0])
+    stated_crc = int(struct.unpack('>H', 
+                                   binascii.unhexlify(stated_crc_hex))[0])
     
     # The CRC check must be computed over the entire temporary 
     # application section; extend as necessary
@@ -491,13 +522,16 @@ def get_firmware_details(version):
         padding = chr(0xFF) * (temp_app_size - len(firmware))
         padded_firmware = firmware + padding
     elif len(firmware) > temp_app_size:
-        raise Exception('Firmware image too large (' + str(len(firmware)) + ' bytes)')
+        raise Exception('Firmware image too large (' 
+                        + str(len(firmware)) + ' bytes)')
     else:
         padded_firmware = firmware
     
     actual_crc = awn.message.crc16(padded_firmware)
     if actual_crc != stated_crc:
-        raise Exception('Firmware CRC does not match with ' + crc_filename + ' ' + str(actual_crc) + ' ' + str(stated_crc))
+        raise Exception('Firmware CRC does not match with ' 
+                        + crc_filename + ' ' + str(actual_crc) 
+                        + ' ' + str(stated_crc))
     if version != stated_version:
         raise Exception('Version does not match with ' + crc_filename)
     return stated_crc, len(firmware) / awn.message.firmware_block_size
@@ -617,6 +651,9 @@ def describe_pending_tags():
     return ','.join(r)
 
 # ==========================================================================
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+sys.excepthook = log_uncaught_exception
 
 daemon_start_time = time.time()
 # Parse command line arguments
@@ -629,12 +666,14 @@ parser.add_argument('-c', '--config-file',
 parser.add_argument('-d', '--daemon', action='store_true',
                     help='Run as daemon')
 parser.add_argument('--acknowledge', action='store_true',
-                    default=True,
+                    default=None,
                     help='Transmit acknowledgement');
 parser.add_argument('--no-acknowledge', action='store_false',
                     dest='acknowledge',
+                    default=None,
                     help="Don't transmit acknowledgement")
 parser.add_argument('--read-only', action='store_true',
+                    default=None,
                     help='Open device file read-only (implies --no-acknowledge)')
 parser.add_argument('--ignore-digest', action='store_true',
                     help='Ignore HMAC-MD5 digest')
@@ -643,15 +682,34 @@ parser.add_argument('-v', '--verbose', dest='verbosity', action='count',
                      default=0, help='Increase verbosity')
 
 args = parser.parse_args()
-if args.read_only:
-    args.acknowledge = False
-
-# Do not ignore digest when acknowledgements are required
-if args.ignore_digest and args.acknowledge:
-    print('--ignore-digest requires --no-acknowledge or --read-only')
 
 config = awn.read_config_file(args.config_file)
 rt_transfer = awn.get_rt_tranfer_info(config)
+
+# Should the device be opened read-only? Some need setup strings
+# writing to them even if acknowledgements are not sent.
+if args.read_only is not None:
+    read_only = args.read_only
+elif config.has_option('daemon', 'read_only'):
+    read_only = config.getboolean('daemon', 'read_only')
+else:
+    read_only = False
+
+# Should acknowledgements be sent?
+if read_only:
+    # Can never acknowledge in read-only mode
+    acknowledge = False
+elif args.acknowledge is not None:
+    acknowledge = args.acknowledge
+elif config.has_option('daemon', 'acknowledge'):
+    acknowledge = config.getboolean('daemon', 'acknowledge')
+else:
+    acknowledge = True
+
+# Do not ignore digest when acknowledgements are required
+if args.ignore_digest and acknowledge:
+    print('--ignore-digest requires --no-acknowledge or --read-only')
+
 
 
 if args.daemon:
@@ -680,7 +738,7 @@ else:
 if device_filename == '-':
     device = os.sys.stdin
     device_socket = None
-    args.acknowledge = False # Cannot send acknowledgements
+    acknowledge = False # Cannot send acknowledgements
 
 elif config.get('daemon', 'connection') == 'ethernet':
     # Connect via ethnernet
@@ -688,18 +746,15 @@ elif config.get('daemon', 'connection') == 'ethernet':
     local_port = int(config.get('ethernet', 'local_port'))
     local_ip = config.get('ethernet', 'local_ip')
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-    # device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#    device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     device_socket.bind((local_ip, local_port))
     device_socket.setblocking(False)
-    # device_socket.listen(3)
     control_socket = open_control_socket()
 
     write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
                           + ' D Daemon started\n')
 
 else:
-    if args.read_only:
+    if read_only:
         device = open(device_filename, 'rb', 0)
     else:
         device = open(device_filename, 'a+b', 0)
@@ -709,7 +764,7 @@ else:
 
     device_socket = None
 
-if device_filename == '-':
+if device_filename == '-' or acknowledge == False:
     control_socket = None
     
 elif device:
@@ -756,7 +811,7 @@ elif device:
         device.close()
         device = open(device_filename, 'r', 0)
         control_socket = None
-        args.acknowledge = False
+        acknowledge = False
 
         
 control_socket_conn = None
@@ -886,8 +941,7 @@ while running:
                 message_tags = awn.message.parse_packet(message)
                 awn.message.tidy_pending_tags(pending_tags, message_tags)
                 
-                # if fd.isatty() and args.acknowledge:
-                if args.acknowledge:
+                if acknowledge:
                     # Not a file, so send a acknowledgement                     
                     response = bytearray(1024)
                     awn.message.put_header(response,
@@ -996,9 +1050,11 @@ while running:
 
 
                 # Realtime transfer must be last since it alters the
-                # message and response signature.
-                for rt in rt_transfer:
-                    send_rt_message(rt, message, response)
+                # message and response signature. Don't forward any
+                # messages is there is an issue with data quality.
+                if data_quality_extension is None:
+                    for rt in rt_transfer:
+                        send_rt_message(rt, message, response)
                         
             else:
                 response = None

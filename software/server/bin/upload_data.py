@@ -207,12 +207,12 @@ if __name__ == '__main__':
 if args.start_time is None:
     start_time = today
 else:
-    start_time = parse_datetime(args.start_time)
+    start_time = awn.parse_datetime(args.start_time)
 
 if args.end_time is None:
     end_time = start_time + datetime.timedelta(days=1)
 else:
-    end_time = parse_datetime(args.end_time)
+    end_time = awn.parse_datetime(args.end_time)
 
 logger.debug('Now: ' + str(now))
 logger.debug('Start time: ' + str(start_time))
@@ -312,12 +312,18 @@ if method in ['rsync', 'rrsync']:
                 t2 = t
                 while t2 < t_next_day:
                     logger.debug('time: ' + str(t2))
-                    file_name = t2.strftime(fstr)
-                    if os.path.exists(file_name):
-                        logger.debug('Found ' + file_name)
-                        file_list.append(file_name)
-                    else:
-                        logger.debug('Missing ' + file_name)
+                    file_base_name = t2.strftime(fstr)
+                    # Try standard filenames as well as appending
+                    # '.bad' or other extension signifying a data
+                    # quality problem.
+                    for ext in ['', config.get('dataqualitymonitor',
+                                               'extension')]:
+                        file_name = file_base_name + ext
+                        if os.path.exists(file_name):
+                            logger.debug('Found ' + file_name)
+                            file_list.append(file_name)
+                        else:
+                            logger.debug('Missing ' + file_name)
                     t2 += interval
             if len(file_list) == 0:
                 logger.info('No files to transfer')
@@ -376,13 +382,17 @@ elif method in ('http', 'https'):
         t = start_time
         while t < end_time:
             logger.debug('time: ' + str(t))
-            file_name = t.strftime(fstr)
-            if os.path.exists(file_name):
-                response = http_upload(file_name, url)
-                if not response:
-                    all_ok = False
-            else:
-                logger.debug('Missing ' + file_name)
+            file_base_name = t2.strftime(fstr)
+            # Try standard filenames as well as appending '.bad' or
+            # other extension signifying a data quality problem.
+            for ext in ['', config.get('dataqualitymonitor', 'extension')]:
+                file_name = file_base_name + ext
+                if os.path.exists(file_name):
+                    response = http_upload(file_name, url)
+                    if not response:
+                        all_ok = False
+                else:
+                    logger.debug('Missing ' + file_name)
             t += interval
     
 else:
