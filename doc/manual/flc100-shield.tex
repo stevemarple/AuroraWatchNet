@@ -1,12 +1,22 @@
 \chapter{FLC100 shield assembly}
 
 \section{Introduction}
-The FLC100 shield is an Arduino ``shield'' which operates at
-\volt{3.3}. Do not attempt to use it with standard Arduino boards
-which are operated at \volt{5}. The shield houses the XRF radio
-module, the boost power supply (which creates the \volt{3.3} supply
-for the microcontroller and radio) and the \volt{3.3} -- \volt{5} level
-shifters.
+The FLC100 shield is an Arduino ``shield'' which interfaces the
+microcontroller to the FLC100 fluxgate magnetometer sensor, if
+necessary translating logic levels. It is also responsible for
+generating the correct operating voltage for the
+microcontroller. There is more than one version of this board, be sure
+to use the instructions appropriate to your version.
+
+\section{FLC100 shield version 1.0}
+
+\subsection{Description}
+
+The FLC100 shield version 1.0 operates at \volt{3.3}. \textbf{Do not
+  attempt to use it with standard Arduino boards which are operated at
+  \volt{5}.} The shield houses the XRF radio module, the boost power
+supply (which creates the \volt{3.3} supply for the microcontroller
+and radio) and the \volt{3.3} -- \volt{5} level shifters.
 
 There are both through-hole and surface mount versions of the boost
 power supply. It is suspected that the through-hole version causes
@@ -23,7 +33,6 @@ option to fit an MCP3424 \adc\ and MAX619 charge-pump power supply they
 are also fitted remotely, below ground, for reasons of temperature
 stability.
 
-\section{FLC100 shield version 1.0}
 
 \begin{figure}
   \centering
@@ -109,3 +118,43 @@ must be forced to use the default factory configuration.
   \end{figure}
 \end{landscape}
 
+\section{FLC100 shield version 2.0}
+
+\subsection{Description}
+
+The FLC100 shield version 2.0 can operate at either \volt{3.3} or
+\volt{5}. This enables the board to be used either for battery-powered
+systems, with the microcontroller and radio operating at \volt{3.3} or
+with the standard Arduino Ethernet shield which requires the shield
+and microcontroller to operate at \volt{5}. When used in conjunction
+with the Arduino Ethernet shield it is assumed that the \PoE\ module
+is fitted. The operating voltage chosen during construction determines
+which components are fitted.
+
+
+\subsection{Battery operation}
+When built for battery operation the shield houses the XRF radio
+module, the boost power supply (which creates the \volt{3.3} supply
+for the microcontroller and radio) and the \volt{3.3} -- \volt{5}
+level shifters. The boost regulator can be built onto the \pcb\ using
+discrete components. A simpler alternative which avoids the need to
+solder small surface mount components is to fit a ready-built
+third-party module.
+
+
+\subsection{Power over ethernet operation}
+If used in conjunction with the Ethernet shield the
+XRF radio module and boost power supply are not fitted. The Ethernet
+shield provides a \volt{9} output onto the \texttt{Vin} pin,
+requiring that a linear or buck regulator is fitted for \volt{5} operation.
+
+
+\begin{landscape}
+  \begin{figure}[p]
+    \centering
+    \includegraphics[keepaspectratio,width=28cm,height=16cm]{%
+      images/FLC100_shield_v2_0_sch}
+    \caption{FLC100 shield v.~2.0 circuit diagram.}
+    \label{fig:flc100-shield-v2.0-cct-diag}
+  \end{figure}
+\end{landscape}
