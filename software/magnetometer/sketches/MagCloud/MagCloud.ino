@@ -44,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.08a";
+  "MagCloud-0.09a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -896,8 +896,11 @@ void setup(void)
 
   // Configure radio module or Ethernet adaptor.
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
-    uint8_t macAddress[6] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t macAddress[6];
     uint8_t tmp[4];
+
+    eeprom_read_block(macAddress, (void*)EEPROM_LOCAL_MAC_ADDRESS,
+		      EEPROM_LOCAL_MAC_ADDRESS_SIZE);
     eeprom_read_block(tmp, (void*)EEPROM_LOCAL_IP_ADDRESS,
 		      EEPROM_LOCAL_IP_ADDRESS_SIZE);
     IPAddress localIP(tmp);
@@ -1185,7 +1188,7 @@ void loop(void)
       }
 			       
       // Add the signature
-      packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
+      packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
 
 #if USE_SD_CARD
       // Log to a file (if desired)
