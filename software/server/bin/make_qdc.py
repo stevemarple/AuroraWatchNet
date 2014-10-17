@@ -22,6 +22,8 @@ import auroraplot.magdata
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.samnet
 
+logger = logging.getLogger(__name__)
+
 # Set timezone appropriately to get intended np.datetime64 behaviour.
 os.environ['TZ'] = 'UTC'
 time.tzset()
@@ -70,6 +72,11 @@ parser.add_argument('--plot',
                     help='Plot existing quiet day curves')
 
 args = parser.parse_args()
+if __name__ == '__main__':
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                        format=args.log_format)
+
+
 
 # Use a consistent value for current time
 day = np.timedelta64(1, 'D').astype('m8[us]')
@@ -97,8 +104,8 @@ elif args.end_time == 'tomorrow':
     end_time = tomorrow
 else:
     end_time = dt64.floor(np.datetime64(args.end_time), day)
-print('Start date: ' + str(start_time))
-print('End date: ' + str(end_time))
+logger.debug('Start date: ' + str(start_time))
+logger.debug('End date: ' + str(end_time))
 
 # Get names of all networks and sites to be processed. Dictionary used
 # to avoid duplicates.
@@ -159,7 +166,7 @@ for network_uc, site_uc in network_site.values():
                 if not os.path.isdir(p):
                     os.makedirs(p)
                 if args.dry_run:
-                    print('Dry run, not saving QDC to ' + filename)
+                    logger.info('Dry run, not saving QDC to ' + filename)
                 else:
                     mag_qdc.savetxt(filename)
 
