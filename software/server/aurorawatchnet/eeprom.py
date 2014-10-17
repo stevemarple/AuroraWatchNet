@@ -87,13 +87,13 @@ eeprom = {
         'address': 0x32,
         'format': '3B',
         'default': [0x6E, 0x6A, 0x6C],
-        'help': 'List of ADC I2C addresses',
+        'help': 'List of MCP3424 ADC I2C addresses',
         },
     'adc_channel_list': {
         'address': 0x35,
         'format': '3B',
         'default': [1, 1, 1],
-        'help': 'List of ADC channel numbers (1-4)'
+        'help': 'List of MCP3424 ADC channel numbers (1-4)'
         },
     'sd_select': {
         'address': 0x38,
@@ -334,7 +334,21 @@ eeprom = {
         'help': 'Local MAC address',
         'metavar': 'MAC_ADDRESS'
         },
-
-
+    'adc_resolution_list': {
+        'address': 0x76,
+        'format': '3B',
+        'default': [18, 18, 18],
+        'help': 'List of MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+        },
+    'adc_gain_list': {
+        'address': 0x76,
+        'format': '3B',
+        'default': [1, 1, 1],
+        'help': 'List of MCP3424 ADC gain',
+        'metavar': 'GAIN'
+        },
+       
+    
 }
 
