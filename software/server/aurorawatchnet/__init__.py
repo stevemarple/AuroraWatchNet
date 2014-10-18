@@ -61,6 +61,8 @@ def read_config_file(filename):
 
     if filename:
         config_files_read = config.read(filename)
+        if filename not in config_files_read:
+            raise UserWarning('Could not read ' + filename)
         logger.debug('Successfully read ' + ', '.join(config_files_read))
 
     return config
