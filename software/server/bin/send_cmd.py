@@ -157,6 +157,7 @@ for k in read_cmds:
 
 host = args.host
 port = int(config.get('controlsocket', 'port'))
+logger.debug('Control socket: ' + str(port))
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
