@@ -17,7 +17,9 @@ FLC100::FLC100(void) : state(off), axis(0), numSamples(1), useMedian(false),
 
 
 bool FLC100::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
-			     uint8_t adcChannelList[numAxes])
+			uint8_t adcChannelList[numAxes],
+			uint8_t adcResolutionList[numAxes],
+			uint8_t adcGainList[numAxes])
 {
   powerPin = pp;
   pinMode(powerPin, OUTPUT);
@@ -34,13 +36,6 @@ bool FLC100::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   digitalWrite(powerPin, HIGH);
   delay.start((powerUpDelay_ms ? powerUpDelay_ms : defaultPowerUpDelay_ms),
 	      AsyncDelay::MILLIS);
-  
-  for (uint8_t i = 0; i < numAxes; ++i) {
-    addresses[i] = adcAddressList[i];
-    channels[i] = adcChannelList[i];
-  }
-  
-  
 
   // Reset all MCP342x devices
   MCP342x::generalCallReset();
@@ -49,11 +44,8 @@ bool FLC100::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
   // Autoprobe to check ADCs are actually present
   for (int i = 0; i < numAxes; ++i) {
     adc[i] = MCP342x(adcAddressList[i]);
-    addresses[i] = adcAddressList[i];
-    channels[i] = adcChannelList[i];
-    // TODO: Enable resolution and gain to be adjusted
-    adcConfig[i] = MCP342x::Config(adcChannelList[i], false, 18, 1);
-    magResGain[i] = ((18 - 12) << 1) | (0);
+    adcConfig[i] = MCP342x::Config(adcChannelList[i], false,
+				   adcResolutionList[i], adcGainList[i]);
     if (adc[i].autoprobe(&adcAddressList[i], 1)) 
       adcPresent[i] = true;
     else {

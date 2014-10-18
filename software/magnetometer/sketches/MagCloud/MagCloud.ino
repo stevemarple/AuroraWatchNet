@@ -44,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.09a";
+  "MagCloud-0.10a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -595,6 +595,8 @@ void setup(void)
   wdt_enable(WDTO_8S);
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
+  uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
+  uint8_t adcGainList[FLC100::numAxes] = {1, 1, 1};
 
   Serial.begin(9600);
   Serial1.begin(9600);
@@ -697,6 +699,23 @@ void setup(void)
       if (chan && chan <= MCP342x::numChannels)
 	adcChannelList[i] = chan; 
     }
+
+    if (i < EEPROM_ADC_RESOLUTION_LIST_SIZE) {
+      uint8_t res =
+	eeprom_read_byte((uint8_t*)(EEPROM_ADC_RESOLUTION_LIST + i));
+      if (res && res <= MCP342x::maxResolution)
+	adcResolutionList[i] = res; 
+    }
+
+    if (i < EEPROM_ADC_GAIN_LIST_SIZE) {
+      uint8_t gain =
+	eeprom_read_byte((uint8_t*)(EEPROM_ADC_GAIN_LIST + i));
+      if (gain && gain <= MCP342x::maxGain)
+	adcGainList[i] = gain; 
+    }
+
+
+    
   }
     
   // Get key
@@ -723,7 +742,8 @@ void setup(void)
     console.print(initialisingStr);
     console.println(flc100Str);
 
-    flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList);
+    flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList,
+		      adcResolutionList, adcGainList);
     flc100.setNumSamples(numSamples, 
 			 aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
 			 aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
@@ -1110,7 +1130,7 @@ void loop(void)
 	  if (flc100.getAdcPresent(i)) {
 	    packet.putMagData(buffer, sizeof(buffer),
 			      AWPacket::tagMagDataX + i,
-			      flc100.getMagResGain()[i],
+			      flc100.getMagResGain(i),
 			      flc100.getMagData()[i]);
 	    if (allSamples)
 	      packet.putDataArray(buffer, sizeof(buffer),

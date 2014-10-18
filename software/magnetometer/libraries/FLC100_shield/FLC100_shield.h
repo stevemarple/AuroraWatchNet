@@ -30,12 +30,6 @@ public:
   static const uint8_t maxSamples = 16;
   
   FLC100(void);
-  // inline bool initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
-  // 			 uint8_t adcChannelList[numAxes]) {
-  //   // Use temporary variable to ensure both functions are always called
-  //   bool r = i2cHandler.initialise(pp, adcAddressList, adcChannelList);
-  //   return r;
-  // }
 
   inline bool isFinished(void) const {
       return state == finished;
@@ -78,10 +72,10 @@ public:
     return magDataSamples[mag][sampleNum];
   }
 
-  inline const uint8_t* getMagResGain(void) const {
-    return magResGain;
+  inline uint8_t getMagResGain(uint8_t mag) const {
+    return (mag < numAxes) ? (adcConfig[mag] & 0x0F) : 0; 
   }
-
+  
   inline const int getState(void) const {
     return state;
   }
@@ -103,7 +97,9 @@ public:
 
   
   bool initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
-		  uint8_t adcChannelList[numAxes]);
+		  uint8_t adcChannelList[numAxes],
+		  uint8_t adcResolutionList[numAxes],
+		  uint8_t adcGainList[numAxes]);
   void process(void);
   void finish(void);
 
@@ -130,19 +126,15 @@ private:
   MCP342x::Config adcConfig[FLC100::numAxes];
   MCP342x::Config tempConfig;
   bool adcPresent[FLC100::numAxes];
-  uint8_t addresses[FLC100::numAxes];
-  uint8_t channels[numAxes];
 
   AsyncDelay delay;
   AsyncDelay timeout;
 
   // Data fields
-  //RTCx::time_t timestamp;
   CounterRTC::time_t timestamp;
   int16_t sensorTemperature; // hundredths of degrees Celsius
   int32_t magData[numAxes];  // averaged from a number of samples
   int32_t magDataSamples[numAxes][maxSamples]; // individual results
-  uint8_t magResGain[numAxes];
 
   uint8_t numSamples;
   bool useMedian;
