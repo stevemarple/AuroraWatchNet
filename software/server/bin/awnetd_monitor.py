@@ -2,7 +2,7 @@
 
 ### BEGIN INIT INFO
 # Provides:          awnetd_monitor
-# Required-Start:
+# Required-Start:    udev
 # Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
