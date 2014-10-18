@@ -342,7 +342,7 @@ eeprom = {
         'metavar': 'BITS'
         },
     'adc_gain_list': {
-        'address': 0x76,
+        'address': 0x79,
         'format': '3B',
         'default': [1, 1, 1],
         'help': 'List of MCP3424 ADC gain',
