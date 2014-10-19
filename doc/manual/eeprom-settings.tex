@@ -1,0 +1,127 @@
+\chapter[EEPROM settings]{\eeprom\ settings}
+
+\newcommand{\optionexample}[1]{\examplebox{\code{#1}}}
+
+\section{Introduction}
+The \eeprom\ settings determine the default behaviour of the remote
+sensor unit, controlling various features such as the sampling
+interval and site ID. The settings are also select important
+features such as the radio or ethernet controller.
+
+\warningbox{%
+  Misconfiguration of the \eeprom\ settings can prevent the remote
+  sensor unit operating correctly, possibly even preventing it from
+  communicating with the base unit. If communication cannot be
+  restablished correct settings must be uploaded manually. See the
+  section on recovering bad \eeprom\ settings,
+  \secname~\ref{sec:bad-eeprom-settings}.
+}
+
+
+\section{Settings}
+The settings are described below using the Python option name that is
+passed to the \filename{generate_eeprom_settings.py} and
+\filename{send_cmd.py} programs.
+
+\subsection{\code{--eeprom-adc-address-list}}
+A comma-separated list of the 3 \itwoc\ addresses for the magnetometer
+sensor \adc(s). Addresses may be given in hexadecimal format if
+preceded with \code{0x}, otherwise decimal is assumed. Missing \adc s
+should be indicated by giving the value 255. 
+
+\optionexample{--eeprom-adc-address-list 0x6E,0x6A,0x6C}
+
+\subsection{\code{--eeprom-adc-channel-list}}
+A comma-separated list of the 3 \itwoc\ channels for the magnetometer
+sensor \adc(s). Unless there is a good reason to swap the \adc s all
+channels should be 1.
+
+\optionexample{--eeprom-adc-channel-list 1,1,1}
+
+\subsection{\code{--eeprom-adc-gain-list}}
+A comma-separated list of the 3 \itwoc\ gains for the magnetometer
+sensor \adc(s). Valid values for the gain are 1, 2, 4, and 8. If the
+gain is set too high there is a possibility that the output value will
+saturate. With the standard \nT{100000} range FLC100 sensors the gain
+should normally be set to 1 or 2. With HEZ alignment the E channel may
+be set as high as 8.
+
+\optionexample{--eeprom-adc-channel-list 1,8,1}
+
+% \subsection{\code{--eeprom-adc-ref-type EEPROM_ADC_REF_TYPE
+% \subsection{\code{--eeprom-adc-ref-voltage-mv EEPROM_ADC_REF_VOLTAGE_MV
+% \subsection{\code{--eeprom-adc-resolution-list BITS
+% \subsection{\code{--eeprom-aggregate {0,1,2}
+% \subsection{\code{--eeprom-all-samples {0,1}
+% \subsection{\code{--eeprom-as3935-present {0,1}
+
+\subsection{\code{--eeprom-comms-type {0,1,2,255}}}
+The installed firmware may support multiple methods of communication
+between the remote sensor unit and the base station. If so this option
+indicates which method should be used. It is vital that this setting
+is correct otherwise the remote sensor unit will not function until
+reprogrammed. Valid values are:
+\begin{enumerate}
+\item[0] XRF radio.
+\item[1] RFM12B radio.
+\item[2] W5100 Ethernet, using \udp\ packets.
+\item[255] Autoselect. 
+\end{enumerate}
+Note that automatic selection may not work correctly in all cases and
+is included as an option of last resort (e.g. when encountering an
+unprogrammed \eeprom).
+
+% \subsection{\code{--eeprom-fan-pin EEPROM_FAN_PIN
+% \subsection{\code{--eeprom-fan-temperature EEPROM_FAN_TEMPERATURE
+% \subsection{\code{--eeprom-fan-temperature-hysteresis EEPROM_FAN_TEMPERATURE_HYSTERESIS
+% \subsection{\code{--eeprom-flc100-power-up-delay-50ms DURATION_50ms
+% \subsection{\code{--eeprom-flc100-present {0,1}
+% \subsection{\code{--eeprom-hih61xx-present {0,1}
+\subsection{\code{--eeprom-hmac-key EEPROM_HMAC_KEY}}
+\label{sec:eeprom-hmac-key}
+The \hmac-\mdfive\ key used to sign communication messages sent
+between the magnetometer and data recording daemon. \textbf{This key
+  should be kept secret.} The key is a sequence of 16 numbers between
+0 and 255 (inclusive). Values may be given in hexadecimal format if
+preceded with \code{0x}, otherwise decimal is assumed. The key used
+here must match that described in
+\secname~\ref{sec:config-file-mag-key}.
+
+
+
+% \subsection{\code{--eeprom-local-ip-address IP_ADDRESS
+% \subsection{\code{--eeprom-local-ip-port NUMBER
+% \subsection{\code{--eeprom-local-mac-address MAC_ADDRESS
+% \subsection{\code{--eeprom-magic STRING
+% \subsection{\code{--eeprom-max-message-no-ack NUMBER
+% \subsection{\code{--eeprom-max-messages-led NUMBER
+% \subsection{\code{--eeprom-mcp7941x-cal NUMBER
+% \subsection{\code{--eeprom-mcu-voltage-mv NUMBER
+% \subsection{\code{--eeprom-mlx90614-present {0,1}
+% \subsection{\code{--eeprom-num-samples NUMBER
+% \subsection{\code{--eeprom-radio-local-id LOCAL_ID
+% \subsection{\code{--eeprom-radio-remote-id REMOTE_ID
+% \subsection{\code{--eeprom-radio-rfm12b-band BAND_NUMBER
+% \subsection{\code{--eeprom-radio-rfm12b-channel CHANNEL_NUMBER
+% \subsection{\code{--eeprom-radio-xrf-band {1,2,3,4,5,6}
+% \subsection{\code{--eeprom-radio-xrf-channel CHANNEL_NUMBER
+% \subsection{\code{--eeprom-remote-ip-address IP_ADDRESS
+% \subsection{\code{--eeprom-remote-ip-port NUMBER
+% \subsection{\code{--eeprom-sampling-interval-16th-s DURATION
+% \subsection{\code{--eeprom-sd-select EEPROM_SD_SELECT
+% \subsection{\code{--eeprom-site-id EEPROM_SITE_ID
+% \subsection{\code{--eeprom-use-sd {0,1}
+% \subsection{\code{--eeprom-vin-divider NUMBER
+
+\section[Recovering bad EEPROM settings]{%
+  Recovering bad \eeprom\ settings}
+\label{sec:bad-eeprom-settings}
+
+The easiest method to recover from bad \eeprom\ settings is to
+generate new settings using the \filename{generate_eeprom_image.py}
+program. The original settings used at manufacture should only be used
+if the firmware has not been updated, otherwise the settings may be
+missing values required by the newer firmware. Further information on
+generating and uploading new \eeprom\ settings can be found in
+\secname~\ref{sec:generate-eeprom-settings}.
+

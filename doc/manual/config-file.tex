@@ -7,15 +7,15 @@
 Many of the AuroraWatchNet programs read a common configuration file,
 typically located at \filename{/etc/awnet.ini}. The configuration file
 is broken into sections, each of which starts with a section header in
-square brackets (\code({[like_this]}). Other line contain key names
+square brackets (\code{[like_this]}). Other line contain key names
 and values, written like \code{key = value}. Leading and trailing
 whitespace around both the key and value is ignored. Section headers
 and key names do not contain whitspace, words may be separated with an
-underscore). The configuration file can also contain comments, which
+underscore. The configuration file can also contain comments, which
 are entered with a hash (\code{\#}) or semi-colon (\code{;}) as the
 first character.
 
-The configuration file is parsed using Python's SafeConfigParser
+The configuration file is parsed using Python's \code{SafeConfigParser}
 module. This allows values defined in the same section, or in the
 \code{[DEFAULT]} section to be inserted into other key value
 definitions.
@@ -48,8 +48,6 @@ since Python expands the string first any percent characters used as
 part of a \code{strftime} format specifier must be repeated.
 
 Default: none.\\
-Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}
-
 \configexample{
   \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}%
   \newline \newline % 
@@ -73,18 +71,26 @@ daemon and regenerate other data formats.
 See section~\ref{sec:config-data-filename} for a description.
 
 Default: none\\
-Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.awp}
+\configexample{%
+  Typically set to \\
+  \code{filename =
+    /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.awp}
+  }
 
 \subsection{key}
 By default the binary data packets are written out with their original
-signing key. If you plan to make the binary data format available you
-should then for security reasons you should probably set a different
-signing key. You will then be able to share this key without
-compromising the communication channel with the magnetometer. The key
+signing key. If you plan to make the binary data format available then
+for security reasons you should probably set a different signing
+key. You will then be able to share this key without compromising the
+communication channel with the magnetometer and others will be able to
+use the error-checking capabilities provide by \hmac-\mdfive. The key
 is a 32 character hexadecial string, without any \code{0x} prefix.
 
 Default: none
-Typically set to a simple code, \code{key = 00000000000000000000000000000000}
+\configexample{
+  Typically set to a simple code, \\
+  \code{key = 00000000000000000000000000000000}
+}
 
 \section{\code{[logfile]}}
 Options associated with the recorded log files. 
@@ -94,7 +100,11 @@ Options associated with the recorded log files.
 See section~\ref{sec:config-data-filename} for a description.
 
 Default: none\\
-Typically set to \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.log}
+\configexample{%
+  Typically set to \\
+  \code{filename =
+    /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.log}
+}
 
 
 \section{\code[daemon]}
@@ -221,16 +231,15 @@ number in the range 0 to 255 inclusive.
 Default: none.
 
 \subsection{\code{key}}
-The \hmac-\mdfive\ key used to sign communication messages sent between
-the magnetometer and data recording daemon. This key should be kept
-secret. The key is a 32 character hexadecial string, without any
-\code{0x} prefix.
+\label{sec:config-file-mag-key}
+The \hmac-\mdfive\ key used to sign communication messages sent
+between the magnetometer and data recording daemon. \textbf{This key
+  should be kept secret.} The key is a 32 character hexadecimal
+string, without any \code{0x} prefix. The key used here must match
+that described in \secname~\ref{sec:eeprom-hmac-key}.
 
 Default: none.\\
-Typically set to a simple code, \code{key = 00000000000000000000000000000000}
-
-\configexample{key = 65f024a22214ea2511ca60f251d7fb74}
-
+Set to a random value.
 
 \section{\code{[upload]}}
 Configuration details for the \filename{upload_data.py} program.
@@ -304,9 +313,10 @@ daemon. If using a \usb\ device it is recommended to modify the
 \code{udev} rules so that a fixed device name is generated based on
 the serial number. 
 
-\examplebox[Example \code{udev} rule to create a symbolic link for an
+\helpbox{Example \code{udev} rule to create a symbolic link for an
 FTDI \usb\ serial adaptor, save to
-\filename{/etc/udev/rules.d/90-usb_serial.rules} or similar:]{%
+\filename{/etc/udev/rules.d/90-usb_serial.rules} or similar:\\%
+\\
 \small
 \# Have symlinks based on serial number for FTDI devices. Used for \\
 \# awnetd_monitor\\
