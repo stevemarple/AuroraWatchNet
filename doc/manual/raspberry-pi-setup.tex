@@ -168,8 +168,9 @@ git clone --recursive https://github.com/stevemarple/Calunium.git
 git clone --recursive https://github.com/stevemarple/xboot.git
 mkdir \mytilde/bin
 cd \mytilde/bin
-ln -s ../AuroraWatchNet/software/server/awnetd/awnetd.py
-ln -s ../AuroraWatchNet/software/server/awnetd/send_cmd.py
+ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
+ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
+ln -s ../AuroraWatchNet/software/server/bin/send_cmd.py
 ln -s ../AuroraWatchNet/software/server/bin/log_ip
 ln -s ../AuroraWatchNet/software/server/bin/upload_data.py
 cd \mytilde
@@ -244,7 +245,7 @@ the repository]
 As user \rootUser
 \begin{Cmd}
 cd /etc/init.d
-ln -s /home/pi/AuroraWatchNet/software/server/awnetd/awnetd.sh awnetd
+ln -s /home/pi/AuroraWatchNet/software/server/bin/awnetd.sh awnetd
 update-rc.d  awnetd defaults
 \end{Cmd}
 
