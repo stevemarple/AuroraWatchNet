@@ -14,7 +14,10 @@
 # existence or removal of a semaphore file. The serial control line
 # DTR is used to indicate the presence of the file, by lighting an LED
 # connected to it. Switch debouncing is implemented to confirm the
-# switch state. In the case of an error the LED is flashed.
+# switch state. In the case of an error the LED is flashed. DTR can be
+# active low or active high. Ihe LED is wired (via a resistor) between
+# DTR and ground then it is active high, if wired between DTR and
+# supply it is active low.
 #
 # The purpose of this program in the AuroraWatchNet system is to allow
 # a non-technical use to flag when data quality may be suspect (for
@@ -26,6 +29,7 @@ import argparse
 import daemon
 import daemon.runner
 import logging
+from operator import xor
 import os
 import re
 import signal
@@ -96,14 +100,14 @@ class FtdiMonitor():
 
                 ser = Serial(device)
                 logger.info('Opened ' + device)
-                ser.setDTR(not file_exists)
+                ser.setDTR(xor(not file_exists, led_active_low ))
 
                 while True:
                     r = timeout(ioctl, [ser.fd, TIOCMIWAIT, TIOCM_CTS], 
                                 timeout_duration=10)
 
                     file_exists = os.path.isfile(filename)
-                    ser.setDTR(not file_exists)
+                    ser.setDTR(xor(not file_exists, led_active_low))
 
                     if file_exists != previous_file_exists:
                         # File existence has changed, serial device is
@@ -131,7 +135,7 @@ class FtdiMonitor():
 
                         if cts_count >= 3:
                             file_exists = not file_exists
-                            ser.setDTR(not file_exists)
+                            ser.setDTR(xor(not file_exists, led_active_low))
                             try:
                                 if file_exists:
                                     fh = open(filename, 'a')
@@ -146,7 +150,7 @@ class FtdiMonitor():
                             except Exception as e:
                                 logger.error(str(e))
                                 for i in range(10):
-                                    ser.setDTR(i % 2)
+                                    ser.setDTR(xor(i % 2, led_active_low))
                                     time.sleep(0.2)
 
                     previous_file_exists = file_exists
@@ -269,6 +273,11 @@ if __name__ == '__main__':
         pidfile_path = config.get('dataqualitymonitor', 'pidfile')
     else:
         pidfile_path = None
+    if config.has_option('dataqualitymonitor', 'led_active_low'):
+        led_active_low = config.getboolean('dataqualitymonitor', 
+                                           'led_active_low')
+    else:
+        led_active_low = False
     fm = FtdiMonitor(progname, device=device, filename=filename,
                      pidfile_path=pidfile_path, 
                      username=config.get('dataqualitymonitor', 'username'))
