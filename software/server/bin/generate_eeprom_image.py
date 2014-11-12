@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import logging
 import os
 import random
 import struct
@@ -8,6 +9,8 @@ import sys
 
 import aurorawatchnet as awn
 import aurorawatchnet.eeprom
+
+logger = logging.getLogger(__name__)
 
 eeprom = awn.eeprom.eeprom
 
@@ -19,6 +22,15 @@ parser.add_argument('--file',
                     required=True,
                     help='EEPROM binary image file', 
                     metavar='FILENAME')
+parser.add_argument('--log-level', 
+                    choices=['debug', 'info', 'warning', 'error', 'critical'],
+                    default='warning',
+                    help='Control how much detail is printed',
+                    metavar='LEVEL')
+parser.add_argument('--log-format',
+                    default='%(levelname)s:%(message)s',
+                    help='Set format of log messages',
+                    metavar='FORMAT')
 
 # find the size of the EEPROM data
 eeprom_size = 0
@@ -42,6 +54,10 @@ for k in sorted(eeprom.keys()):
 
 # Process the command line arguments
 args = parser.parse_args()
+if __name__ == '__main__':
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                        format=args.log_format)
+
 
 # Calculate key length from the pattern, not the size reserved for it
 hmac_key_length = awn.eeprom.parse_unpack_format(eeprom['hmac_key']['format'])[1]
@@ -60,6 +76,7 @@ elif args.hmac_key == 'blank':
 # Apply settings defined from command line arguments, else use the
 # default setting if defined.
 for k in eeprom:
+    logger.info('Processing option ' + k)
     s = getattr(args, k) # Get from command line
     if s is None:
         # Not set, get default value
