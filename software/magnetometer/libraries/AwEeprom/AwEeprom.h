@@ -188,5 +188,27 @@
 #define EEPROM_ADC_GAIN_LIST 0x79
 #define EEPROM_ADC_GAIN_LIST_SIZE 3
 
+// 0x7C - 0x7F (inclusive) spare
+
+// Null-terminated
+#define EEPROM_REMOTE_HOSTNAME 0x80
+#define EEPROM_REMOTE_HOSTNAME_SIZE 64
+
+#define EEPROM_NETMASK 0xC0
+#define EEPROM_NETMASK_SIZE 4
+
+#define EEPROM_GATEWAY 0xC4
+#define EEPROM_GATEWAY_SIZE 4
+
+#define EEPROM_NUM_DNS 3
+
+#define EEPROM_DNS1 0xC8
+#define EEPROM_DNS1_SIZE 4
+
+#define EEPROM_DNS2 0xCC
+#define EEPROM_DNS2_SIZE 4
+
+#define EEPROM_DNS3 0xD0
+#define EEPROM_DNS3_SIZE 4
 
 #endif

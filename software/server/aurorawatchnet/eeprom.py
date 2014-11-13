@@ -110,13 +110,12 @@ eeprom = {
         'help': 'Log to (micro)SD card'
         },
     'comms_type': {
-        # 0 = XRF, 1 = RFM12B, 255 = autoselect
         'address': 0x3A,
         'format': 'B',
         'type': safe_eval,
         'choices': [0, 1, 2, 255],
-        'default': 255,
-        'help': 'Comms type; 0=XRF, 1=RFM12B, 2=W5100 UDP, 255=autoselect'
+        'default': 0,
+        'help': 'Comms type; 0=XRF, 1=RFM12B, 2=W5100 UDP'
         },
     'radio_xrf_band': {
         'address': 0x3B,
@@ -348,7 +347,47 @@ eeprom = {
         'help': 'List of MCP3424 ADC gain',
         'metavar': 'GAIN'
         },
-       
-    
+    'remote_hostname': {
+        'address': 0x80,
+        'format': '64s',
+        'type': bytearray,
+        'help': 'Remote hostname',
+        'metavar': 'HOSTNAME'
+        },
+    'netmask': {
+        'address': 0xc0,
+        'format': '4B',
+        'default': [255, 255, 255, 0],
+        'help': 'Network mask',
+        },
+    'gateway': {
+        'address': 0xc4,
+        'format': '4B',
+        'default': [0, 0, 0, 0],
+        'help': 'Network gateway IP',
+        'metavar': 'IP_ADDRESS',
+        },
+    'dns1': {
+        'address': 0xc8,
+        'format': '4B',
+        'default': [8, 8, 8, 8], # Google primary public DNS server
+        'help': 'Primary DNS',
+        'metavar': 'IP_ADDRESS',
+        },
+    'dns2': {
+        'address': 0xcc,
+        'format': '4B',
+        'default': [8, 8, 4, 4], # Google secondary public DNS server
+        'help': 'Secondary DNS',
+        'metavar': 'IP_ADDRESS',
+        },
+    'dns3': {
+        'address': 0xd0,
+        'format': '4B',
+        'default': [0, 0, 0, 0],
+        'help': 'Tertiary DNS',
+        'metavar': 'IP_ADDRESS',
+        },
+
 }
 
