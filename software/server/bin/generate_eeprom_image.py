@@ -99,7 +99,7 @@ for k in eeprom:
             # Convert into numeric data
             data = awn.eeprom.safe_eval(s)
 
-        if pfmt[1] > 1:
+        if pfmt[1] > 1 and pfmt[2] != 's':
             # Multiple values required
             struct.pack_into(eeprom[k]['format'], eeprom_data,
                              eeprom[k]['address'], *data)
