@@ -778,15 +778,7 @@ def crc16(data, crc=0):
                 crc = (crc >> 1)
     return crc & 0xffff
 
-def get_image_filename(version, crc_file=False):
-    # TODO: use config file
-    filename = os.path.join('/var/aurorawatchnet/firmware', version);
-    if crc_file:
-        filename += '.crc'
-    else:
-        filename += '.bin'
-    return filename
-    
+   
 def adc_counts_to_tesla(val, tesla_per_volt=50e-6):
     # Data is normalised too allow for maximum resolution of 18 bits and
     # 8x gain. Thus largest possible normalised magnitude is 2^17 * 8.

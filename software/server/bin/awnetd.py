@@ -572,8 +572,13 @@ def packet_req_get_firmware_page(data):
     version_str = version.split('\0', 1)[0]
                                                          
     page_number, = unpacked_data[awn.message.firmware_version_max_length:]
-    image_filename = awn.message.get_image_filename(version_str)
-    image_file = open(image_filename)
+    image_filename = os.path.join(config.get('firmware', 'path'),
+                                  version_str + '.bin')
+    try:
+        image_file = open(image_filename)
+    except Exception as e:
+        logger.error('Could not open ' + image_filename + ': ' + str(e))
+        raise
     
     # Ensure file is closed in the case of any error
     try:   
