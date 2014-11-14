@@ -197,7 +197,7 @@ eeprom = {
         'help': 'Remote ID for RFM12B radio',
         'metavar': 'REMOTE_ID',
         },
-    'max_message_no_ack': {
+    'max_messages_no_ack': {
         'address': 0x49,
         'format': 'B',
         'default': '0',
