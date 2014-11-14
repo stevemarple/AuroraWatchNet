@@ -3,19 +3,19 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-//#include <EthernetUDP.h>
+#include <Dns.h>
 #include <CommsInterface.h>
-// #include <AsyncDelay.h>
 
 class W5100_UDP : public CommsInterface
 {
 public:
-
   W5100_UDP(void);
   bool begin(uint8_t *macAddress,
 	     IPAddress localIP, uint16_t localPort_,
 	     IPAddress remoteIP_, uint16_t remotePort_,
 	     uint8_t ssPin, uint8_t sdSsPin = 255);
+
+  inline const IPAddress& getRemoteIP(void) const;
   
   // Overload the pure virtual functions
   virtual int available(void);
@@ -49,6 +49,10 @@ private:
   IPAddress localIP;
   IPAddress remoteIP;
 };
+
+const IPAddress& W5100_UDP::getRemoteIP(void) const {
+  return remoteIP;
+}
 
 
 #endif

@@ -27,7 +27,7 @@
 #include <XRF_Radio.h>
 #include <SPI.h>
 #include <Ethernet.h>
-//#include <EthernetUDP.h>
+#include <Dhcp.h>
 #include <W5100_UDP.h>
 
 //#include <SD.h>
@@ -44,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.10a";
+  "MagCloud-0.20a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -61,6 +61,7 @@ bool useLed = false;
 uint8_t messageCount = 0;
 
 Stream& console = Serial;
+uint8_t radioType;
 XRF_Radio xrf(Serial1);
 W5100_UDP w5100udp;
 uint8_t verbosity = 1;
@@ -115,7 +116,7 @@ CounterRTC::Time minSamplingInterval(5, 0);
 CounterRTC::Time maxSamplingInterval(600, 0);
 
 bool samplingIntervalChanged = true;
-//bool useSleepMode = true;
+bool enableSleep = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
   255, 255, 255, 255, 255, 255, 255, 255, 
   255, 255, 255, 255, 255, 255, 255, 255};
@@ -589,6 +590,142 @@ void as3935TimestampCB(void)
 }
 
 
+bool dnsLookup(IPAddress dnsServer, const char *hostname,
+	       IPAddress &result)
+{
+  DNSClient dns;
+  dns.begin(dnsServer);
+  return dns.getHostByName(hostname, result);
+}
+
+void printEthernetSettings(Stream &s,
+			   const IPAddress &localIP, uint16_t localPort,
+			   const IPAddress &subnetMask,
+			   const IPAddress &gatewayIP,
+			   const IPAddress (&dns)[EEPROM_NUM_DNS],
+			   const IPAddress &remoteIP, uint16_t remotePort)
+{
+  s << "  Local: " << localIP << ':' << localPort << "\n  Mask: "
+    << subnetMask << "\n  GW: "
+    << gatewayIP << "\n  DNS: ";
+
+  bool dnsFound = false;
+  for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n)
+    if (uint32_t((IPAddress)dns[n])) {
+      if (dnsFound)
+	s << ", ";
+      s << dns[n];
+      dnsFound = true;
+    }
+  if (!dnsFound)
+    s << "(none)";
+
+  s << "\n  Remote: " << remoteIP << ':' << remotePort << endl;
+}
+
+
+void beginW5100_UDP(void)
+{
+  uint8_t macAddress[6];
+  uint8_t tmp[4];
+  wdt_reset(); // This might take a while
+  
+  // Extract settings from EEPROM
+  eeprom_read_block(macAddress, (void*)EEPROM_LOCAL_MAC_ADDRESS,
+		    EEPROM_LOCAL_MAC_ADDRESS_SIZE);
+  eeprom_read_block(tmp, (void*)EEPROM_LOCAL_IP_ADDRESS,
+		    EEPROM_LOCAL_IP_ADDRESS_SIZE);
+  IPAddress localIP(tmp);
+
+
+  eeprom_read_block(tmp, (void*)EEPROM_NETMASK, EEPROM_NETMASK_SIZE);
+  IPAddress netmask(tmp);
+
+  eeprom_read_block(tmp, (void*)EEPROM_GATEWAY, EEPROM_GATEWAY_SIZE);
+  IPAddress gateway(tmp);
+
+  IPAddress dns[EEPROM_NUM_DNS];
+  for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n) {
+    eeprom_read_block(tmp, (void*)(EEPROM_DNS1 + n*EEPROM_DNS1_SIZE),
+		      EEPROM_DNS1_SIZE);
+    dns[n] = IPAddress(tmp);
+  }
+    
+  eeprom_read_block(tmp, (void*)EEPROM_REMOTE_IP_ADDRESS,
+		    EEPROM_REMOTE_IP_ADDRESS_SIZE);
+  IPAddress remoteIP(tmp);
+  uint16_t localPort
+    = eeprom_read_word((const uint16_t*)EEPROM_LOCAL_IP_PORT);
+  uint16_t remotePort
+    = eeprom_read_word((const uint16_t*)EEPROM_REMOTE_IP_PORT);
+
+  char remoteHostname[EEPROM_REMOTE_HOSTNAME_SIZE];
+  eeprom_read_block(remoteHostname, (void*)EEPROM_REMOTE_HOSTNAME,
+		    EEPROM_REMOTE_HOSTNAME_SIZE);
+
+  console << "EEPROM settings:\n";
+  printEthernetSettings(console, localIP, localPort,
+			netmask, gateway, dns,
+			remoteIP, remotePort);
+  console << "  Remote hostname: " << remoteHostname << endl;
+    
+
+  wdt_reset();
+  if (uint32_t(localIP))
+    // Static IP
+    Ethernet.begin(macAddress, localIP, dns[0], gateway, netmask);
+  else {
+    // Use DHCP to obtain dynamic IP
+    Ethernet.begin(macAddress);
+    dns[0] = Ethernet.dnsServerIP(); // Primary IP from DHCP
+    // Disable sleeping. It prevents millis() from working correctly
+    // which breaks the DHCP lease maintenance.
+    enableSleep = false;
+  }
+  wdt_reset();
+
+  if (isprint(remoteHostname[0])) {
+    // Lookup IP address of remote hostname.
+    IPAddress ip;
+    bool found = false;
+    for (uint8_t t = 0; t < 3; ++t) 
+      for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n)
+	// Attempt lookup only if DNS server IP non-zero
+	if (uint32_t(dns[n]) &&
+	    (dnsLookup(dns[n], remoteHostname, ip) == 1)) {
+	  found = true;
+	  break;
+	}
+
+    if (!found) {
+      console.print("Cannot resolve ");
+      console.println(remoteHostname);
+      console.flush();
+    }
+    // Fall back to EEPROM setting for IP address
+    remoteIP = ip;
+  }
+
+
+  if (uint32_t(remoteIP) == 0) {
+    // Cannot resolve (or undefined) remote host and no fallback
+    // IP. Reboot.
+    wdt_enable(WDTO_8S);
+    while (1)
+      ;
+  }
+  
+  console << "Active settings:\n";
+  printEthernetSettings(console, Ethernet.localIP(), localPort,
+			Ethernet.subnetMask(), Ethernet.gatewayIP(),
+			dns, remoteIP, remotePort);
+  console.println();
+  
+  w5100udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
+		 10, 4);
+}
+
+
 void setup(void)
 {
   get_mcusr();
@@ -623,7 +760,7 @@ void setup(void)
 
   // Only use the LED following a reset initiated by user action
   // (JTAG, external reset and power on). Exclude brown-out and
-  // watchdig resets.
+  // watchdog resets.
   if (mcusrCopy & (JTRF | EXTRF | PORF))
     useLed = true;
   
@@ -827,10 +964,10 @@ void setup(void)
 
   
   // Identify communications method to be used.
-  uint8_t radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
+  radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
   if (radioType == 0xFF)
-    // Not set
-    radioType = EEPROM_COMMS_TYPE_W5100_UDP;
+    // Not set so default to XRF as used in original version
+    radioType = EEPROM_COMMS_TYPE_XRF;
 
   bool readVin = (radioType != EEPROM_COMMS_TYPE_W5100_UDP);
   houseKeeping.initialise(2, 7, A6, readVin, !readVin);
@@ -916,30 +1053,13 @@ void setup(void)
 
   // Configure radio module or Ethernet adaptor.
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
-    uint8_t macAddress[6];
-    uint8_t tmp[4];
-
-    eeprom_read_block(macAddress, (void*)EEPROM_LOCAL_MAC_ADDRESS,
-		      EEPROM_LOCAL_MAC_ADDRESS_SIZE);
-    eeprom_read_block(tmp, (void*)EEPROM_LOCAL_IP_ADDRESS,
-		      EEPROM_LOCAL_IP_ADDRESS_SIZE);
-    IPAddress localIP(tmp);
-    eeprom_read_block(tmp, (void*)EEPROM_REMOTE_IP_ADDRESS,
-		      EEPROM_REMOTE_IP_ADDRESS_SIZE);
-    IPAddress remoteIP(tmp);
-    uint16_t localPort
-      = eeprom_read_word((const uint16_t*)EEPROM_LOCAL_IP_PORT);
-    uint16_t remotePort
-      = eeprom_read_word((const uint16_t*)EEPROM_REMOTE_IP_PORT);
-    console << "Using Ethernet (W5100 UDP)\nLocal: "
-	    << localIP << ':' << localPort << "\nRemote: "
-	    << remoteIP << ':' << remotePort << endl;
-    w5100udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
-		   10, 4);
+    beginW5100_UDP();
+    
     disableJTAG();
     ledPin = 17; // JTAG TDO
     commsHandler.setCommsInterface(&w5100udp);
     useLed = true;
+    
   }
   else {
     commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
@@ -1304,9 +1424,33 @@ void loop(void)
 	console << "Set HW clock\n";
       }
 
-      console.flush();
-      doSleep(SLEEP_MODE_PWR_SAVE);
-      console << "SLEEP!\n";
+      if (radioType == EEPROM_COMMS_TYPE_W5100_UDP)
+	switch (Ethernet.maintain()) {
+	case DHCP_CHECK_NONE:
+	  break;
+	case DHCP_CHECK_RENEW_FAIL:
+	case DHCP_CHECK_REBIND_FAIL:
+	  console << "DHCP lease failed\n";
+	  // Reboot
+	  wdt_enable(WDTO_8S);
+	  while (1)
+	    ;
+	  break;
+	case DHCP_CHECK_RENEW_OK:
+	  console << "DHCP lease renewed\n";
+	  break;
+	case DHCP_CHECK_REBIND_OK:
+	  console << "DHCP lease rebind\n";
+	  break;
+	}
+
+      if (enableSleep) {
+	console << "SLEEP!\n";
+	console.flush();
+	doSleep(SLEEP_MODE_PWR_SAVE);
+	console << "AWAKE!\n";
+	console.flush();
+      }
     }
   }
   

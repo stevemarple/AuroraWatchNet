@@ -1,4 +1,6 @@
 #include <avr/eeprom.h>
+#include <avr/wdt.h>
+#include <ctype.h>
 
 #include <Streaming.h>
 #include <W5100_UDP.h>
@@ -82,7 +84,6 @@ bool W5100_UDP::begin(uint8_t *macAddress,
     digitalWrite(sdSsPin, HIGH); // Keep SD card inactive
   }
 
-  Ethernet.begin(macAddress, localIP_);
   udp.begin(localPort_);
   return true;
 }
@@ -111,3 +112,4 @@ void W5100_UDP::checkForResponse(void)
 {
   udp.parsePacket();
 }
+

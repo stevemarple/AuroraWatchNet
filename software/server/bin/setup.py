@@ -149,7 +149,7 @@ else:
     logger.debug('Directory ' + site.getusersitepackages()
                  + ' already exists')
 
-package_paths = [args.auroraplot_repository,
+package_paths = [os.path.join(args.auroraplot_repository, 'auroraplot'),
                  os.path.join(args.aurorawatchnet_repository, 
                               'software', 'server', 'aurorawatchnet')]
     
