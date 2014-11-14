@@ -382,7 +382,7 @@ elif method in ('http', 'https'):
         t = start_time
         while t < end_time:
             logger.debug('time: ' + str(t))
-            file_base_name = t2.strftime(fstr)
+            file_base_name = t.strftime(fstr)
             # Try standard filenames as well as appending '.bad' or
             # other extension signifying a data quality problem.
             for ext in ['', config.get('dataqualitymonitor', 'extension')]:
@@ -391,7 +391,12 @@ elif method in ('http', 'https'):
                     response = http_upload(file_name, url)
                     if not response:
                         all_ok = False
+                elif ext == '' and ft in ('awnettextdata', 'awpacket'):
+                    # These should normmaly be present
+                    logger.info('Missing ' + file_name)
                 else:
+                    # Log files etc might not be present even in
+                    # normal operation
                     logger.debug('Missing ' + file_name)
             t += interval
     
