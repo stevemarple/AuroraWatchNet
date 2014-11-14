@@ -33,6 +33,11 @@ def safe_eval(s):
 def safe_eval_mull_100(s):
     return 100 * safe_eval(s)
 
+
+def convert_ip_address(s):
+    return s.replace('.', ',')
+
+
 def lookup_address(address):
     for k in eeprom.keys():
         if eeprom[k]['address'] == address:
@@ -232,6 +237,7 @@ eeprom = {
     'local_ip_address': {
         'address': 0x50,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [192, 168, 1, 240],
         'help': 'Local IP address',
         'metavar': 'IP_ADDRESS'
@@ -239,6 +245,7 @@ eeprom = {
     'remote_ip_address': {
         'address': 0x54,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [192, 168, 1, 241],
         'help': 'Remote IP address',
         'metavar': 'IP_ADDRESS'
@@ -357,12 +364,14 @@ eeprom = {
     'netmask': {
         'address': 0xc0,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [255, 255, 255, 0],
         'help': 'Network mask',
         },
     'gateway': {
         'address': 0xc4,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [0, 0, 0, 0],
         'help': 'Network gateway IP',
         'metavar': 'IP_ADDRESS',
@@ -370,6 +379,7 @@ eeprom = {
     'dns1': {
         'address': 0xc8,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [8, 8, 8, 8], # Google primary public DNS server
         'help': 'Primary DNS',
         'metavar': 'IP_ADDRESS',
@@ -377,6 +387,7 @@ eeprom = {
     'dns2': {
         'address': 0xcc,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [8, 8, 4, 4], # Google secondary public DNS server
         'help': 'Secondary DNS',
         'metavar': 'IP_ADDRESS',
@@ -384,6 +395,7 @@ eeprom = {
     'dns3': {
         'address': 0xd0,
         'format': '4B',
+        'type': convert_ip_address,
         'default': [0, 0, 0, 0],
         'help': 'Tertiary DNS',
         'metavar': 'IP_ADDRESS',
