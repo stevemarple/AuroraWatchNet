@@ -140,7 +140,7 @@
 <text x="69.215" y="50.165" size="1.27" layer="25" ratio="10" rot="R90">ISP</text>
 <text x="16.51" y="37.465" size="1.016" layer="26" ratio="10" rot="MR0">&gt;DRAWING_NAME</text>
 <text x="16.51" y="35.56" size="1.016" layer="26" ratio="10" rot="MR0">&gt;PLOT_DATE_TIME</text>
-<text x="96.52" y="11.43" size="1.9304" layer="122" ratio="12" rot="MR0">FLC100 shield v1.0</text>
+<text x="96.52" y="11.43" size="1.9304" layer="122" ratio="12" rot="MR0">FLC100 shield v2.0</text>
 <text x="96.52" y="13.97" size="1.016" layer="122" ratio="10" rot="MR0">http://github.com/stevemarple/FLC100_shield</text>
 <wire x1="99.06" y1="77.47" x2="97.79" y2="78.74" width="0" layer="20" curve="90"/>
 <wire x1="1.27" y1="78.74" x2="0" y2="77.47" width="0" layer="20" curve="90"/>
@@ -154,14 +154,14 @@
 <text x="64.516" y="64.135" size="1.27" layer="27" ratio="10" rot="R180">+5V</text>
 <text x="1.27" y="75.565" size="1.27" layer="27" ratio="10">+3V3</text>
 <text x="14.605" y="76.835" size="1.016" layer="27" ratio="10">VIN</text>
-<text x="91.694" y="49.53" size="1.4224" layer="121" ratio="12" rot="R90">FLC100 shield v1.0</text>
+<text x="91.694" y="49.53" size="1.4224" layer="121" ratio="12" rot="R90">FLC100 shield v2.0</text>
 <wire x1="69.215" y1="10.795" x2="60.96" y2="10.795" width="0.254" layer="121"/>
 <wire x1="60.96" y1="10.795" x2="59.69" y2="9.525" width="0.254" layer="121"/>
 <wire x1="59.944" y1="10.16" x2="59.69" y2="9.525" width="0.254" layer="121"/>
 <wire x1="60.325" y1="9.779" x2="59.69" y2="9.525" width="0.254" layer="121"/>
 <wire x1="53.34" y1="25.4" x2="99.06" y2="25.4" width="0.254" layer="122" style="longdash"/>
-<text x="34.29" y="40.767" size="1.4224" layer="121" ratio="12">FLC100 shield v1.0</text>
-<text x="74.93" y="11.43" size="1.524" layer="121" ratio="12">FLC100 shield v1.0</text>
+<text x="34.29" y="40.767" size="1.4224" layer="121" ratio="12">FLC100 shield v2.0</text>
+<text x="74.93" y="11.43" size="1.524" layer="121" ratio="12">FLC100 shield v2.0</text>
 </plain>
 <libraries>
 <library name="SteveMarple">
