@@ -238,7 +238,7 @@ eeprom = {
         'address': 0x50,
         'format': '4B',
         'type': convert_ip_address,
-        'default': [192, 168, 1, 240],
+        'default': [0, 0, 0, 0],
         'help': 'Local IP address',
         'metavar': 'IP_ADDRESS'
         },
@@ -246,7 +246,7 @@ eeprom = {
         'address': 0x54,
         'format': '4B',
         'type': convert_ip_address,
-        'default': [192, 168, 1, 241],
+        'default': [255, 255, 255, 255],
         'help': 'Remote IP address',
         'metavar': 'IP_ADDRESS'
         },
