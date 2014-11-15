@@ -128,7 +128,7 @@ for k in aw_cmds:
             data = eeprom.safe_eval(s)
 
         # Pack data into suitable bytearrays matching the EEPROM layout
-        if pfmt[1] > 1:
+        if pfmt[1] > 1 and pfmt[2] not in ('s', 'p'):
             # Multiple values required
             eeprom_data = struct.pack(eeprom.eeprom[eeprom_setting]['format'],
                                       *data)
