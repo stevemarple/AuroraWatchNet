@@ -54,7 +54,7 @@ except subprocess.CalledProcessError as e:
 bin_file = open(bin_filename, 'a+b') 
 bin_contents = bin_file.read()
 
-block_size = message.firmware_block_size
+block_size = awn.message.firmware_block_size
 if len(bin_contents) % block_size:
     # Pad the file to the block size used for transmission
     padding = chr(0xFF) * (block_size - (len(bin_contents) % block_size))
@@ -72,7 +72,7 @@ elif len(bin_contents) > temp_app_size:
     print('Firmware image too large (' + str(len(bin_contents)) + ' bytes)')
     os.sys.exit(1)
     
-crc = message.crc16(bin_contents)
+crc = awn.message.crc16(bin_contents)
 crc_file = open(crc_filename, 'w')
 crc_str = struct.pack('>H', crc)
 # Output in similar way to md5sum
