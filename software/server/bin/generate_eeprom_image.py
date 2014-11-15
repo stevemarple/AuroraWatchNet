@@ -22,6 +22,9 @@ parser.add_argument('--file',
                     required=True,
                     help='EEPROM binary image file', 
                     metavar='FILENAME')
+parser.add_argument('--original-image', 
+                    help='Original EEPROM binary image file', 
+                    metavar='FILENAME')
 parser.add_argument('--log-level', 
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
@@ -39,10 +42,6 @@ for k in eeprom:
     if eeprom[k]['address'] + sz > eeprom_size:
         eeprom_size = eeprom[k]['address'] + sz
 
-# Create a blank EEPROM image of the correct size
-#eeprom_data = [0xFF] * eeprom_size
-#eeprom_data = ['\xFF'] * eeprom_size
-eeprom_data = bytearray('\xFF') * eeprom_size
 
 # Add command line options based on EEPROM settings
 for k in sorted(eeprom.keys()):
@@ -59,15 +58,36 @@ if __name__ == '__main__':
                         format=args.log_format)
 
 
+if args.original_image:
+    fh = open(args.original_image)
+    eeprom_data = bytearray(fh.read())
+    fh.close()
+    if len(eeprom_data) < eeprom_size:
+        # Extend, might be an image file generated from an earlier
+        # version of the EEPROM settings.
+        eeprom_data.extend(bytearray('\xFF') * 
+                           (len(eeprom_size) - len(eeprom_data)))
+else:
+    # Create a blank EEPROM image of the correct size
+    eeprom_data = bytearray('\xFF') * eeprom_size
+
 # Calculate key length from the pattern, not the size reserved for it
 hmac_key_length = awn.eeprom.parse_unpack_format(eeprom['hmac_key']['format'])[1]
-generated_key = None
+
 if args.hmac_key is None:
-    # Create a random key
-    generated_key = []
-    for i in range(hmac_key_length):
-        generated_key.append(random.randint(0, 255))
+    if args.original_image:
+        # Get key from the original EEPROM image
+        generated_key = eeprom_data[eeprom['hmac_key']['address']:
+                                        (eeprom['hmac_key']['address'] +
+                                         hmac_key_length)]
+    else:
+        # Create a random key
+        generated_key = []
+        for i in range(hmac_key_length):
+            generated_key.append(random.randint(0, 255))
+    
     args.hmac_key = ','.join(map(hex, generated_key))
+
 elif args.hmac_key == 'blank':
     args.hmac_key = ','.join(['0xFF'] * hmac_key_length)
                             
@@ -78,8 +98,8 @@ elif args.hmac_key == 'blank':
 for k in eeprom:
     logger.info('Processing option ' + k)
     s = getattr(args, k) # Get from command line
-    if s is None:
-        # Not set, get default value
+    if s is None and not args.original_image:
+        # Not set and no original image file so set default value
         s = eeprom[k].get('default')
 
     if s is not None:
