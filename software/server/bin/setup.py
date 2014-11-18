@@ -35,6 +35,35 @@ def query_sudo_cmd(cmd):
             except Exception as e:
                 pass
 
+def fix_symlinks(path, links):
+    '''
+    path: the name of a directory
+    links: dict of links names and targets
+    '''
+    logger.info('Checking symlinks in ' + path)
+    for link_name,target in links.items():
+        symlink = os.path.join(path, link_name)
+        # Check that target exists as expected
+        if os.path.exists(target):
+            if os.path.lexists(symlink):
+                if os.path.islink(symlink):
+                    if os.readlink(symlink) == target:
+                        logger.debug(symlink + ' correct (-> ' + target + ')')
+                    else:
+                        logger.warning('Deleting incorrect symlink ' + symlink)
+                        os.unlink(symlink)
+                else:
+                    logger.warning(symlink + 
+                                   ' exists but is not symlink, leaving alone')
+
+            if not os.path.lexists(symlink):
+                logger.info('Creating symlink ' + symlink + ' -> ' + target)
+                os.symlink(target, symlink)
+        else:
+            logger.error('Missing ' + target)
+
+    
+
 
 user = os.getlogin()
 
@@ -47,9 +76,14 @@ parser = \
 # doesn't provide a real directory then guess it is directly inside
 # the user's home directory. It doesn't matter if guessed wrong, this
 # is only the default for the argument parsing.
+auroraplot_package_dir = \
+    os.path.realpath(os.path.join(site.getusersitepackages(), 
+                                  'auroraplot'))
+    
+default_auroraplot_repo_path = os.path.realpath( \
+    re.sub(os.path.join('auroraplot', 'auroraplot') + '$', 'auroraplot', 
+           auroraplot_package_dir, 1))
 
-default_auroraplot_repo_path = \
-    os.path.realpath(os.path.join(site.getusersitepackages(), 'auroraplot'))
 if not os.path.isdir(default_auroraplot_repo_path):
     # Does not exist so fall back to being inside of home directory
     default_auroraplot_repo_path = \
@@ -60,14 +94,12 @@ if not os.path.isdir(default_auroraplot_repo_path):
 # Guess AuroraWatchNet repository path. This is slightly harder since
 # the Python site package directory should contain a link to a
 # directory within the repository, not the base of the repository.
-os.path.isdir(site.getusersitepackages())
-aurorawatchnet_dir = \
+aurorawatchnet_package_dir = \
     os.path.realpath(os.path.join(site.getusersitepackages(), 
                                   'aurorawatchnet'))
 default_awn_repo_path = os.path.realpath( \
     re.sub(os.path.join('software', 'server', 'aurorawatchnet') + '$',
-           '', aurorawatchnet_dir, 1))
-
+           '', aurorawatchnet_package_dir, 1))
 
 if not os.path.isdir(default_awn_repo_path) \
         or os.path.basename(default_awn_repo_path) != 'AuroraWatchNet':
@@ -117,6 +149,8 @@ logger.debug('Best guess for auroraplot repository: '
              + default_auroraplot_repo_path)
 logger.debug('Best guess for AuroraWatchNet repository: ' 
              + default_awn_repo_path)
+logger.info('auroraplot repository: ' + args.auroraplot_repository)
+logger.info('AuroraWatchNet repository: ' + args.aurorawatchnet_repository)
 
 # Check current username
 if user == 'root':
@@ -149,23 +183,12 @@ else:
     logger.debug('Directory ' + site.getusersitepackages()
                  + ' already exists')
 
-package_paths = [os.path.join(args.auroraplot_repository, 'auroraplot'),
-                 os.path.join(args.aurorawatchnet_repository, 
-                              'software', 'server', 'aurorawatchnet')]
-    
-for path in package_paths:
-    link_name = os.path.join(site.getusersitepackages(), 
-                             os.path.basename(path))
-    link_target = path
-    # Test if file, directory or symbolic link exists. If it is a link
-    # assume the target is correct.
-    if os.path.lexists(link_name):
-        logger.debug(link_name + ' already exists')
-    else:
-        # Create suitable link
-        logger.info('Creating link ' + link_name + ' -> ' + link_target)
-        os.symlink(link_target, link_name)
-
+package_links = {
+    'auroraplot': os.path.join(args.auroraplot_repository, 'auroraplot'),
+    'aurorawatchnet':  os.path.join(args.aurorawatchnet_repository, 
+                                    'software', 'server', 'aurorawatchnet'),
+    }
+fix_symlinks(site.getusersitepackages(), package_links)
 
 import aurorawatchnet as awn
 # Check user can read config file
@@ -190,27 +213,9 @@ bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository,
                                             'software', 'server', 'bin', 
                                             'upload_data.py'),
              }
-logger.info('Checking symlinks in ' + bin_dir)
-for link_name,target in bin_links.items():
-    symlink = os.path.join(bin_dir, link_name)
-    # Check that target exists as expected
-    if os.path.exists(target):
-        if os.path.lexists(symlink):
-            if os.path.islink(symlink):
-                if os.readlink(symlink) == target:
-                    logger.debug(symlink + ' correct (-> ' + target + ')')
-                else:
-                    logger.info('Deleting incorrect symlink ' + symlink)
-                    os.unlink(symlink)
-            else:
-                logger.warning(symlink + 
-                               ' exists but is not symlink, leaving alone')
 
-        if not os.path.lexists(symlink):
-            logger.info('Creating symlink ' + symlink + ' -> ' + target)
-            os.symlink(target, symlink)
-    else:
-        logger.error('Missing ' + target)
+fix_symlinks(bin_dir, bin_links)
+
 
 # Check /etc/init.d/awnetd
 symlink = '/etc/init.d/awnetd'
