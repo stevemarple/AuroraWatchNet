@@ -144,6 +144,20 @@ def get_file_type_data():
                 break
     return file_type_data
 
+
+def report_no_data(url, t):
+    '''
+    Report to the server that no data was available for upload.
+    '''
+    logger.debug('Reporting no data for ' + str(t))
+    no_data_url = url + '?' + urllib.urlencode(
+        {'no_data': t.strftime('%Y-%m-%dT%H:%M:%SZ')})
+    logger.debug('GET: ' + no_data_url)
+    req = urllib2.urlopen(no_data_url)
+    req.read()
+    req.close()
+    
+
 now = datetime.datetime.utcnow()
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
 yesterday = today - datetime.timedelta(days=1)
@@ -383,21 +397,25 @@ elif method in ('http', 'https'):
         while t < end_time:
             logger.debug('time: ' + str(t))
             file_base_name = t.strftime(fstr)
+            data_missing = True
             # Try standard filenames as well as appending '.bad' or
             # other extension signifying a data quality problem.
             for ext in ['', config.get('dataqualitymonitor', 'extension')]:
                 file_name = file_base_name + ext
                 if os.path.exists(file_name):
+                    data_missing = False
                     response = http_upload(file_name, url)
                     if not response:
                         all_ok = False
                 elif ext == '' and ft in ('awnettextdata', 'awpacket'):
-                    # These should normmaly be present
+                    # These should normally be present
                     logger.info('Missing ' + file_name)
                 else:
                     # Log files etc might not be present even in
                     # normal operation
                     logger.debug('Missing ' + file_name)
+            if data_missing:
+                report_no_data(url, t)
             t += interval
     
 else:
