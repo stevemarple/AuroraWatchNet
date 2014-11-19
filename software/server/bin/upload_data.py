@@ -145,13 +145,15 @@ def get_file_type_data():
     return file_type_data
 
 
-def report_no_data(url, t):
+def report_no_data(url, t, file_type):
     '''
     Report to the server that no data was available for upload.
     '''
     logger.debug('Reporting no data for ' + str(t))
     no_data_url = url + '?' + urllib.urlencode(
-        {'no_data': t.strftime('%Y-%m-%dT%H:%M:%SZ')})
+        {'no_data': '1',
+         'start_time': t.strftime('%Y-%m-%dT%H:%M:%SZ'),
+         'file_type': file_type})
     logger.debug('GET: ' + no_data_url)
     req = urllib2.urlopen(no_data_url)
     req.read()
@@ -415,7 +417,7 @@ elif method in ('http', 'https'):
                     # normal operation
                     logger.debug('Missing ' + file_name)
             if data_missing:
-                report_no_data(url, t)
+                report_no_data(url, t, ft)
             t += interval
     
 else:
