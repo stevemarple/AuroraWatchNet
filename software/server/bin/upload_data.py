@@ -149,7 +149,7 @@ def report_no_data(url, t, file_type):
     '''
     Report to the server that no data was available for upload.
     '''
-    logger.debug('Reporting no data for ' + str(t))
+    logger.debug('Reporting no ' + file_type + ' data for ' + str(t))
     no_data_url = url + '?' + urllib.urlencode(
         {'no_data': '1',
          'start_time': t.strftime('%Y-%m-%dT%H:%M:%SZ'),
