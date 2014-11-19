@@ -41,7 +41,7 @@ INI_FILE="/etc/awnet${SITE_SUFFIX}.ini"
 
 # Does a shell config file exist to alter these settings?
 CONF_FILE="/etc/awnetd${SITE_SUFFIX}.conf"
-if [ -e "$CONF_FILE" ]; then
+if [ -f "$CONF_FILE" ]; then
     # Yes, source the file
     . "$CONF_FILE"
 fi
