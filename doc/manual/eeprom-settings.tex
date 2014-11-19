@@ -51,11 +51,24 @@ be set as high as 8.
 % \subsection{\code{--eeprom-adc-ref-type EEPROM_ADC_REF_TYPE
 % \subsection{\code{--eeprom-adc-ref-voltage-mv EEPROM_ADC_REF_VOLTAGE_MV
 % \subsection{\code{--eeprom-adc-resolution-list BITS
-% \subsection{\code{--eeprom-aggregate {0,1,2}
-% \subsection{\code{--eeprom-all-samples {0,1}
+\subsection{\code{--eeprom-aggregate {0,1,2}}}
+\label{sec:eeprom-aggregate}
+Select the method used to compute the sample value when oversampling
+is in operation. Valid values are:
+\begin{enumerate}
+\item[0] Mean.
+\item[1] Median.
+\item[2] Trimmed mean.
+\end{enumerate}
+\subsection{\code{--eeprom-all-samples {0,1}}}
+\label{sec:eeprom-all-samples}
+When oversampling is in operation have all data samples returned. Note
+that this can cause the messages to become too large to send correctly
+when a large number of oversamples are taken, particularly with a 3
+axis magnetometer system.
 % \subsection{\code{--eeprom-as3935-present {0,1}
 
-\subsection{\code{--eeprom-comms-type {0,1,2,255}}}
+\subsection{\code{--eeprom-comms-type {0,1,2}}}
 The installed firmware may support multiple methods of communication
 between the remote sensor unit and the base station. If so this option
 indicates which method should be used. It is vital that this setting
@@ -65,7 +78,6 @@ reprogrammed. Valid values are:
 \item[0] XRF radio.
 \item[1] RFM12B radio.
 \item[2] W5100 Ethernet, using \udp\ packets.
-\item[255] Autoselect. 
 \end{enumerate}
 Note that automatic selection may not work correctly in all cases and
 is included as an option of last resort (e.g. when encountering an
@@ -98,7 +110,11 @@ here must match that described in
 % \subsection{\code{--eeprom-mcp7941x-cal NUMBER
 % \subsection{\code{--eeprom-mcu-voltage-mv NUMBER
 % \subsection{\code{--eeprom-mlx90614-present {0,1}
-% \subsection{\code{--eeprom-num-samples NUMBER
+\subsection{\code{--eeprom-num-samples NUMBER}}
+\label{sec:eeprom-num-samples}
+Enable oversampling; take NUMBER samples and compute an aggregate
+value. See also sections {sec:eeprom-aggregate} and
+{sec:eeprom-all-samples}.
 % \subsection{\code{--eeprom-radio-local-id LOCAL_ID
 % \subsection{\code{--eeprom-radio-remote-id REMOTE_ID
 % \subsection{\code{--eeprom-radio-rfm12b-band BAND_NUMBER
@@ -107,9 +123,16 @@ here must match that described in
 % \subsection{\code{--eeprom-radio-xrf-channel CHANNEL_NUMBER
 % \subsection{\code{--eeprom-remote-ip-address IP_ADDRESS
 % \subsection{\code{--eeprom-remote-ip-port NUMBER
-% \subsection{\code{--eeprom-sampling-interval-16th-s DURATION
+\subsection{\code{--eeprom-sampling-interval-16th-s DURATION}}
+\label{sec:eeprom-sampling-interval}
+The initial sampling interval, defined in units of
+$\frac{1}{16}$\SI{}{s}. The \filename{send_cmd.py} command, when used with
+its \code{--sampling-interval} option, can be used to modify sampling
+interval without requiring a reboot.
+
 % \subsection{\code{--eeprom-sd-select EEPROM_SD_SELECT
-% \subsection{\code{--eeprom-site-id EEPROM_SITE_ID
+\subsection{\code{--eeprom-site-id EEPROM_SITE_ID}}
+Set the unique site identifier number.
 % \subsection{\code{--eeprom-use-sd {0,1}
 % \subsection{\code{--eeprom-vin-divider NUMBER
 
