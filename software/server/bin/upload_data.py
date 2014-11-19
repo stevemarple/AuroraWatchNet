@@ -69,7 +69,7 @@ def http_upload(file_name, url):
     fh = open(file_name, 'r')
 
     url_for_get = url + '?' + urllib.urlencode({'file_name': file_name})
-    logger.debug('GET: ' + url_for_get)
+    logger.debug('GET ' + url_for_get)
     get_req = urllib2.urlopen(url_for_get)
     file_details = SafeConfigParser()
     file_details.readfp(get_req)
@@ -113,7 +113,7 @@ def http_upload(file_name, url):
     post_data = urllib.urlencode(values)
 
     try:
-        logger.debug('POST: ' + url)
+        logger.debug('POST ' + url)
         request = urllib2.Request(url, post_data)
         response = urllib2.urlopen(request)
         if response.code == 200:
@@ -149,12 +149,12 @@ def report_no_data(url, t, file_type):
     '''
     Report to the server that no data was available for upload.
     '''
-    logger.debug('Reporting no ' + file_type + ' data for ' + str(t))
+    logger.debug('Reporting no ' + file_type + ' file for ' + str(t))
     no_data_url = url + '?' + urllib.urlencode(
         {'no_data': '1',
          'start_time': t.strftime('%Y-%m-%dT%H:%M:%SZ'),
          'file_type': file_type})
-    logger.debug('GET: ' + no_data_url)
+    logger.debug('GET ' + no_data_url)
     req = urllib2.urlopen(no_data_url)
     req.read()
     req.close()
