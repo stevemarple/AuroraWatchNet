@@ -310,8 +310,10 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
     \setlength{\parskip}{0pt}}%
   {\end{enumerate}}
 
+\newcommand{\copyrightyear}{%
+  \ifthenelse{\equal{\gitCommitYear}{2014}}{2014}{2014--\gitCommitYear}}
 \newcommand{\documentAttribution}{``AuroraWatchNet magnetometer
-  manual. Steve R. Marple, Lancaster University. 2014.''}
+  manual. Steve R. Marple, Lancaster University. \gitCommitYear.''}
 
 \begin{document}
 

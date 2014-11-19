@@ -39,3 +39,5 @@ makeabbrev : makeabbrev.c
 .PHONY : gitlog.tex
 gitlog.tex :
 	git log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' . > $@
+	git log -1 --date=iso --format='\newcommand{\gitCommitYear}{%cd}' . | sed 's/-[^}]*//' >> $@
+
