@@ -44,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.20a";
+  "MagCloud-0.21a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -1315,7 +1315,7 @@ void loop(void)
       else if (sendFirmwareVersion)
 	packet.putString(buffer, sizeof(buffer),
 			 AWPacket::tagCurrentFirmware, firmwareVersion);
-      if (timeAdjustment > CounterRTC::Time())
+      if (timeAdjustment != CounterRTC::Time(0, 0))
 	// TODO: check against overflow in int32_t, int16_t
 	packet.putTimeAdjustment(buffer, sizeof(buffer),
 				 timeAdjustment.getSeconds(),
