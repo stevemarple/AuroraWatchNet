@@ -1,16 +1,16 @@
 \chapter{Configuration file options}
 
 % \newcommand{\configexample}[1]{\examplebox{\code{#1}}}
-\newcommand{\configexample}[1]{\examplebox{#1}}
+\newcommand{\configexample}[2][]{\examplebox[#1]{#2}}
 
 \section{Introduction}
 Many of the AuroraWatchNet programs read a common configuration file,
 typically located at \filename{/etc/awnet.ini}. The configuration file
 is broken into sections, each of which starts with a section header in
-square brackets (\code{[like_this]}). Other line contain key names
-and values, written like \code{key = value}. Leading and trailing
+square brackets (\code{[like_this]}). Other lines contain key names
+and values, written as \code{key = value}. Leading and trailing
 whitespace around both the key and value is ignored. Section headers
-and key names do not contain whitspace, words may be separated with an
+and key names do not contain whitespace, words may be separated with an
 underscore. The configuration file can also contain comments, which
 are entered with a hash (\code{\#}) or semi-colon (\code{;}) as the
 first character.
@@ -18,7 +18,8 @@ first character.
 The configuration file is parsed using Python's \code{SafeConfigParser}
 module. This allows values defined in the same section, or in the
 \code{[DEFAULT]} section to be inserted into other key value
-definitions.
+definitions. This feature is commonly used to insert the site
+abbreviation into filenames.
 
 \section{\code{[DEFAULT]}}
 
@@ -47,7 +48,8 @@ specifiers see
 since Python expands the string first any percent characters used as
 part of a \code{strftime} format specifier must be repeated.
 
-Default: none.\\
+Default: none.
+
 \configexample{
   \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}%
   \newline \newline % 
@@ -70,7 +72,8 @@ daemon and regenerate other data formats.
 
 See section~\ref{sec:config-data-filename} for a description.
 
-Default: none\\
+Default: none.
+
 \configexample{%
   Typically set to \\
   \code{filename =
@@ -86,7 +89,8 @@ communication channel with the magnetometer and others will be able to
 use the error-checking capabilities provide by \hmac-\mdfive. The key
 is a 32 character hexadecial string, without any \code{0x} prefix.
 
-Default: none
+Default: none.
+
 \configexample{
   Typically set to a simple code, \\
   \code{key = 00000000000000000000000000000000}
@@ -99,7 +103,8 @@ Options associated with the recorded log files.
 
 See section~\ref{sec:config-data-filename} for a description.
 
-Default: none\\
+Default: none.
+
 \configexample{%
   Typically set to \\
   \code{filename =
@@ -130,7 +135,7 @@ daemons where the data files are also received by \code{rsync} or
 If set to \code{false} then acknowledgements are not sent in response
 to magnetometer data messages.
 
-Default: true.
+Default: \code{true}
 
 \subsection{\code{read_only}}
 If set to \code{true} then for serial connections the device is opened
@@ -139,7 +144,7 @@ read-only and no set up commands are sent.
 Read-only mode implies that acknowledgements are not sent, regardless
 of the setting of the \code{acknowledge} option.
 
-Default: false.
+Default: \code{false}
 
 \section{\code{[serial]}}
 Options relating to serial data communication between the magnetometer
@@ -164,7 +169,8 @@ Default: \code{9600}
 The set-up string which should be sent to the serial device, for
 defining the channel number used for communication \etc.
 
-Default: none.\\
+Default: none.
+
 Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
 channel number defined here matches the setting programmed into the
 magnetometer's \eeprom.
@@ -184,7 +190,7 @@ Default: empty string.
 The port number of which the recording daemon should listen for
 magnetometer data packets.
 
-Default: 6588.
+Default: \code{6588}
 
 \subsection{\code{remote_address}}
 The \ip\ address of the magnetometer.
@@ -238,8 +244,19 @@ between the magnetometer and data recording daemon. \textbf{This key
 string, without any \code{0x} prefix. The key used here must match
 that described in \secname~\ref{sec:eeprom-hmac-key}.
 
-Default: none.\\
+Default: none.
+
 Set to a random value.
+
+\section{\code{[firmware]}}
+Configuration details for firmware upgrades.
+
+\subsection{\code{path}}
+The directory in which the firmware upgrades relevant to the
+magnetometer hardware are stored. 
+
+\warningbox{It is critical that this path is set correctly, otherwise
+  incompatible firmware upgrades could be delivered.}
 
 \section{\code{[upload]}}
 Configuration details for the \filename{upload_data.py} program.
@@ -258,34 +275,45 @@ port 80 and 443 respectively.
 
 \subsection{\code{rsync_host}}
 Name of the \filename{rsync} host. No facility to set the user is
-provided so use the \ssh\ \filename{config} file to set the
+provided, use the \ssh\ \filename{config} file to set the
 appropriate details.
 
-\examplebox[Example \ssh\ \filename{config} file:]{%
-  \code{Host awn-data\\Hostname host.domain.com\\User monty}}
+Default: none.
+
+\configexample[Example \protect\ssh\ \protect\filename{config} file:]{%
+  \code{Host awn-data}\\ \code{Hostname host.domain.com} \\%
+  \code{User monty}}
 
 \subsection{\code{url}}
-The \URL\ to which data is sent.
+The \URL\ to which \http/\slash \https\ uploads are sent.
 
 \subsection{\code{password}}
-The upload password. Digest authentication is used.
+The upload password for \http\ and \https\ methods. Digest
+authentication is used.
 
 \subsection{\code{realm}}
-The \emph{realm} used for digest authentication.
+The \emph{realm} used for digest authentication when uploading data
+with the \http\ or \https\ method.
 
 \section{\code{[realtime_transfer]}}
 
 The data recording daemon is capable of forwarding the incoming binary
-packets to a remote host. When this is enabled data is transferred in
-real-time. The remote host can use the same data recording daemon but
-it should be configured to be read-only so that it does not send
-acknowledgements.
+packets to one or more remote hosts. When this is enabled data is
+transferred in real-time. The remote host(s) can use the same data
+recording daemon but should be configured to be read-only so that
+acknowledgements are not sent.
 
 When data packets are forwarded in this way the daemon does not check
 that they have been delivered successfully. It is recommended that
 this method is used in conjunction with the \filename{upload_data.py}
 program to ensure any data packets which were not delivered are
 transferred by some other means.
+
+Real-time transfer uses three keys, \code{remote_host},
+\code{remote_port} and \code{remote_key}. To send data to multiple
+hosts a suffix is applied to each of this keys to group the settings
+together, \eg, \code{remote_host2}, \code{remote_port2} and
+\code{remote_key2}. The suffix must not contain whitespace characters.
 
 \subsection{\code{remote_host}}
 The hostname or \ip\ address to which data packets are sent.
@@ -350,3 +378,8 @@ daemon is written.
 
 Default: none.
 
+\subsection{\code{led_active_low}}
+A flag indicating if the \dtr\ signal line should be pulled low to
+turn on the \led.
+
+Default: false.
