@@ -24,6 +24,11 @@ bool HouseKeeping::initialise(uint8_t VinADC, uint8_t temperatureADC,
   _temperaturePowerPin = temperaturePowerPin;
   _alwaysOn = alwaysOn;
   _readVin = readVin;
+
+  // Set up pin modes
+  if (_readVin)
+    pinMode(analogInputToDigitalPin(_VinADC), INPUT);
+  pinMode(analogInputToDigitalPin(_temperatureADC), INPUT);
   if (_temperaturePowerPin != 255)
     pinMode(_temperaturePowerPin, OUTPUT);
   return true;
