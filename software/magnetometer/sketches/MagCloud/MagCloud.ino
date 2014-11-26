@@ -44,7 +44,7 @@
 #include "MagCloud.h"
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.21a";
+  "MagCloud-0.22a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -730,6 +730,12 @@ void setup(void)
 {
   get_mcusr();
   wdt_enable(WDTO_8S);
+
+  // Set all digital I/O as inputs with pullups, each library should
+  // configure I/O as appropriate later.
+  for (uint8_t i = 0; i < NUM_DIGITAL_PINS; ++i)
+    pinMode(i, INPUT_PULLUP);
+  
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
   uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
