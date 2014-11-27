@@ -277,7 +277,7 @@ if __name__ == '__main__':
         led_active_low = config.getboolean('dataqualitymonitor', 
                                            'led_active_low')
     else:
-        led_active_low = False
+        led_active_low = True
     fm = FtdiMonitor(progname, device=device, filename=filename,
                      pidfile_path=pidfile_path, 
                      username=config.get('dataqualitymonitor', 'username'))
