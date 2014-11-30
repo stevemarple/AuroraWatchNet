@@ -36,8 +36,13 @@ images/system-overview.pdf : images/src/system-overview.odg
 
 makeabbrev : makeabbrev.c
 
+GIT_LOG_PATH = . \
+../../hardware/FLC100_shield/shield_v1.0/FLC100_shield_v1.0_sch.pdf \
+../../hardware/FLC100_shield/shield_v2.0/FLC100_shield_v2.0_sch.pdf \
+../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch.pdf
+
 .PHONY : gitlog.tex
 gitlog.tex :
-	git log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' . > $@
+	git log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' $(GIT_LOG_PATH) > $@
 	git log -1 --date=iso --format='\newcommand{\gitCommitYear}{%cd}' . | sed 's/-[^}]*//' >> $@
 
