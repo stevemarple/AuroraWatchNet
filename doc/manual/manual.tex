@@ -233,6 +233,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \renewcommand{\textohm}{\ensuremath{\Omega}}
 \newcommand{\ohm}[1]{\SI{#1}{\ohm}}
 \newcommand{\kohm}[1]{\SI{#1}{\kilo\ohm}}
+\newcommand{\Mohm}[1]{\SI{#1}{\mega\ohm}}
 
 
 \newcommand{\pF}[1]{\SI{#1}{\pico\farad}}
@@ -310,6 +311,19 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
     \setlength{\itemsep}{0pt}%
     \setlength{\parskip}{0pt}}%
   {\end{enumerate}}
+\newcounter{buildordercounter}
+\newenvironment{buildorder*}{%
+  \setcounter{buildordercounter}{\value{enumi}}
+  \begin{enumerate}%
+    \setcounter{enumi}{\value{buildordercounter}}
+    \setlength{\itemsep}{0pt}%
+    \setlength{\parskip}{0pt}}%
+  {\end{enumerate}}
+
+%\newenvironment{buildorder}{%
+%  \begin{enumerate}[itemsep=0pt,parskip=0pt]}{\end{enumerate}}
+% \newenvironment{buildorder*}{%
+%   \begin{enumerate}[itemsep=0pt,parskip=0pt,resume*]}{\end{enumerate}}
 
 \newcommand{\copyrightyear}{%
   \ifthenelse{\equal{\gitCommitYear}{2014}}{2014}{2014--\gitCommitYear}}

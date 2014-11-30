@@ -51,10 +51,10 @@ stability.
 \item R12 (\kohm{510}).
 \item R11 (\kohm{15}).
 \item R10 (\kohm{910}).
-\item \SI{2}{\milli\metre} 10~way connectors for RF1. Ensure they are
-  fitted flush to the \pcb.
 \item C15 (\uF{4.7}).
 \item C16 (\uF{10}).
+\item \SI{2}{\milli\metre} 10~way connectors for RF1. Ensure they are
+  fitted flush to the \pcb.
 \item R1, R3, R4, R6, R8 (\kohm{10}).
 \item R2, R5, R7 (\kohm{100}).
 \item C2, C7, C9 (\nF{100}).
@@ -74,7 +74,7 @@ stability.
 \item JP10, JP11 ($1 \times 4$ jumper).
 \item JP3 ($1 \times 2$ jumper).
 \item JP8 ($1 \times 2$ jumper).
-\item X2, RJ45 connector.
+\item X2 (RJ45 connector).
 \item Modify the \pcb\ by adding a link wire from the XRF ONSLEEP
   status pin to D23. See figure~\ref{fig:flc100-sleep-status-mod}.
 \item Q1, Q2, Q3, Q4, Q5 (2N7000).
@@ -131,8 +131,13 @@ with the Arduino Ethernet shield it is assumed that the \PoE\ module
 is fitted. The operating voltage chosen during construction determines
 which components are fitted.
 
+The shield can also be used for cloud detection, for which it supports
+the operation of an MLX90614 non-contact \ir\ thermometer, HIH61xx
+humidity and ambient temperature sensor, and Embedded Adeventures
+lightning sensor module. These functions are outside of the scope of
+this document and will not be described here.
 
-\subsection{Battery operation}
+\subsubsection{Battery operation}
 When built for battery operation the shield houses the XRF radio
 module, the boost power supply (which creates the \volt{3.3} supply
 for the microcontroller and radio) and the \volt{3.3} -- \volt{5}
@@ -142,11 +147,134 @@ solder small surface mount components is to fit a ready-built
 third-party module.
 
 
-\subsection{Power over ethernet operation}
+\subsubsection{Power over ethernet operation}
 If used in conjunction with the Ethernet shield the
 XRF radio module and boost power supply are not fitted. The Ethernet
 shield provides a \volt{9} output onto the \texttt{Vin} pin,
 requiring that a linear or buck regulator is fitted for \volt{5} operation.
+
+\subsection{Order of assembly}
+\subsubsection{Battery-powered version}
+
+\warningbox{Build instructions for the battery-powered option of the
+  FLC100 shield version 2.0 are untested. Proceeed with caution.}
+
+Order of assembly for the battery-powered version.
+
+If using the on-board surface-mount boost regulator fit:
+\begin{buildorder}
+\item IC4 (MCP1640).
+\item R19 (\kohm{510}).
+\item R18 (\kohm{15}).
+\item R17 (\kohm{910}).
+\item C4 (\uF{4.7}).
+\item C5 (\uF{10}).
+\end{buildorder}
+
+For all battery-powered versions fit:
+
+\begin{buildorder*}
+\item \SI{2}{\milli\metre} 10~way connectors for RF1. Ensure they are
+  fitted flush to the \pcb.
+\item R4 (\kohm{1}).
+\item R1, R3, R5, R7, (\kohm{10}).
+\item R2, R6 (\kohm{100}).
+\item R8 (\Mohm{1}).
+\item C1, C3 (\nF{100}).
+\item C2, C9 (\uF{100}).
+\item C6 (\uF{100} \volt{25}).
+\item L1 (\uH{4.7}). The shorter lead should be connected to pin~1,
+  which is the hole nearest the edge of the \pcb. Although the
+  orientation of inductors is normally ignored communication with the
+  manufacturer revealed that the shorter lead indicates the start of
+  the winding. This arrangement is preferred to help minimise \rfi.
+\item Stacking connectors, five 8~way and one 10~way. Ensure they are
+  fitted flush to the \pcb; solder one end first, then the other
+  end. Only when you are happy they are flush should you solder the
+  remaining pins.
+\item JP2 ($1 \times 2$ jumper).
+\item JP3, JP5 ($1 \times 3$ jumper).
+\item JP4, ISP header ($2 \times 3$ jumper).
+\item X1 (RJ45 connector).
+\item Q1, Q2, Q3, Q4, Q5 (2N7000). Fit last to minimise risk of damage
+  from \esd.
+\end{buildorder*}
+
+If using an external boost regulator fit:
+\begin{buildorder*}
+\item Boost regulator module (Ciseco PowerPOD NCP1402 3V3).
+\end{buildorder*}
+
+
+\subsubsection[Order of assembly: PoE version]{%
+  Order of assembly: \protect\PoE\ version}
+
+\warningbox{Build instructions for \PoE\ option of the FLC100 shield
+  version 2.0 are untested. Proceeed with caution.}  Order of assembly
+for the \PoE\ version.
+\begin{buildorder}
+\item R1, R3, R5, R7, (\kohm{10}).
+\item R2, R6 (\kohm{100}).
+\item C1, C3 (\nF{100}).
+\item C7 (\uF{4.7}).
+\item C2, C9 (\uF{100}).
+\item C6 (\uF{100} \volt{25}).
+\item L1 (\uH{4.7}). The shorter lead should be connected to pin~1,
+  which is the hole nearest the edge of the \pcb. Although the
+  orientation of inductors is normally ignored communication with the
+  manufacturer revealed that the shorter lead indicates the start of
+  the winding. This arrangement is preferred to help minimise \rfi.
+\item Stacking connectors, five 8~way and one 10~way. Ensure they are
+  fitted flush to the \pcb; solder one end first, then the other
+  end. Only when you are happy they are flush should you solder the
+  remaining pins.
+\item JP3 ($1 \times 3$ jumper).
+\item JP4, ISP header ($2 \times 3$ jumper).
+\end{buildorder}
+
+If the master \pcb\ of the FLC100 remote sensor is version 2.0 and it
+will be fitted with a linear regulator (MCP1702) then JP5 can be
+omitted. Otherwise fit:
+\begin{buildorder*}
+\item JP5 ($1 \times 3$ jumper).
+\item Add shunt to JP5, connect the centre pin to \texttt{Vin} if a
+  linear regulator is fitted to the master FLC100 remote sensor \pcb;
+  connect to \texttt{+3V3} if the MAX619 boost regulator is used on
+  the master FLC100 remote sensor \pcb.
+\end{buildorder*}
+
+
+The connector to the remote sensor \pcb{}(s) can be either RJ11 or
+RJ45. The RJ45 has the advantage that a standard (straight-through)
+ethernet cable can be used. However it has the disadvantage that it is
+possible to inadvertently fit the \PoE\ ethernet connection into the
+wrong socket.
+\begin{buildorder*}
+\item X1 (RJ45 connector) or X2 (RJ11 connector). 
+\end{buildorder*}
+
+Add shunts to jumper blocks\marginpar{to complete}.
+\begin{buildorder*}
+\item Fit 3 shunts to JP4, in the positions marked on the silkscreen.
+\item Fit a shunt to JP5, linking the centre pin with \texttt{+5V}.
+\end{buildorder*}
+
+\warningbox{If JP2 is fitted \textbf{do not} fit a shunt when used for
+  \PoE\ operation, it will damage the microcontroller. Measurement of
+  the input voltage can only be performed when $\textrm{V}_{\textrm{in}} \le
+  \textrm{V}_{\textrm{cc}}$.}
+
+Finally fit last to minimise risk of damage from \esd.
+\begin{buildorder*}
+\item Q1, Q2, Q3, Q4 (2N7000).
+\end{buildorder*}
+
+
+\subsubsection{Other variations}
+If is possible (though not desirable) for the \volt{5} supply for the
+remote sensor \pcb{}(s) to be generated by the FLC100 shield. To enable
+this fit JP1 and add a shunt to link the \volt{5} rails between the
+\pcb{}s.
 
 
 \begin{landscape}
