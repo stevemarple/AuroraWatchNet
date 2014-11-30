@@ -40,3 +40,6 @@
 [submodule "software/magnetometer/libraries/AS3935"]
 	path = software/magnetometer/libraries/AS3935
 	url = https://github.com/stevemarple/AS3935.git
+[submodule "software/magnetometer/libraries/MemoryFree"]
+	path = software/magnetometer/libraries/MemoryFree
+	url = https://github.com/stevemarple/MemoryFree.git

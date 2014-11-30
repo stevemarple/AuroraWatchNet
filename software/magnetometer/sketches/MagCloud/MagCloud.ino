@@ -43,6 +43,10 @@
 
 #include "MagCloud.h"
 
+#ifdef SHOW_MEM_USAGE
+#include <MemoryFree.h>
+#endif 
+
 const char firmwareVersion[AWPacket::firmwareNameLength] =
   "MagCloud-0.22a";
 // 1234567890123456
@@ -1450,6 +1454,10 @@ void loop(void)
 	  break;
 	}
 
+#ifdef SHOW_MEM_USAGE
+      console << "Free mem: " << freeMemory() << endl;
+#endif
+      
       if (enableSleep) {
 	console << "SLEEP!\n";
 	console.flush();
