@@ -222,6 +222,7 @@ void setAlarm(void)
   cRTC.setAlarm(0, t, startSamplingCallback);
 }
 
+#ifdef PRINT_BINARY_BUFFER
 Stream& printBinaryBuffer(Stream &s, const void* buffer, int len)
 {
   const uint8_t *ptr = (uint8_t*)buffer;
@@ -235,7 +236,9 @@ Stream& printBinaryBuffer(Stream &s, const void* buffer, int len)
   }
   return s;
 }
+#endif
 
+#if USE_SD_CARD
 void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 {
   struct RTCx::tm tm;
@@ -246,6 +249,7 @@ void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 	   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 	   tm.tm_hour);
 }
+#endif
 
 void doSleep(uint8_t mode)
 {
@@ -667,7 +671,13 @@ void beginW5100_UDP(void)
   eeprom_read_block(remoteHostname, (void*)EEPROM_REMOTE_HOSTNAME,
 		    EEPROM_REMOTE_HOSTNAME_SIZE);
 
-  console << "EEPROM settings:\n";
+  console << "EEPROM settings:\n  MAC: ";
+  for (uint8_t i = 0; i < 6; ++i) {
+    if (i)
+      console << ':';
+    console << _HEX(macAddress[i]);
+    console << endl;
+  }
   printEthernetSettings(console, localIP, localPort,
 			netmask, gateway, dns,
 			remoteIP, remotePort);
@@ -774,7 +784,7 @@ void setup(void)
 				 FUSE_CKSEL1 & FUSE_CKSEL0);
   bool isRcOsc = ((lowFuse & ckselMask) ==
 		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
-  console << "Uses RC oscillator: " << isRcOsc
+  console << "Uses RC osc.: " << isRcOsc
 	  << "\nCKSEL: " << _HEX(lowFuse & ckselMask)
 	  << "\nMCUSR: " << _HEX(mcusrCopy) << endl; 
 
@@ -870,9 +880,6 @@ void setup(void)
       if (gain && gain <= MCP342x::maxGain)
 	adcGainList[i] = gain; 
     }
-
-
-    
   }
     
   // Get key
@@ -1256,8 +1263,11 @@ void loop(void)
 			  sampleStartTime.getFraction());
       
       packet.putHeader(buffer, sizeof(buffer));
+#ifdef PRINT_BINARY_BUFFER
       // printBinaryBuffer(console, buffer, 20);
       // console << endl;
+#endif
+      
       console << "Header length: " << AWPacket::getPacketLength(buffer) << endl;
 
       if (flc100Present) {
@@ -1426,7 +1436,6 @@ void loop(void)
     // startSampling == false) {
     if (startSampling == false &&
 	commsHandler.isFinished() &&
-	samplingInterval >= minSleepInterval &&
 	commsHandler.getCommsInterface()->powerOff()) {
       
       struct RTCx::tm tm;
@@ -1435,8 +1444,7 @@ void loop(void)
       CounterRTC::Time now;
       cRTC.getTime(now);
       // Setting the RTC is likely to slightly upset the timing as it
-      // stops the hardware clock briefly. Only set
-      
+      // stops the hardware clock briefly. Only set if necessary.
       if (labs(hwcTime-now.getSeconds()) > 2*maxTimeError.getSeconds()+1) {
       	RTCx::time_t t = now.getSeconds();
       	RTCx::gmtime_r(&t, &tm);
@@ -1468,7 +1476,7 @@ void loop(void)
       console << "Free mem: " << freeMemory() << endl;
 #endif
       
-      if (enableSleep) {
+      if (enableSleep && samplingInterval >= minSleepInterval) {
 	console << "SLEEP!\n";
 	console.flush();
 	doSleep(SLEEP_MODE_PWR_SAVE);
