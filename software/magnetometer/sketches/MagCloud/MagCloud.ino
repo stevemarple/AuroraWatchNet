@@ -48,7 +48,7 @@
 #endif 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.22a";
+  "MagCloud-0.23a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -747,6 +747,16 @@ void setup(void)
 
   Serial.begin(9600);
   Serial1.begin(9600);
+  
+  // Explicitly set the pull-ups for the serial port in case the
+  // Arduino IDE disables them.
+#if defined (__AVR_ATmega644__) || defined (__AVR_ATmega644P__) \
+  || defined (__AVR_ATmega1284__) || defined (__AVR_ATmega1284P__)
+  MCUSR &= ~(1 << PUD); // Allow pull-ups on UARTS
+  PORTD |= ((1 << PORTD0) | (1 << PORTD2)); 
+#else
+#error No pull-ups enabled for serial ports
+#endif
 
   console.print((__FlashStringHelper*)PSTR("\nFirmware version: "));
   console.println(firmwareVersion);
