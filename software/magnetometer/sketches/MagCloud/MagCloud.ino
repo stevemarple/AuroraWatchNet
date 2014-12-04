@@ -15,7 +15,11 @@
 #include <SoftWire.h>
 #include <MLX90614.h>
 #include <HIH61xx.h>
+
+#ifdef USE_AS3935
 #include <AS3935.h>
+#endif
+
 #include <HouseKeeping.h>
 
 #include <RTCx.h>
@@ -79,9 +83,11 @@ bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
 HIH61xx hih61xx;
 bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
 
+#ifdef USE_AS3935
 AS3935 as3935;
 bool as3935Present = eeprom_read_byte((uint8_t*)EEPROM_AS3935_PRESENT);
 CounterRTC::Time as3935Timestamp;
+#endif
 
 CommandHandler commandHandler;
 
@@ -584,6 +590,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
 }
 
 
+#ifdef USE_AS3935
 void as3935InterruptHandler(void)
 {
   // The AS3935 interrupt handler is inline code
@@ -596,6 +603,7 @@ void as3935TimestampCB(void)
 {
   cRTC.getTime(as3935Timestamp);
 }
+#endif
 
 
 bool dnsLookup(IPAddress dnsServer, const char *hostname,
@@ -675,9 +683,12 @@ void beginW5100_UDP(void)
   for (uint8_t i = 0; i < 6; ++i) {
     if (i)
       console << ':';
+    if (macAddress[i] < 16)
+      console << '0';
     console << _HEX(macAddress[i]);
-    console << endl;
   }
+  console << endl;
+  
   printEthernetSettings(console, localIP, localPort,
 			netmask, gateway, dns,
 			remoteIP, remotePort);
@@ -961,6 +972,7 @@ void setup(void)
     console.print(notStr);
   console.println(presentStr);
 
+#ifdef USE_AS3935
   __FlashStringHelper* as3935Str = (__FlashStringHelper*)PSTR("AS3935");
   if (as3935Present) {
     console.print(initialisingStr);
@@ -988,6 +1000,7 @@ void setup(void)
   if (!as3935Present)
     console.print(notStr);
   console.println(presentStr);
+#endif
 
   
   // Identify communications method to be used.
@@ -1147,8 +1160,10 @@ void loop(void)
     mlx90614.process();
   if (hih61xxPresent)
     hih61xx.process();
+#ifdef USE_AS3935
   if (as3935Present)
     as3935.process();
+#endif
   houseKeeping.process();
 
   if (commsHandler.process(responseBuffer, responseBufferLen))
