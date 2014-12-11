@@ -52,7 +52,7 @@
 #endif 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.23a";
+  "MagCloud-0.24a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
@@ -98,7 +98,7 @@ const uint8_t xrfResetPin = 5;
 // Set if packets should be multiple of some particular length
 uint16_t commsBlockSize = 0; 
 
-const uint16_t commsStackBufferLen = 1024;
+const uint16_t commsStackBufferLen = 4096;
 uint8_t commsStackBuffer[commsStackBufferLen];
 CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
 
@@ -173,6 +173,10 @@ File sdFile;
 
 volatile bool startSampling = true;
 volatile bool callbackWasLate = true;
+
+// Flag limiting calls Ethernet.maintain() to one per sampling
+// interval.
+bool maintainDhcpLease = false;
 
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
@@ -1152,6 +1156,8 @@ void loop(void)
 
     resultsProcessed = false;
     console << "Sampling started\n";
+
+    maintainDhcpLease = true; // Only do this once per sampling interval    
   }
 
   if (flc100Present)
@@ -1467,25 +1473,32 @@ void loop(void)
 	console << "Set HW clock\n";
       }
 
-      if (radioType == EEPROM_COMMS_TYPE_W5100_UDP)
-	switch (Ethernet.maintain()) {
+      if (radioType == EEPROM_COMMS_TYPE_W5100_UDP && maintainDhcpLease) {
+	maintainDhcpLease = false;
+	uint8_t m = Ethernet.maintain();
+	console << "DHCP ";
+	switch (m) {
 	case DHCP_CHECK_NONE:
+	  console << "nothing done\n";
 	  break;
 	case DHCP_CHECK_RENEW_FAIL:
 	case DHCP_CHECK_REBIND_FAIL:
-	  console << "DHCP lease failed\n";
+	  console << "lease failed, rebooting\n";
 	  // Reboot
 	  wdt_enable(WDTO_8S);
 	  while (1)
 	    ;
 	  break;
 	case DHCP_CHECK_RENEW_OK:
-	  console << "DHCP lease renewed\n";
+	  console << "lease renewed\n";
 	  break;
 	case DHCP_CHECK_REBIND_OK:
-	  console << "DHCP lease rebind\n";
+	  console << "lease rebind\n";
 	  break;
+	default:
+	  console << "maintain returned " << _DEC(m) << endl;
 	}
+      }
 
 #ifdef SHOW_MEM_USAGE
       console << "Free mem: " << freeMemory() << endl;
