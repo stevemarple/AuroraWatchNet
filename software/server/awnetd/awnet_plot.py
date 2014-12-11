@@ -3,6 +3,8 @@ import argparse
 import copy
 import io
 import logging
+logger = logging.getLogger(__name__)
+
 import os
 import sys
 import time
@@ -30,6 +32,8 @@ import auroraplot.datasets.samnet
 # Set timezone appropriately to get intended np.datetime64 behaviour.
 os.environ['TZ'] = 'UTC'
 time.tzset()
+
+mpl.rcParams['legend.fontsize'] = 'medium'
 
 
 def parse_datetime(s):
@@ -61,6 +65,7 @@ def mysavefig(fig, filename, exif_tags=None):
     path = os.path.dirname(filename)
     if not os.path.exists(path):
         os.makedirs(path)
+
     fig.axes[-1].set_xlabel('Time (UT)')
 
     # Override labelling format
@@ -110,7 +115,7 @@ def mysavefig(fig, filename, exif_tags=None):
         f.close()
         buf.close()
 
-    logging.info('saved to ' + filename)
+    logger.info('saved to ' + filename)
         
     # if not args.show:
     #     plt.close(fig) # Close to save memory
@@ -125,64 +130,70 @@ def round_to(a, b, func=np.round):
 
 def activity_plot(mag_data, mag_qdc, filename, exif_tags, 
                   k_index_filename=None):
-    assert np.all(mag_data.channels == mag_qdc.channels) \
-        and len(mag_data.channels) == 1 \
-        and len(mag_qdc.channels) == 1, \
-        'Bad value for channels'
-    
-    channel = mag_data.channels[0]
     global activity
-    activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
-                                                      magqdc=mag_qdc,
-                                                      fit=None)
-
+    channel = mag_data.channels[0]
     pos = [0.15, 0.1, 0.775, 0.75]
 
-    # To get another axes the position must be different. It is made
-    # the same position later.
-    pos2 = copy.copy(pos)
-    pos2[0] += 0.1 
-    fig = plt.figure(facecolor='w')
-    ax = plt.axes(pos)
-
-    activity.plot(axes=ax, units_prefix='n', 
-                  label='Activity (' + channel + ')')
-    ax2 = plt.axes(pos2)
-
-    # Set Y limit to be 1.5 times highest threshold. Units are
-    # nanotesla since that was set when plotting.
-    ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
+    if mag_qdc is None:
+        activity = None
+        mag_data.plot(label=channel, color='black')
+        fig = plt.gcf()
+        ax2 = plt.gca()
+    else:
+        # assert np.all(mag_data.channels == mag_qdc.channels) \
+        #     and len(mag_data.channels) == 1 \
+        #     and len(mag_qdc.channels) == 1, \
+        #     'Bad value for channels'
     
+        channel = mag_data.channels[0]
+        activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
+                                                          magqdc=mag_qdc,
+                                                          fit=None)
 
-    mag_data.plot(label=channel, color='black',axes=ax2)
+        # To get another axes the position must be different. It is made
+        # the same position later.
+        pos2 = copy.copy(pos)
+        pos2[0] += 0.1 
+        fig = plt.figure(facecolor='w')
+        ax = plt.axes(pos)
 
-    # Align the QDC to regular intervals between start and end times
-    qdc_cadence = np.timedelta64(1, 'm')
-    num = ((mag_data.end_time - mag_data.start_time)/ qdc_cadence) + 1
-    qdc_sample_times = np.linspace(mag_data.start_time.astype('M8[m]'),
-                                   mag_data.end_time.astype('M8[m]'),
-                                   num)
-    qdc_aligned = mag_qdc.align(qdc_sample_times)
-    qdc_aligned.plot(label=channel + ' QDC', color='cyan', axes=ax2)
+        activity.plot(axes=ax, units_prefix='n', 
+                      label='Activity (' + channel + ')')
+        ax2 = plt.axes(pos2)
+
+        # Set Y limit to be 1.5 times highest threshold. Units are
+        # nanotesla since that was set when plotting.
+        ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
     
-    ax.set_axis_bgcolor('w')
-    ax.axison = False
+        mag_data.plot(label=channel, color='black',axes=ax2)
+
+        # Align the QDC to regular intervals between start and end times
+        qdc_cadence = np.timedelta64(1, 'm')
+        num = ((mag_data.end_time - mag_data.start_time)/ qdc_cadence) + 1
+        qdc_sample_times = np.linspace(mag_data.start_time.astype('M8[m]'),
+                                       mag_data.end_time.astype('M8[m]'),
+                                       num)
+        qdc_aligned = mag_qdc.align(qdc_sample_times)
+        qdc_aligned.plot(label=channel + ' QDC', color='cyan', axes=ax2)
+
+        ax.set_axis_bgcolor('w')
+        ax.axison = False
+        ax2.set_title(activity.make_title())
 
     ax2.set_axis_bgcolor('none')
     ax2.set_position(pos)
-    ax2.set_title(activity.make_title())
 
     min_ylim_range = 400
     ax2_ylim = ax2.get_ylim()
     if np.diff(ax2_ylim) < min_ylim_range:
         ax2.set_ylim(round_to(np.mean(ax2_ylim), 50) 
                      + min_ylim_range * np.array([-0.5, 0.5]))
-
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
-    mysavefig(fig, filename, exif_tags)
-    r = [activity]
 
+    mysavefig(fig, filename, exif_tags)
+
+    r = [activity]
     if k_index_filename is not None:
         md_filt = mag_data
         if ap.has_site_info(mag_data.network, mag_data.site, 
@@ -254,7 +265,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     if mag_data is None or \
             not np.any(np.logical_not(np.isnan(mag_data.data))): 
         # not .np.any(etc) eliminates empty array or array of just nans
-        logging.info('No magnetic field data')
+        logger.info('No magnetic field data')
         return
 
     # Load up some data from previous days to and apply a
@@ -276,10 +287,8 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     mag_qdc = ap.magdata.load_qdc(network, site, qdc_t, 
                                   channels=[channel], tries=6)
     if mag_qdc is None:
-        logging.info('No QDC')
-        return
-
-    if fit_data is None:
+        logger.info('No QDC')
+    elif fit_data is None:
         # Cannot fit, so assume no errors in QDC
         errors = [0.0]
     else:
@@ -291,8 +300,8 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
                 plot_fit=args.plot_fit,
                 full_output=True)
         except Exception as e:
-            logging.warn('Could not fit QDC')
-            logging.info(str(e))
+            logger.warn('Could not fit QDC')
+            logger.info(str(e))
             errors = [0.0]
         else:
             # Fitted ok, plot if necessary
@@ -308,8 +317,11 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
 
     # Adjust the quiet day curve with the error obtained by fitting to
     # previous days.
-    mag_qdc_adj = copy.deepcopy(mag_qdc)
-    mag_qdc_adj.data -= errors[0]
+    if mag_qdc is None:
+        mag_qdc_adj = None
+    else:
+        mag_qdc_adj = copy.deepcopy(mag_qdc)
+        mag_qdc_adj.data -= errors[0]
 
     # Ensure data gaps are marked as such in the plots. Straight lines
     # across large gaps look bad!
@@ -344,6 +356,8 @@ def make_temperature_plot(temperature_data, filename, exif_tags):
     fig.set_figheight(3)
     fig.subplots_adjust(bottom=0.175, top=0.75, 
                         left=0.15, right=0.925)
+    leg = plt.legend()
+    leg.get_frame().set_alpha(0.5)
     mysavefig(fig, filename, exif_tags)
 
 
@@ -351,7 +365,7 @@ def make_voltage_plot(voltage_data, filename, exif_tags):
     voltage_data.plot()
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_ylim([1.5, 3.5])
+    # ax.set_ylim([1.5, 3.5])
     fig.set_figwidth(6.4)
     fig.set_figheight(3)
     fig.subplots_adjust(bottom=0.175, top=0.75, 
@@ -427,13 +441,13 @@ def make_links(link_dir, link_data):
         if os.path.islink(link_name) and \
                 os.readlink(link_name) == target:
             # Exists and is correct
-            logging.debug('link exists and is correct: ' + link_name +
+            logger.debug('link exists and is correct: ' + link_name +
                           ' -> ' + target)
             continue
         if os.path.lexists(link_name):
-            logging.debug('link exists but is incorrect: ' + link_name)
+            logger.debug('link exists but is incorrect: ' + link_name)
             os.unlink(link_name)
-        logging.debug('creating link ' + link_name + ' -> ' + target)
+        logger.debug('creating link ' + link_name + ' -> ' + target)
         os.symlink(target, link_name)
 
 
@@ -612,7 +626,7 @@ while t1 < end_time:
         if not ap.networks.has_key(network_uc):
             try:
                 __import__('auroraplot.datasets.' + network_lc)
-                logging.debug('imported auroraplot.datasets.' + network_lc)
+                logger.debug('imported auroraplot.datasets.' + network_lc)
             except:
                 pass
 
@@ -738,7 +752,7 @@ while t1 < end_time:
         if args.rolling and args.run_jobs:
             # Jobs are only run for rolling (live) mode.
             try:
-                logging.info('Running site job for ' + network_uc + '/' \
+                logger.info('Running site job for ' + network_uc + '/' \
                                  + site_uc)
                 aurorawatch_jobs.site_job(network=network_uc,
                                           site=site_uc,
@@ -752,7 +766,7 @@ while t1 < end_time:
                                           voltage_data=voltage_data)
                                        
             except Exception as e:
-                logging.error('Could not run job for ' + network_uc + '/' +
+                logger.error('Could not run job for ' + network_uc + '/' +
                               site_uc + ': ' + str(e))
                 traceback.format_exc()
                 
@@ -785,7 +799,7 @@ while t1 < end_time:
 
             if args.run_jobs:
                 try:
-                    logging.info('Running activity job')
+                    logger.info('Running activity job')
                     status_dir = os.path.join(summary_dir, test_mode_str, 
                                               'job_status')
                     aurorawatch_jobs.activity_job(combined_activity=\
@@ -798,7 +812,7 @@ while t1 < end_time:
                                                   ignore_timeout=\
                                                       args.ignore_timeout,)
                 except Exception as e:
-                    logging.error('Could not run activity job: ' + str(e))
+                    logger.error('Could not run activity job: ' + str(e))
                     raise
             
     t1 = t2
@@ -806,7 +820,7 @@ while t1 < end_time:
 
 
 if args.make_links:
-    logging.debug('making links')
+    logger.debug('making links')
     # Makes site links for each site listed
     for network_uc, site_uc in network_site.values():
         site_lc = site_uc.lower()
