@@ -325,8 +325,8 @@ def log_message_events(t, message_tags, is_response=False):
                     lines.append(prefix + tag_name + '\n')
 
     # TODO
-    # if ('upgrade_firmware' in message_tags and first_page):
-    #    lines.append('firmware upgrade')
+    # if ('upgrade_firmware' in message_tags and
+    #     'firmware_page' not in message_tags):
 
     if lines:
         write_to_log_file(t, ''.join(lines))
@@ -734,9 +734,11 @@ print('Done')
 comms_block_size = int(config.get('serial', 'blocksize'))
 
 close_after_write = config.getboolean('daemon', 'close_after_write')
+daemon_connection = config.get('daemon', 'connection')
 
 if args.device:
     device_filename = args.device
+    daemon_connection = 'serial' # Implied by the command line argument
 else:
     device_filename = config.get('serial', 'port')
 
@@ -745,7 +747,7 @@ if device_filename == '-':
     device_socket = None
     acknowledge = False # Cannot send acknowledgements
 
-elif config.get('daemon', 'connection') == 'ethernet':
+elif daemon_connection == 'ethernet':
     # Connect via ethnernet
     device = None
     local_port = int(config.get('ethernet', 'local_port'))
@@ -1029,8 +1031,9 @@ while running:
                     log_message_events(timestamp_s, message_tags, 
                                        is_response=awn.message.is_response_message(message))
                     if response is not None:
-                        log_message_events(timestamp_s, response, 
-                                               is_response=True)
+                        response_tags = awn.message.parse_packet(response)
+                        log_message_events(timestamp_s, response_tags, 
+                                           is_response=True)
 
                 if (config.has_option('cloud', 'filename') and
                     not awn.message.is_response_message(message)):
