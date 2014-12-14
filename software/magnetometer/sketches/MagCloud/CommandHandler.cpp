@@ -92,33 +92,7 @@ void CommandHandler::process(Stream &console)
     if (c == '\r' || c == '\n') {
       // Check for matching substr
       char *ep;
-      /*
-      if (startsWith_P(PSTR("checkTime="), buffer, &ep)) {
-	// Makes no sense without a value
-	RTCx::time_t t = strtol(ep, NULL, 0);
-	RTCx::time_t err;
-	if (checkTime(t, err))
-	  console << "clockError: " << err << endl;
-	else
-	  console << "ERROR: failed to read time" << endl;
-      }
-      else
-	*/
-      if (startsWith_P(PSTR("key"), buffer, &ep)) {
-	if (*ep == '=') {
-	  console << "TODO: set key" << endl;
-	}
-	else {
-	  // Inspection not permitted for security reasons
-	  console << "ERROR: cannot inspect key" << endl;
-	  console << "key=";
-	  for (uint8_t i = 0; i < EEPROM_HMAC_KEY_SIZE; ++i)
-	    console << _HEX(eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i)))
-		    << ' ';
-	  console << endl;
-	}
-      }
-      else if (startsWith_P(PSTR("eepromRead="), buffer, &ep)) {
+      if (startsWith_P(PSTR("eepromRead="), buffer, &ep)) {
 	char *ep2;
 	long address = strtol(ep, &ep2, 0);
 	long size;
@@ -184,43 +158,6 @@ void CommandHandler::process(Stream &console)
 	
 	
       }
-      else if (startsWith_P(PSTR("sdSelect"), buffer, &ep)) {
-	if (*ep++ == '=') {
-	  char *ep2;
-	  long s = strtol(ep, &ep2, 0);
-	  if (s >= 0 && s <= 255 && ep2 != ep && *ep2 == '\0')
-	    eeprom_update_byte((uint8_t*)EEPROM_SD_SELECT, s);
-	}
-	console << "sdSelect:"
-		<< eeprom_read_byte((const uint8_t*)EEPROM_SD_SELECT) << endl;
-      }
-      // else if (startsWith_P(PSTR("setTime="), buffer, &ep)) {
-      // 	// Makes no sense without a value
-      // 	char *ep2;
-      // 	RTCx::time_t t = strtol(ep, &ep2, 0);
-      // 	if (ep2 != ep && *ep2 == '\0') {
-      // 	  // Must have some number for the time
-      // 	  if (setTime(t))
-      // 	    console << "setTime:" << t << endl;
-      // 	  else
-      // 	    console << "setTime: call to setTime() failed\n";
-      // 	}
-      // 	else {
-      // 	  console << "ERROR: bad value for time" << endl;
-      // 	}
-      // }
-      else if (startsWith_P(PSTR("siteId"), buffer, &ep)) {
-	if (*ep++ == '=') {
-	  char *ep2;
-	  long s = strtol(ep, &ep2, 0);
-	  if (s >= 0 && s <= 65535 && ep2 != ep && *ep2 == '\0') {
-	    eeprom_update_word((uint16_t*)EEPROM_SITE_ID, s);
-	    AWPacket::setDefaultSiteId(s);
-	  }
-	  
-	}
-	console << "siteId:" << AWPacket::getDefaultSiteId() << endl;
-      }
 #if USE_SD_CARD
       else if (startsWith_P(PSTR("useSd"), buffer, &ep)) {
 	if (*ep++ == '=') {
@@ -250,24 +187,6 @@ void CommandHandler::process(Stream &console)
 	}
 	console << "verbosity:" << verbosity << endl;
       }
-      
-      /*
-      else if (startsWith_P(PSTR("configXrf="), buffer, &ep)) {
-	long initialBaud = 0;
-	long finalBaud = 0;
-	char *ep2;
-	initialBaud = strtol(ep, &ep2, 0);
-	if (initialBaud && ep != ep2 && *ep2 == ','
-	    && (ep = ++ep2) != 0 // Skip past comma
-	    && (finalBaud = strtol(ep, &ep2, 0)) != 0 // Calc final baud
-	    && ep != ep2 && *ep2 == '\0') {
-	  xrf.begin(initialBaud);
-	  
-	}
-	else
-	  console << "ERROR: bad value for baud rate(s)\n";
-      }
-      */
       else {
 	console << "ERROR: unknown command\n";
       }

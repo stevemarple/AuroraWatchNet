@@ -52,13 +52,14 @@
 #endif 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.24a";
+  "MagCloud-0.25a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
 			    RTCx_DS1307_ADDRESS};
 
 uint8_t ledPin = LED_BUILTIN;
-const uint8_t fanPin = 8;
+const uint8_t fanPin = eeprom_read_byte((uint8_t*)EEPROM_FAN_PIN);
+const uint8_t heaterPin = eeprom_read_byte((uint8_t*)EEPROM_HEATER_PIN);
 
 // Flag to indicate if LED should be switched on. To ensure minimal
 // power consumption it is always switched off.
@@ -764,7 +765,18 @@ void setup(void)
   // configure I/O as appropriate later.
   for (uint8_t i = 0; i < NUM_DIGITAL_PINS; ++i)
     pinMode(i, INPUT_PULLUP);
+
+  // Set fan and heater pins off ASAP to avoid unwanted operation
+  if (fanPin != 0xFF) {
+    pinMode(fanPin, OUTPUT);
+    digitalWrite(fanPin, LOW);
+  }
+  if (heaterPin != 0xFF) {
+    pinMode(heaterPin, OUTPUT);
+    digitalWrite(heaterPin, LOW);
+  }
   
+
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
   uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
@@ -820,8 +832,6 @@ void setup(void)
 
   // Fan control
   if (fanPin != 0xFF) {
-    pinMode(fanPin, OUTPUT);
-    digitalWrite(fanPin, LOW);
     console.print((__FlashStringHelper*)PSTR("Fan temperature: "));
     console.println((int16_t)eeprom_read_word((const uint16_t*)
 					      EEPROM_FAN_TEMPERATURE));

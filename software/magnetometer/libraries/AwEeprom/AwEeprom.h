@@ -175,7 +175,9 @@
 #define EEPROM_AS3935_TUN_CAP 0x6E
 #define EEPROM_AS3935_TUN_CAP_SIZE 1
 
-// 0x6F spare
+// Anti-dew heater for cloud detector
+#define EEPROM_HEATER_PIN 0x6F
+#define EEPROM_HEATER_PIN_SIZE 1
 
 #define EEPROM_LOCAL_MAC_ADDRESS 0x70
 #define EEPROM_LOCAL_MAC_ADDRESS_SIZE 6
