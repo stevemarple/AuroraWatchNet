@@ -333,6 +333,14 @@ eeprom = {
     },
     # Support for AS3935 to be added
     
+
+    'heater_pin': {
+        'address': 0x6f,
+        'format': 'B',
+        'type': safe_eval,
+        'default': 18,
+        'help': 'Heater control pin',
+    },
     'local_mac_address': {
         'address': 0x70,
         'format': '6B',
