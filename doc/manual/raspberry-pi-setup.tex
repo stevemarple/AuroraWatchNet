@@ -25,21 +25,6 @@ using \ssh. Otherwise you must use attach a keyboard and monitor to the
 Raspberry Pi. If you are familiar with Linux it is also possible to
 edit the files by mounting the \sd\ card on another Linux system.
 
-\subsection{/dev/ttyAMA0 serial port setup}
-
-Disable the console from running on \filename{/dev/ttyAMA0}. Edit
-\filename{/boot/cmdline.txt} to remove the parts which relate to
-\filename{ttyAMA0}. Remove
-\begin{Cmd}
-console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
-\end{Cmd}
-
-
-Disable the \code{getty} process from running on
-\filename{/dev/ttyAMA0}. Edit \filename{/etc/inittab}. Find the line
-relating to \filename{ttyAMA0}. Either delete the line entirely or
-comment it out by inserting a hash character (\#) at the start of the
-line.
 
 \subsection{Raspbian configuration}
 
@@ -61,13 +46,52 @@ Select \code{Internationalisation Options} and
 then \code{Change Timezone}. For geographic area select %
 \code{None of the above}, then select \code{\utc}. Select \code{OK}.
 
-\subsubsection{Advanced options}
+\subsubsection{Hostname} 
+
+If you wish change the hostname of your Raspberry Pi select
+\code{Advanced Options} and then \code{Hostname}.
+
+If you have multiple Raspberry Pi computers on your netowrk then you
+should arrange for them to have unique hostnames. Our preference is to
+set the hostname to \code{awn-xxx}, where \code{xxx} is the
+abbreviation (typically 3 letters) used for the magnetometer site.
+
+\subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
   Split}. Set the \gpu\ memory to \code{16} (MB).
 
+\subsubsection{SSH server}
+If you plan to log into the Raspberry Pi remotely you should enable
+the \ssh\ server. If you will only log in via keyboard and monitor
+connected directly to the Pi then you can choose to disable the \ssh\
+server.
+Select \code{Advanced Options} and then \code{SSH}. Choose the
+appropriate option.
+
 \subsubsection{Expand Filesystem}
-Finally select \code{Expand Filesystem}. Although the first option
-do this last. Choose \code{Finish} and then reboot.
+The filesystem should be expanded to use all of the (micro)\sd\
+card. Advanced users planning to make a backup of the card may wish to
+perform this step last so that the backup can be smaller.
+
+Select \code{Expand Filesystem}. Choose \code{Finish} and then reboot.
+
+
+
+\subsection{/dev/ttyAMA0 serial port setup}
+
+Disable the console from running on \filename{/dev/ttyAMA0}. Edit
+\filename{/boot/cmdline.txt} to remove the parts which relate to
+\filename{ttyAMA0}. Remove
+\begin{Cmd}
+console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
+\end{Cmd}
+
+
+Disable the \code{getty} process from running on
+\filename{/dev/ttyAMA0}. Edit \filename{/etc/inittab}. Find the line
+relating to \filename{ttyAMA0}. Either delete the line entirely or
+comment it out by inserting a hash character (\#) at the start of the
+line.
 
 
 \subsection{Configure proxy server}
@@ -127,9 +151,15 @@ apt-get remove dphys-swapfile
 
 \subsection{Remove Wolfram Engine}
 Wolfram Engine uses over \MB{450} and is not needed. Remove to save
-valuable space on the \sd\ card.
+valuable space on the \sd\ card. As user \rootUser
 \begin{Cmd}
 apt-get remove wolfram-engine
+\end{Cmd}
+
+Remove the Wolfram repository from the package source list. As user
+\rootUser
+\begin{Cmd}
+rm /etc/apt/sources.list.d/wolfram.list 
 \end{Cmd}
 
 \subsection{Install missing software packages}
@@ -138,6 +168,17 @@ As user \rootUser
 apt-get install screen lsof python-pip ipython python-matplotlib \textbackslash
     python-scipy python-serial python-daemon python-lockfile \textbackslash
     avahi-daemon dnsutils
+\end{Cmd}
+
+\subsection{Install python numpy library}
+
+A newer version of the \code{numpy} library is required for
+\code{auroraplot}. As user \rootUser
+
+\todo[Have numpy .deb file stored somewhere with instructions for
+download.]
+\begin{Cmd}
+dpkg -i /home/pi/python-numpy_1.7.1-3_armhf.deb
 \end{Cmd}
 
 \subsection{Configure file system mount options}
@@ -160,8 +201,14 @@ below.
 /dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
 \end{Cmd}
 
+\subsection{Regenerate SSH host keys}
 
-
+As user \rootUser
+\begin{Cmd}
+cd /etc/ssh
+rm ssh_host_*_key\{,.pub\}
+ssh-keygen -A
+\end{Cmd}
 
 
 \section{Installing the AuroraWatchNet server software}
@@ -176,19 +223,24 @@ git clone --recursive https://github.com/stevemarple/xboot.git
 mkdir \mytilde/bin
 cd \mytilde/bin
 ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
-ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
 ln -s ../AuroraWatchNet/software/server/bin/send_cmd.py
 ln -s ../AuroraWatchNet/software/server/bin/log_ip
 ln -s ../AuroraWatchNet/software/server/bin/upload_data.py
 cd \mytilde
 \end{Cmd}
 
-\subsection{Install python numpy library}
+\subsection{Create configuration file}
 
 As user \rootUser
 \begin{Cmd}
-dpkg -i /home/pi/python-numpy_1.7.1-3_armhf.deb
+mkdir /data
+chown pi.pi /data
+nano /etc/awnet.ini
 \end{Cmd}
+
+\todo[Create file contents, perhaps using a template copied from
+the repository]
+
 
 \subsection{Configure python}
 
@@ -198,6 +250,10 @@ links. As user \piUser
 \mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
 \end{Cmd}
 
+The first time the command runs there will be some errors printed as
+symbolic links are other configuration details are missing. Run the
+same command a second time to confirm that the errors have been
+corrected.
 
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
@@ -238,23 +294,10 @@ cd /etc/ifplugd/action.d
 ln -s /home/pi/AuroraWatchNet/software/server/bin/log_ip
 \end{Cmd}
 
-\subsection{Create configuration file}
-
-As user \rootUser
-\begin{Cmd}
-mkdir /data
-chown pi.pi /data
-nano /etc/awnet.ini
-\end{Cmd}
-
-\todo[Create file contents, perhaps using a template copied from
-the repository]
-
-\subsection{Create init file for server daemon}
+\subsection{Automatically start the data recording daemon}
 As user \rootUser
 \begin{Cmd}
 cd /etc/init.d
-ln -s /home/pi/AuroraWatchNet/software/server/bin/awnetd.sh awnetd
 update-rc.d  awnetd defaults
 \end{Cmd}
 
@@ -282,3 +325,15 @@ information. Finally restart \ntp; as user \rootUser
 \begin{Cmd}
 /etc/init/ntp restart
 \end{Cmd}
+
+
+
+
+\section{Backup of SD card and expand filesystem}
+
+If you did not expand the (micro)\sd\ card earlier then make a backup
+(if you wish) and run
+\begin{Cmd}
+sudo raspi-config
+\end{Cmd}
+Select \code{Expand Filesystem}. Choose \code{Finish} and then reboot.
