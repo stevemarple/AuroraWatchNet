@@ -707,7 +707,7 @@ while t1 < end_time:
                         act_rolling.append(md[4])
 
             except Exception as e:
-                traceback.format_exc()
+                logger.error(traceback.format_exc())
 
         temp_data = None
         if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
@@ -768,7 +768,7 @@ while t1 < end_time:
             except Exception as e:
                 logger.error('Could not run job for ' + network_uc + '/' +
                               site_uc + ': ' + str(e))
-                traceback.format_exc()
+                logger.error(traceback.format_exc())
                 
                     
         
