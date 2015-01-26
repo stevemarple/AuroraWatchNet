@@ -25,11 +25,11 @@ settings (such as SMTP server settings) and is used for the site_job()
 and activity_job() functions. Settings common to all sites (nut not
 activity_job() can be stored in the all_sites.ini file, whilst
 site-specific settings can be stored in a site config file, named
-<network>_<site>.ini where <network> is the site's network name in
+<project>_<site>.ini where <project> is the site's project name in
 lower case and <site> is the site name, also in lower case. Settings
 specific to activity_job() should be placed in combined.ini. Ini files
 for site_job() are read in the order common.ini, all_sites.ini and
-finally <network>_<site>.ini. In case of conflict the last read
+finally <project>_<site>.ini. In case of conflict the last read
 setting wins. For activity_job the ini files are read in the order
 common.ini, combined.ini.
 
@@ -88,7 +88,7 @@ import auroraplot.data
 
 _ignore_timeout = False
 
-def site_job(network, site, now, status_dir, test_mode, 
+def site_job(project, site, now, status_dir, test_mode, 
              ignore_timeout=False,
              mag_data=None, 
              act_data=None,
@@ -98,7 +98,7 @@ def site_job(network, site, now, status_dir, test_mode,
     global _ignore_timeout
     _ignore_timeout = ignore_timeout
 
-    config = read_config(test_mode, network=network, site=site)
+    config = read_config(test_mode, project=project, site=site)
     # Non-alert jobs should go here...
 
     if not config.getboolean('all_alerts', 'enabled'):
@@ -109,7 +109,7 @@ def site_job(network, site, now, status_dir, test_mode,
         aurora_alert(act_data, False, now, status_dir, test_mode, 
                      ignore_timeout, config)
         
-    warn_missing_data(mag_data, network, site, now, status_dir,
+    warn_missing_data(mag_data, project, site, now, status_dir,
                       test_mode, config)
 
     # Warn if battery nearly exhausted
@@ -122,12 +122,12 @@ def site_job(network, site, now, status_dir, test_mode,
             lower_limit=low_batt)
 
         if low_batt_time:
-            logging.debug('Low battery for ' + network + '/' + site)
+            logging.debug('Low battery for ' + project + '/' + site)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
                 twitter_mesg = expand_string(config.get('battery_voltage', 
                                                       'twitter_message'),
-                                     network, site, now, test_mode, 
+                                     project, site, now, test_mode, 
                                      low_voltage=low_batt)
 
                 run_if_timeout_reached(send_tweet, low_batt_timeout,
@@ -144,7 +144,7 @@ def site_job(network, site, now, status_dir, test_mode,
                                         'facebook_cmd').split()
                 facebook_mesg = expand_string(config.get('battery_voltage', 
                                                          'facebook_message'),
-                                              network, site, now, test_mode, 
+                                              project, site, now, test_mode, 
                                               low_voltage=low_batt)
                 run_if_timeout_reached(fbcmd, low_batt_timeout, 
                                        now, status_dir,
@@ -161,7 +161,7 @@ def site_job(network, site, now, status_dir, test_mode,
                                        now, status_dir,
                                        detection_time=low_batt_time, 
                                        func_args=[config, 'battery_voltage',
-                                                  ejob, network, site, 
+                                                  ejob, project, site, 
                                                   now, test_mode],
                                        func_kwargs={'low_voltage': low_batt},
                                        name='battery_voltage_' + ejob)
@@ -199,7 +199,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
     n = np.where(activity.data[0,-1] >= activity.thresholds)[0][-1]
 
 
-    logging.debug('Activity level for ' + activity.network + '/' 
+    logging.debug('Activity level for ' + activity.project + '/' 
                   + activity.site + ': ' + str(n))
     
     
@@ -218,7 +218,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
     # files which must be updated.
     job_base_name = section_name
     if not combined:
-        job_base_name += '_' + activity.network.lower() + '_' \
+        job_base_name += '_' + activity.project.lower() + '_' \
             + activity.site.lower()
     tweet_files = []
     facebook_files = []
@@ -234,7 +234,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
         twitter_username = config.get(section_name, 'twitter_username')
         twitter_mesg = expand_string(config.get(section_name, 
                                                 'twitter_message'),
-                                     activity.network, activity.site, now, 
+                                     activity.project, activity.site, now, 
                                      test_mode)
         run_if_timeout_reached(send_tweet, tweet_timeout, 
                                now, status_dir,
@@ -248,7 +248,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
     if config.has_option(section_name, 'facebook_cmd'):
         facebook_mesg = expand_string(config.get(section_name, 
                                                  'facebook_message'),
-                                      activity.network, activity.site, now,
+                                      activity.project, activity.site, now,
                                       test_mode)
         fbcmd_opts = config.get(section_name, 'facebook_cmd').split()
         run_if_timeout_reached(fbcmd, facebook_timeout, now, status_dir,
@@ -266,7 +266,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
         run_if_timeout_reached(send_email, email_timeout, 
                                now, status_dir,
                                func_args=[config, section_name, ejob, 
-                                          activity.network, activity.site, 
+                                          activity.project, activity.site, 
                                           now, test_mode],
                                name=email_files[-1] + ejob,
                                also_update=map(lambda x: x + ejob, 
@@ -306,7 +306,7 @@ def limit_exceeded(data, lower_limit=None, upper_limit=None):
         return None
 
 
-def warn_missing_data(data, network, site, now, status_dir, test_mode, config):
+def warn_missing_data(data, project, site, now, status_dir, test_mode, config):
 
     section_name = 'missing_data'
     missing_interval = np.timedelta64(1, 'h')
@@ -335,11 +335,11 @@ def warn_missing_data(data, network, site, now, status_dir, test_mode, config):
     tstr = dt64.strftime(t, '%Y-%m-%d %H:%M:%SUT')
     if t < now - missing_interval:
         # Data is missing
-        logging.info(network + '/' + site + ' missing data')
+        logging.info(project + '/' + site + ' missing data')
         if config.has_option(section_name, 'twitter_username'):
             username = config.get(section_name, 'twitter_username')
             mesg = expand_string(config.get(section_name, 'twitter_message'),
-                                 network, site, now, test_mode, 
+                                 project, site, now, test_mode, 
                                  missing_start_time=tstr,
                                  missing_interval=str(missing_interval))   
             run_if_timeout_reached(send_tweet, timeout,
@@ -351,7 +351,7 @@ def warn_missing_data(data, network, site, now, status_dir, test_mode, config):
             fbcmd_opts = config.get(section_name, 
                                     'facebook_cmd').split()
             mesg = expand_string(config.get(section_name, 'facebook_message'),
-                                 network, site, now, test_mode, 
+                                 project, site, now, test_mode, 
                                  missing_start_time=tstr,
                                  missing_interval=str(missing_interval)) 
             run_if_timeout_reached(fbcmd, timeout, 
@@ -371,7 +371,7 @@ def warn_missing_data(data, network, site, now, status_dir, test_mode, config):
             run_if_timeout_reached(send_email, timeout, 
                                    now, status_dir,
                                    func_args=[config, section_name,
-                                              ejob, network, site, 
+                                              ejob, project, site, 
                                               now, test_mode],
                                    func_kwargs=func_kwargs,
                                    name=section_name + '_' + ejob)
@@ -457,7 +457,7 @@ associated with sending emails.
 
 
 # def send_email(config, section, ejob, subject, mesg):
-def send_email(config, section, ejob, network, site, now, test_mode, **kwargs):
+def send_email(config, section, ejob, project, site, now, test_mode, **kwargs):
 
     logging.debug('Sending email to ' + config.get(section, ejob + '_to'))
 
@@ -477,7 +477,7 @@ def send_email(config, section, ejob, network, site, now, test_mode, **kwargs):
         raise Exception('Email message not set in config file for job [' + 
                         section + '] ' + ejob)
 
-    m = MIMEText(expand_string(mesg, network, site, now, test_mode, **kwargs))
+    m = MIMEText(expand_string(mesg, project, site, now, test_mode, **kwargs))
 
     if config.has_option(section, ejob + '_subject'):
         subject = config.get(section, ejob + '_subject')
@@ -488,7 +488,7 @@ def send_email(config, section, ejob, network, site, now, test_mode, **kwargs):
         raise Exception('Subject not set in config file for job [' + 
                         section + '] ' + ejob)
 
-    m['Subject'] = expand_string(subject, network, site, now, test_mode, 
+    m['Subject'] = expand_string(subject, project, site, now, test_mode, 
                                  **kwargs)
     m['From'] = config.get(section, ejob + '_from')
     m['To'] = config.get(section, ejob + '_to')
@@ -520,7 +520,7 @@ def fbcmd(cmd_options, mesg):
     return subprocess.call(a)
 
             
-def read_config(test_mode, combined=False, network=None, site=None):
+def read_config(test_mode, combined=False, project=None, site=None):
     config = SafeConfigParser()
 
     # Set some sensible defaults
@@ -587,11 +587,11 @@ def read_config(test_mode, combined=False, network=None, site=None):
         config.set('battery_voltage', 'low_voltage', '2.35')
         # batt_low_mesg = 'Battery voltage low (< {low_voltage!s}V) for ' + 
         batt_low_mesg = 'Battery voltage low (< {low_voltage:.2f}V) for ' + \
-            '{network}/{site} {datetime}.'
+            '{project}/{site} {datetime}.'
         config.set('battery_voltage', 'twitter_message', batt_low_mesg)
         config.set('battery_voltage', 'facebook_message', batt_low_mesg)
         config.set('battery_voltage', 'email_subject', 
-                   '{network}/{site}: Battery low')
+                   '{project}/{site}: Battery low')
         config.set('battery_voltage', 'email_message', batt_low_mesg)
 
         # Single sites should only warn of disturbance, only issue
@@ -608,49 +608,49 @@ def read_config(test_mode, combined=False, network=None, site=None):
                    + 'activity, aurora is unlikely to be seen {datetime}.')
 
         config.add_section('aurora_alert_1')
-        config.set('aurora_alert_1', 'twitter_message', '{network}/{site} ' +
+        config.set('aurora_alert_1', 'twitter_message', '{project}/{site} ' +
                    'detected minor geomagnetic activity {datetime}')
-        config.set('aurora_alert_1', 'facebook_message', '{network}/{site} ' +
+        config.set('aurora_alert_1', 'facebook_message', '{project}/{site} ' +
                    'detected minor geomagnetic activity {datetime}')
-        config.set('aurora_alert_1', 'email_subject', '{network}/{site} ' + 
+        config.set('aurora_alert_1', 'email_subject', '{project}/{site} ' + 
                    'detected minor geomagnetic activity {datetime}')
-        config.set('aurora_alert_1', 'email_message', '{network}/{site} ' + 
+        config.set('aurora_alert_1', 'email_message', '{project}/{site} ' + 
                    'detected minor geomagnetic activity {datetime}')
 
         config.add_section('aurora_alert_2')
-        config.set('aurora_alert_2', 'twitter_message', '{network}/{site} ' +
+        config.set('aurora_alert_2', 'twitter_message', '{project}/{site} ' +
                    'detected large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_2', 'facebook_message', '{network}/{site} ' + 
+        config.set('aurora_alert_2', 'facebook_message', '{project}/{site} ' + 
                    'detected large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_2', 'email_subject', '{network}/{site} ' + 
+        config.set('aurora_alert_2', 'email_subject', '{project}/{site} ' + 
                    'detected large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_2', 'email_message', '{network}/{site} ' +
+        config.set('aurora_alert_2', 'email_message', '{project}/{site} ' +
                    'detected large geomagnetic disturbance {datetime}')
 
         config.add_section('aurora_alert_3')
-        config.set('aurora_alert_3', 'twitter_message', '{network}/{site} ' +
+        config.set('aurora_alert_3', 'twitter_message', '{project}/{site} ' +
                    'detected very large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_3', 'facebook_message', '{network}/{site} ' + 
+        config.set('aurora_alert_3', 'facebook_message', '{project}/{site} ' + 
                    'detected very large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_3', 'email_subject', '{network}/{site} ' + 
+        config.set('aurora_alert_3', 'email_subject', '{project}/{site} ' + 
                    'detected very large geomagnetic disturbance {datetime}')
-        config.set('aurora_alert_3', 'email_message', '{network}/{site} ' + 
+        config.set('aurora_alert_3', 'email_message', '{project}/{site} ' + 
                    'detected very large geomagnetic disturbance {datetime}')
 
         config.add_section('missing_data')
         # TODO: Add items for missing_interval and timeout
-        config.set('missing_data', 'twitter_message', '{network}/{site} ' +
+        config.set('missing_data', 'twitter_message', '{project}/{site} ' +
                    'missing data since {missing_start_time}.')
-        config.set('missing_data', 'facebook_message', '{network}/{site} ' +
+        config.set('missing_data', 'facebook_message', '{project}/{site} ' +
                    'missing data since {missing_start_time}.')
         config.set('missing_data', 'email_subject', 
-                   '{network}/{site}: Missing data')
-        config.set('missing_data', 'email_message', '{network}/{site} ' +
+                   '{project}/{site}: Missing data')
+        config.set('missing_data', 'email_message', '{project}/{site} ' +
                    'missing data since {missing_start_time}.')
 
         config_files = [os.path.join(path, 'common.ini'),
                         os.path.join(path, 'all_sites.ini'),
-                        os.path.join(path, network.lower() + '_' 
+                        os.path.join(path, project.lower() + '_' 
                                      + site.lower() + '.ini')]
 
     logging.debug('Config files: ' + ', '.join(config_files))
@@ -659,9 +659,9 @@ def read_config(test_mode, combined=False, network=None, site=None):
     return config
 
 
-def expand_string(s, network, site, now, test_mode, **kwargs):
+def expand_string(s, project, site, now, test_mode, **kwargs):
     d = kwargs.copy()
-    d.update({'network': network or '',
+    d.update({'project': project or '',
               'site': site or '',
               'date': dt64.strftime(now, '%Y-%m-%d'),
               'datetime': dt64.strftime(now, '%Y-%m-%d %H:%M:%SUT'),
