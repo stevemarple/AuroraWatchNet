@@ -157,6 +157,7 @@ def fit_qdc(mag_qdc, fit_data, mag_data, cadence=np.timedelta64(1,'m')):
                               fit=ap.data.Data.minimise_sign_error_fit,
                               plot_fit=args.plot_fit,
                               full_output=True)
+
             # Apply same error adjustment to the QDC    
             mag_qdc.data = (mag_qdc.data.T - errors).T
             return qdc_aligned, errors, fi
@@ -668,6 +669,10 @@ for t1, t2, rolling in date_generator():
                 dt64.strftime(t1, 
                               os.path.join(site_summary_dir, '%Y', '%m',
                                            site_lc + '_%Y%m%d.png'))
+            qdc_fit_filename =  \
+                dt64.strftime(t1, 
+                              os.path.join(site_summary_dir, '%Y', '%m',
+                                           site_lc + '_%Y%m%d_fit.png'))
             k_filename = \
                 dt64.strftime(t1, 
                               os.path.join(site_summary_dir, '%Y', '%m', 
@@ -727,11 +732,15 @@ for t1, t2, rolling in date_generator():
                     if mag_data_prev is not None:
                         fitted_qdc, errors, fi \
                             = fit_qdc(mag_qdc, mag_data_prev, mag_data)
-                        ### fitted_qdc.plot()
-                        ### mag_data_prev.plot(axes=plt.gca())
-                        ### print('E2 ' + repr(errors))
-                        ### plt.show()
-                
+
+                        if args.plot_fit and not rolling:
+                            fig = plt.gcf()
+                            fig.set_figwidth(6.4)
+                            fig.set_figheight(4.8)
+                            fig.subplots_adjust(bottom=0.1, top=0.85, 
+                                                left=0.15, right=0.925)
+                            mysavefig(fig, qdc_fit_filename, exif_tags)
+                     
                 # Standard AuroraWatch UK activity plot
                 activity = activity_plot(mag_data, mag_qdc, 
                                          mag_plot_filename,
