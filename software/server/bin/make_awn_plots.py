@@ -74,11 +74,11 @@ def date_generator():
         t1 = t2 - day
         yield t1, t2, True
 
-def my_load_data(network, site, data_type, start_time, end_time, **kwargs):
-    if data_type not in ap.networks[network][site]['data_types']:
+def my_load_data(project, site, data_type, start_time, end_time, **kwargs):
+    if data_type not in ap.projects[project][site]['data_types']:
         return None
 
-    r = ap.load_data(network, site, data_type, start_time, end_time, **kwargs)
+    r = ap.load_data(project, site, data_type, start_time, end_time, **kwargs)
     if r is not None and args.test_mode:
         # Remove any data after 'now' to emulate the correct behaviour
         # when using historical data.
@@ -87,8 +87,8 @@ def my_load_data(network, site, data_type, start_time, end_time, **kwargs):
 
 
 load_data = ap.load_data
-def load_mag_data(network, site, start_time, end_time, **kwargs):
-    if 'MagData' not in ap.networks[network][site]['data_types']:
+def load_mag_data(project, site, start_time, end_time, **kwargs):
+    if 'MagData' not in ap.projects[project][site]['data_types']:
         return None
 
     # Load data day by day so that a memoize function can be used to
@@ -97,7 +97,7 @@ def load_mag_data(network, site, start_time, end_time, **kwargs):
     t1 = start_time
     while t1 < end_time:
         t2 = t1 + day
-        md = load_data(network, site, 'MagData', t1, t2, **kwargs)
+        md = load_data(project, site, 'MagData', t1, t2, **kwargs)
         if md is not None:
             # Ensure data gaps are marked as such in the plots. Straight lines
             # across large gaps look bad!
@@ -225,10 +225,10 @@ def mysavefig(fig, filename, exif_tags=None):
     if not args.show:
         plt.close('all') # Close to save memory
 
-def has_data_of_type(network, site, data_type):
-    return ap.networks.has_key(network) \
-        and ap.networks[network].has_key(site) \
-        and ap.networks[network][site]['data_types'].has_key(data_type)
+def has_data_of_type(project, site, data_type):
+    return ap.projects.has_key(project) \
+        and ap.projects[project].has_key(site) \
+        and ap.projects[project][site]['data_types'].has_key(data_type)
 
 def round_to(a, b, func=np.round):
     return func(a / b) * b
@@ -297,9 +297,9 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
 def k_index_plot(mag_data, mag_qdc, filename, exif_tags):
 
     md_filt = mag_data
-    if ap.has_site_info(mag_data.network, mag_data.site, 
+    if ap.has_site_info(mag_data.project, mag_data.site, 
                         'k_index_filter'):
-        kfilt = ap.get_site_info(mag_data.network, mag_data.site, 
+        kfilt = ap.get_site_info(mag_data.project, mag_data.site, 
                                   'k_index_filter')
         if kfilt is not None:
             md_filt = kfilt(mag_data)
@@ -375,7 +375,7 @@ def combined_activity_plot(act, filename, exif_tags):
         data = np.median(act_data, axis=0)
         
     activity_data = copy.deepcopy(act[0])
-    activity_data.network = 'AuroraWatch'
+    activity_data.project = 'AuroraWatch'
     activity_data.site = 'UK'
     # Set specific thresholds, and convert data from proportion of
     # amber threshold
@@ -497,9 +497,9 @@ parser.add_argument('--clear-timeouts',
 parser.add_argument('--ignore-timeout',
                     action='store_true',
                     help='Ignore timeout when running jobs')
-parser.add_argument('network_site',
+parser.add_argument('project_site',
                     nargs='+',
-                    metavar="NETWORK[/SITE]")
+                    metavar="PROJECT[/SITE]")
 parser.add_argument('--summary-dir', 
                     default='/tmp',
                     help='Base directory for summary plots',
@@ -564,7 +564,7 @@ if args.clear_timeouts:
     clear_timeouts(os.path.join(summary_dir, 'job_status'))
 
 
-network_list, site_list = ap.parse_network_site_list(args.network_site)
+project_list, site_list = ap.parse_project_site_list(args.project_site)
 
 if args.cache != 0:
     try: 
@@ -616,35 +616,35 @@ for t1, t2, rolling in date_generator():
     attribution_list = []
 
     for site_num in range(len(site_list)):
-        network_uc = network_list[site_num]
-        network_lc = network_uc.lower()
+        project_uc = project_list[site_num]
+        project_lc = project_uc.lower()
         site_uc = site_list[site_num]
         site_lc = site_uc.lower()
-        logger.debug('Processing %s/%s' % (network_uc, site_uc))
+        logger.debug('Processing %s/%s' % (project_uc, site_uc))
 
         # Ignore this 24 hour period if outside the site's listed
         # operational period
-        site_start_time = ap.get_site_info(network_uc, site_uc, 
+        site_start_time = ap.get_site_info(project_uc, site_uc, 
                                            info='start_time')
-        site_end_time = ap.get_site_info(network_uc, site_uc, 
+        site_end_time = ap.get_site_info(project_uc, site_uc, 
                                          info='end_time')
         if ((site_start_time and t2 <= site_start_time) or
             (site_end_time and t1 >= site_end_time)):
             continue
         
-        copyright_ = ap.get_site_info(network_uc, site_uc, 'copyright')
-        attribution = ap.get_site_info(network_uc, site_uc, 'attribution')
+        copyright_ = ap.get_site_info(project_uc, site_uc, 'copyright')
+        attribution = ap.get_site_info(project_uc, site_uc, 'attribution')
         
         exif_tags = {'Exif.Image.Copyright': \
                          ' '.join(['Copyright: ' + copyright_,
                                     'License: ' + \
-                                        ap.get_site_info(network_uc, 
+                                        ap.get_site_info(project_uc, 
                                                          site_uc, 
                                                          'license'),
                                     'Attribution: ' + attribution])}
 
         site_summary_dir = os.path.join(summary_dir,
-                                        network_lc, site_lc)
+                                        project_lc, site_lc)
         site_status_dir = os.path.join(site_summary_dir, 'job_status')
 
         if rolling:
@@ -706,7 +706,7 @@ for t1, t2, rolling in date_generator():
         activity = None
         ### qdc_aligned = None
         try:
-            mag_data = load_mag_data(network_uc, site_uc, t1, t2)
+            mag_data = load_mag_data(project_uc, site_uc, t1, t2)
             logger.debug(mag_data)
             if mag_data is not None:
                 # Store copyright and attribution. Used later in stackplots
@@ -714,13 +714,13 @@ for t1, t2, rolling in date_generator():
                 mag_data.attribution = attribution
 
                 mag_data_list.append(mag_data)
-                mag_qdc = ap.magdata.load_qdc(network_uc, 
+                mag_qdc = ap.magdata.load_qdc(project_uc, 
                                               site_uc, 
                                               compute_mag_qdc_t(t1), 
                                               tries=args.qdc_tries)
                 if mag_qdc is not None:
                     # Try fitting QDC to previous 3 days of data
-                    mag_data_prev = load_mag_data(network_uc, 
+                    mag_data_prev = load_mag_data(project_uc, 
                                                   site_uc, 
                                                   t1_sod - (3*day), 
                                                   t1_sod)
@@ -750,8 +750,8 @@ for t1, t2, rolling in date_generator():
 
         temp_data = None
         try:
-            if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
-                temp_data = my_load_data(network_uc, site_uc, 
+            if has_data_of_type(project_uc, site_uc, 'TemperatureData'):
+                temp_data = my_load_data(project_uc, site_uc, 
                                          'TemperatureData', 
                                          t1, t2)
                 if temp_data is not None:
@@ -765,8 +765,8 @@ for t1, t2, rolling in date_generator():
 
         voltage_data = None
         try:
-            if has_data_of_type(network_uc, site_uc, 'VoltageData'):
-                voltage_data = my_load_data(network_uc, site_uc, 
+            if has_data_of_type(project_uc, site_uc, 'VoltageData'):
+                voltage_data = my_load_data(project_uc, site_uc, 
                                             'VoltageData', 
                                             t1, t2)
                 if (voltage_data is not None 
@@ -782,9 +782,9 @@ for t1, t2, rolling in date_generator():
         if rolling and args.run_jobs:
             # Jobs are only run for rolling (live) mode.
             try:
-                logger.info('Running site job for ' + network_uc + '/' \
+                logger.info('Running site job for ' + project_uc + '/' \
                                  + site_uc)
-                aurorawatch_jobs.site_job(network=network_uc,
+                aurorawatch_jobs.site_job(project=project_uc,
                                           site=site_uc,
                                           now=now,
                                           status_dir=site_status_dir,
@@ -796,7 +796,7 @@ for t1, t2, rolling in date_generator():
                                           voltage_data=voltage_data)
                                        
             except Exception as e:
-                logger.error('Could not run job for ' + network_uc + '/' +
+                logger.error('Could not run job for ' + project_uc + '/' +
                               site_uc + ': ' + str(e))
                 traceback.format_exc()
                 
@@ -805,7 +805,7 @@ for t1, t2, rolling in date_generator():
         try:
             site_ca = [] # site copyright/attribution details
             for m in mag_data_list:
-                site_ca.append(m.network + '/' + m.site + 
+                site_ca.append(m.project + '/' + m.site + 
                                ' data: ' +
                                ' Copyright: ' + m.copyright +
                                ' Attribution: ' + m.attribution)
@@ -843,10 +843,10 @@ for t1, t2, rolling in date_generator():
 if args.make_links:
     logger.debug('Making links')
     # Makes site links for each site listed
-    for network_uc, site_uc in network_site.values():
+    for project_uc, site_uc in project_site.values():
         site_lc = site_uc.lower()
         site_summary_dir = os.path.join(summary_dir, 
-                                        network_uc.lower(), site_lc)
+                                        project_uc.lower(), site_lc)
 
         mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
                                 site_lc + '_%Y%m%d.png')

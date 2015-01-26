@@ -51,8 +51,8 @@ def parse_datetime(s):
         return np.datetime64(s).astype('M8[us]')
 
 
-def my_load_data(network, site, data_type, start_time, end_time, **kwargs):
-    r = ap.load_data(network, site, data_type, start_time, end_time, **kwargs)
+def my_load_data(project, site, data_type, start_time, end_time, **kwargs):
+    r = ap.load_data(project, site, data_type, start_time, end_time, **kwargs)
     if r is not None and args.test_mode:
         # Remove any data after 'now' to emulate the correct behaviour
         # when using historical data.
@@ -120,10 +120,10 @@ def mysavefig(fig, filename, exif_tags=None):
     # if not args.show:
     #     plt.close(fig) # Close to save memory
 
-def has_data_of_type(network, site, data_type):
-    return ap.networks.has_key(network) \
-        and ap.networks[network].has_key(site) \
-        and ap.networks[network][site]['data_types'].has_key(data_type)
+def has_data_of_type(project, site, data_type):
+    return ap.projects.has_key(project) \
+        and ap.projects[project].has_key(site) \
+        and ap.projects[project][site]['data_types'].has_key(data_type)
 
 def round_to(a, b, func=np.round):
     return func(a / b) * b
@@ -196,9 +196,9 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
     r = [activity]
     if k_index_filename is not None:
         md_filt = mag_data
-        if ap.has_site_info(mag_data.network, mag_data.site, 
+        if ap.has_site_info(mag_data.project, mag_data.site, 
                             'k_index_filter'):
-            kfilt = ap.get_site_info(mag_data.network, mag_data.site, 
+            kfilt = ap.get_site_info(mag_data.project, mag_data.site, 
                                       'k_index_filter')
             if kfilt is not None:
                 md_filt = kfilt(mag_data)
@@ -220,14 +220,14 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
 
     return r
  
-def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
+def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     '''
     Load data and make the AuroraWatch activity plot. Plots always
     cover 24 hours, but may begin at midnight for day plots, or at any
     other hour for rolling plots. This function uses the previous 72
     hours to help fit the quiet-day curve.
 
-    network: name of network
+    project: name of project
     
     site: name of site
     
@@ -253,13 +253,13 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
 
     day = np.timedelta64(24, 'h')
 
-    archive, archive_details = ap.get_archive_info(network, site, 'MagData')
+    archive, archive_details = ap.get_archive_info(project, site, 'MagData')
     channel = archive_details['channels'][0]
 
     # Load the data to plot. For rolling plots load upto midnight so
     # that both the rolling plot and the current day plot can be
     # generated efficiently.
-    mag_data = my_load_data(network, site, 'MagData', st, dt64.ceil(et, day),
+    mag_data = my_load_data(project, site, 'MagData', st, dt64.ceil(et, day),
                             channels=[channel])
 
     if mag_data is None or \
@@ -275,7 +275,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     qdc_fit_interval = 3 * day
     fit_et = dt64.ceil(st, day) # Could be doing a rolling plot
     fit_st = fit_et - qdc_fit_interval
-    fit_data = my_load_data(network, site, 'MagData', fit_st, fit_et, 
+    fit_data = my_load_data(project, site, 'MagData', fit_st, fit_et, 
                             channels=[channel])
 
     # Load a QDC. For the 4th or later in the month load the previous
@@ -284,7 +284,7 @@ def make_aurorawatch_plot(network, site, st, et, rolling, exif_tags):
     qdc_t = dt64.get_start_of_previous_month(st)
     if dt64.get_day_of_month(st) < 4:
         qdc_t = dt64.get_start_of_previous_month(qdc_t)
-    mag_qdc = ap.magdata.load_qdc(network, site, qdc_t, 
+    mag_qdc = ap.magdata.load_qdc(project, site, qdc_t, 
                                   channels=[channel], tries=6)
     if mag_qdc is None:
         logger.info('No QDC')
@@ -405,7 +405,7 @@ def combined_activity_plot(act, filename, exif_tags):
         data = np.median(act_data, axis=0)
         
     activity_data = copy.deepcopy(act[0])
-    activity_data.network = 'AuroraWatch'
+    activity_data.project = 'AuroraWatch'
     activity_data.site = 'UK'
     # Set specific thresholds, and convert data from proportion of
     # amber threshold
@@ -512,8 +512,8 @@ parser.add_argument('--ignore-timeout',
                     help='Ignore timeout when running jobs')
 parser.add_argument('--sites', 
                     required=True,
-                    help='Whitespace-separated list of sites (prefixed with network)',
-                    metavar='"NETWORK1/SITE1 NETWORK2/SITE2 ..."')
+                    help='Whitespace-separated list of sites (prefixed with project)',
+                    metavar='"PROJECT1/SITE1 PROJECT2/SITE2 ..."')
 parser.add_argument('--summary-dir', 
                     default='/tmp',
                     help='Base directory for summary plots',
@@ -582,21 +582,21 @@ if args.clear_timeouts:
     clear_timeouts(os.path.join(args.summary_dir, test_mode_str, 
                                 'job_status'))
 
-# Get names of all networks and sites to be processed. Dictionary used
+# Get names of all projects and sites to be processed. Dictionary used
 # to avoid duplicates.
-network_site = {}
+project_site = {}
 for s in args.sites.upper().split():
     n_s = s.split('/')
     if len(n_s) == 1:
-        # Only network given, use all sites
-        for k in ap.networks[n_s[0]].keys():
-            network_site[n_s[0] + '/' + k] = (n_s[0], k)
+        # Only project given, use all sites
+        for k in ap.projects[n_s[0]].keys():
+            project_site[n_s[0] + '/' + k] = (n_s[0], k)
 
     elif len(n_s) == 2:
-        # Network and site given
-        network_site[s] = tuple(n_s)
+        # Project and site given
+        project_site[s] = tuple(n_s)
     else:
-        raise Exception('bad value for network/site (' + network_site)
+        raise Exception('bad value for project/site (' + project_site)
 
 
 
@@ -619,20 +619,20 @@ while t1 < end_time:
     copyright_list = []
     attribution_list = []
 
-    for network_uc, site_uc in network_site.values():
-        network_lc = network_uc.lower()
+    for project_uc, site_uc in project_site.values():
+        project_lc = project_uc.lower()
         site_lc = site_uc.lower()
 
-        if not ap.networks.has_key(network_uc):
+        if not ap.projects.has_key(project_uc):
             try:
-                __import__('auroraplot.datasets.' + network_lc)
-                logger.debug('imported auroraplot.datasets.' + network_lc)
+                __import__('auroraplot.datasets.' + project_lc)
+                logger.debug('imported auroraplot.datasets.' + project_lc)
             except:
                 pass
 
-        site_start_time = ap.get_site_info(network_uc, site_uc, 
+        site_start_time = ap.get_site_info(project_uc, site_uc, 
                                            info='start_time')
-        site_end_time = ap.get_site_info(network_uc, site_uc, 
+        site_end_time = ap.get_site_info(project_uc, site_uc, 
                                          info='end_time')
         if site_start_time and t2 <= site_start_time:
             next
@@ -640,20 +640,20 @@ while t1 < end_time:
             next
 
         
-        copyright_ = ap.get_site_info(network_uc, site_uc, 'copyright')
-        attribution = ap.get_site_info(network_uc, site_uc, 'attribution')
+        copyright_ = ap.get_site_info(project_uc, site_uc, 'copyright')
+        attribution = ap.get_site_info(project_uc, site_uc, 'attribution')
         
         exif_tags = {'Exif.Image.Copyright': \
                          ' '.join(['Copyright: ' + copyright_,
                                     'License: ' + \
-                                        ap.get_site_info(network_uc, 
+                                        ap.get_site_info(project_uc, 
                                                          site_uc, 
                                                          'license'),
                                     'Attribution: ' + attribution])}
 
         summary_dir = args.summary_dir
         site_summary_dir = os.path.join(summary_dir, test_mode_str,
-                                        network_lc, site_lc)
+                                        project_lc, site_lc)
         site_status_dir = os.path.join(site_summary_dir, 'job_status')
 
         mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
@@ -691,9 +691,9 @@ while t1 < end_time:
             clear_timeouts(site_status_dir)
 
         md = None
-        if has_data_of_type(network_uc, site_uc, 'MagData'):
+        if has_data_of_type(project_uc, site_uc, 'MagData'):
             try:
-                md = make_aurorawatch_plot(network_uc, site_uc, t1, t2, 
+                md = make_aurorawatch_plot(project_uc, site_uc, t1, t2, 
                                            args.rolling, exif_tags)
                 # Store mag_data objects for daily and rolling
                 # stack plots.
@@ -710,8 +710,8 @@ while t1 < end_time:
                 logger.error(traceback.format_exc())
 
         temp_data = None
-        if has_data_of_type(network_uc, site_uc, 'TemperatureData'):
-            temp_data = my_load_data(network_uc, site_uc, 'TemperatureData', 
+        if has_data_of_type(project_uc, site_uc, 'TemperatureData'):
+            temp_data = my_load_data(project_uc, site_uc, 'TemperatureData', 
                                      t1, t2_eod)
             if temp_data is not None:
                 temp_data.set_cadence(np.timedelta64(10, 'm'), 
@@ -730,8 +730,8 @@ while t1 < end_time:
                                       exif_tags)
 
         voltage_data = None
-        if has_data_of_type(network_uc, site_uc, 'VoltageData'):
-            voltage_data = my_load_data(network_uc, site_uc, 'VoltageData', 
+        if has_data_of_type(project_uc, site_uc, 'VoltageData'):
+            voltage_data = my_load_data(project_uc, site_uc, 'VoltageData', 
                                         t1, t2_eod)
             if voltage_data is not None:
                 voltage_data.set_cadence(np.timedelta64(10, 'm'), 
@@ -752,9 +752,9 @@ while t1 < end_time:
         if args.rolling and args.run_jobs:
             # Jobs are only run for rolling (live) mode.
             try:
-                logger.info('Running site job for ' + network_uc + '/' \
+                logger.info('Running site job for ' + project_uc + '/' \
                                  + site_uc)
-                aurorawatch_jobs.site_job(network=network_uc,
+                aurorawatch_jobs.site_job(project=project_uc,
                                           site=site_uc,
                                           now=now,
                                           status_dir=site_status_dir,
@@ -766,7 +766,7 @@ while t1 < end_time:
                                           voltage_data=voltage_data)
                                        
             except Exception as e:
-                logger.error('Could not run job for ' + network_uc + '/' +
+                logger.error('Could not run job for ' + project_uc + '/' +
                               site_uc + ': ' + str(e))
                 logger.error(traceback.format_exc())
                 
@@ -775,7 +775,7 @@ while t1 < end_time:
     if args.stack_plot and len(mdl_day):
         site_ca = [] # site copyright/attribution details
         for n in range(len(mdl_day)):
-            site_ca.append(mdl_day[n].network + '/' + mdl_day[n].site + 
+            site_ca.append(mdl_day[n].project + '/' + mdl_day[n].site + 
                            ' data: ' +
                            '    Copyright: ' + copyright_list[n] +
                            '    Attribution: ' + attribution_list[n] + 
@@ -822,10 +822,10 @@ while t1 < end_time:
 if args.make_links:
     logger.debug('making links')
     # Makes site links for each site listed
-    for network_uc, site_uc in network_site.values():
+    for project_uc, site_uc in project_site.values():
         site_lc = site_uc.lower()
         site_summary_dir = os.path.join(summary_dir, test_mode_str, 
-                                        network_uc.lower(), site_lc)
+                                        project_uc.lower(), site_lc)
 
         mag_fstr = os.path.join(site_summary_dir, '%Y', '%m',
                                 site_lc + '_%Y%m%d.png')
