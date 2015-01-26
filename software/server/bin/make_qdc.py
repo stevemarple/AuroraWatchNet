@@ -38,9 +38,11 @@ assert os.environ.get('TZ') == 'UTC', \
 # Parse command line options
 parser = argparse.ArgumentParser(description\
                                      ='Make AuroraWatch quiet-day curve(s).')
-parser.add_argument('-s', '--start-time',
-                    help='Start time',
-                    metavar='DATETIME');
+parser.add_argument('--archive',
+                    help='Data archive name')
+parser.add_argument('--dry-run',
+                    action='store_true',
+                    help='Test, do not save quiet day curves')
 parser.add_argument('-e', '--end-time',
                     help='End time',
                     metavar='DATETIME');
@@ -53,23 +55,16 @@ parser.add_argument('--log-format',
                     default='%(levelname)s:%(message)s',
                     help='Set format of log messages',
                     metavar='FORMAT')
-parser.add_argument('--sites', 
-                    required=True,
-                    help='Whitespace-separated list of networks and/or ' + \
-                        'sites. Sites must be prefixed with their ' + \
-                        'network and separated by a "/". If a network is ' + \
-                        'listed without a site then all sites for that ' + \
-                        'network are processed.',
-                    metavar='"NETWORK1/SITE1 NETWORK2/SITE2 ..."')
-parser.add_argument('--archive',
-                    help='Data archive name')
-parser.add_argument('--dry-run',
-                    action='store_true',
-                    help='Test, do not save quiet day curves')
 parser.add_argument('--plot',
                     action='count',
                     default=0,
                     help='Plot existing quiet day curves')
+parser.add_argument('-s', '--start-time',
+                    help='Start time',
+                    metavar='DATETIME');
+parser.add_argument('project_site',
+                    nargs='+',
+                    metavar="PROJECT[/SITE]")
 
 args = parser.parse_args()
 if __name__ == '__main__':
@@ -107,31 +102,18 @@ else:
 logger.debug('Start date: ' + str(start_time))
 logger.debug('End date: ' + str(end_time))
 
-# Get names of all networks and sites to be processed. Dictionary used
-# to avoid duplicates.
-network_site = {}
-for s in args.sites.upper().split():
-    n_s = s.split('/')
-    if len(n_s) == 1:
-        # Only network given, use all sites
-        for k in ap.networks[n_s[0]].keys():
-            network_site[n_s[0] + '/' + k] = (n_s[0], k)
-
-    elif len(n_s) == 2:
-        # Network and site given
-        network_site[s] = tuple(n_s)
-    else:
-        raise Exception('bad value for network/site (' + network_site)
-
-
-
-for network_uc, site_uc in network_site.values():
+# Get names of all projects and sites to be processed.
+project_list, site_list = ap.parse_project_site_list(args.project_site)
+for site_num in range(len(site_list)):
+    project_uc = project_list[site_num]
+    project_lc = project_uc.lower()
+    site_uc = site_list[site_num]
     site_lc = site_uc.lower()
-    network_lc = network_uc.lower()
+    logger.debug('Processing %s/%s' % (project_uc, site_uc))
 
-    if not ap.networks.has_key(network_uc):
+    if not ap.projects.has_key(project_uc):
         try:
-            __import__('auroraplot.datasets.' + network_lc)
+            __import__('auroraplot.datasets.' + project_lc)
         except:
             pass
     
@@ -141,7 +123,7 @@ for network_uc, site_uc in network_site.values():
         t2 = dt64.get_start_of_next_month(t1)
 
         if args.plot:
-            mag_qdc = ap.magdata.load_qdc(network_uc, site_uc, t1)
+            mag_qdc = ap.magdata.load_qdc(project_uc, site_uc, t1)
             if mag_qdc is not None:
                 lh = mag_qdc.plot(axes=ax)
                 for h in lh:
@@ -149,17 +131,17 @@ for network_uc, site_uc in network_site.values():
                 ax = plt.gca()
 
         else:
-            archive, ad = ap.get_archive_info(network_uc, site_uc, 
+            archive, ad = ap.get_archive_info(project_uc, site_uc, 
                                               'MagData', 
                                               archive=getattr(args, 
                                                               'archive'))
 
-            mag_data = ap.load_data(network_uc, site_uc, 'MagData', t1, t2,
+            mag_data = ap.load_data(project_uc, site_uc, 'MagData', t1, t2,
                                     archive=archive)
             if mag_data is not None:
                 mag_qdc = mag_data.make_qdc(smooth=True)
                 qdc_archive, qdc_ad \
-                    = ap.get_archive_info(network_uc, site_uc, 'MagQDC')
+                    = ap.get_archive_info(project_uc, site_uc, 'MagQDC')
 
                 filename = dt64.strftime(t1, qdc_ad['path'])
                 p = os.path.dirname(filename)
