@@ -129,4 +129,9 @@
   </activity_list>
   <previous_status status_id="yellow" />
   <current_status status_id="green" />
+  <message>
+    <datetime>2015-02-01T13:20:00Z</datetime>
+    <ttl>7200</ttl>
+    <value>Alerts not available tomorrow due to relocation of server</value>
+  </message>
 </daily_activity>
