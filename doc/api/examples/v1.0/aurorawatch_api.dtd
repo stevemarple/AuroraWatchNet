@@ -1,0 +1,82 @@
+<!-- AuroraWatch UK DTD -->
+<!ELEMENT abbreviation (#PCDATA)>
+
+<!ELEMENT activity (datetime,activity_value)>
+
+<!ELEMENT activity_list (activity+)>
+<!-- Ideally site_ids should be type IDREFS but to save on data transfer 
+     don't include the project and site list in this file -->
+<!ATTLIST activity_list site_ids CDATA #REQUIRED>
+
+<!ELEMENT activity_value (#PCDATA)>
+<!ATTLIST activity_value status_id IDREF #REQUIRED>
+
+<!ELEMENT attribution (#PCDATA)>
+<!ATTLIST attribution lang CDATA #REQUIRED>
+
+<!ELEMENT color (#PCDATA)>
+
+<!ELEMENT copyright (#PCDATA)>
+<!ATTLIST copyright lang CDATA #REQUIRED>
+
+<!ELEMENT created (datetime)>
+
+<!ELEMENT current_status EMPTY>
+<!ATTLIST current_status status_id IDREF #REQUIRED>
+
+<!ELEMENT daily_activity (created,status_list,activity_list,previous_status,current_status)>
+
+<!ELEMENT data_location (#PCDATA)>
+
+<!ELEMENT datetime (#PCDATA)>
+
+<!ELEMENT description (#PCDATA)>
+<!ATTLIST description lang CDATA #REQUIRED>
+
+<!ELEMENT end_datetime (datetime)>
+
+<!ELEMENT latitude (#PCDATA)>
+
+<!ELEMENT longitude (#PCDATA)>
+
+<!ELEMENT lower_threshold (#PCDATA)>
+
+<!ELEMENT meaning (#PCDATA)>
+<!ATTLIST meaning lang CDATA #REQUIRED>
+
+<!-- Message value should not exceed 140 characters. 
+     Aim to keep < 65 characters. -->
+<!ELEMENT message (datetime,ttl,value)>
+
+<!ELEMENT name (#PCDATA)>
+
+<!-- Previous status is the status before the current status,
+     not the status of the previous hour -->
+ <!ELEMENT previous_status EMPTY>
+ <!ATTLIST previous_status status_id IDREF #REQUIRED>
+
+<!ELEMENT project (name,abbreviation,url*,site_list)>
+<!ATTLIST project id ID #REQUIRED>
+
+<!ELEMENT project_list (project+)>
+
+<!ELEMENT start_datetime (datetime)>
+
+<!ELEMENT site (name,abbreviation,url*,latitude,longitude,copyright,attribution)>
+<!ATTLIST site id ID #REQUIRED>
+<!ATTLIST site project_id IDREF #REQUIRED>
+
+<!ELEMENT site_list (site+)>
+
+<!ELEMENT status (lower_threshold,color,description,meaning)>
+<!ATTLIST status id ID #REQUIRED>
+
+<!ELEMENT status_list (status+)>
+
+
+<!-- Time-to-live (seconds) -->
+<!ELEMENT ttl (#PCDATA)>
+
+
+<!ELEMENT url (#PCDATA)>
+<!ELEMENT value (#PCDATA)>
