@@ -24,7 +24,7 @@
 <!ELEMENT current_status EMPTY>
 <!ATTLIST current_status status_id IDREF #REQUIRED>
 
-<!ELEMENT daily_activity (created,status_list,activity_list,previous_status,current_status)>
+<!ELEMENT daily_activity (created,status_list,activity_list,previous_status,current_status,message)>
 
 <!ELEMENT data_location (#PCDATA)>
 
