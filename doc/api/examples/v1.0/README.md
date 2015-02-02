@@ -37,3 +37,9 @@ The list of status levels, their `meaning` and a short `description`. Also
 included for each level is the `lower_threshold` and standard RGB `color`
 value used by AuroraWatch UK. For consistency please use the same
 colors.
+
+## Badgerfish-encoded JSON
+
+Example files using Badgerfish-encoded JSON are included. These are
+derived from the XML files. Extraneous whitespace included at this
+stage for readability.
