@@ -1,0 +1,242 @@
+{
+  "recent_activity": {
+    "message": {
+      "url": {
+        "$": "http://aurorawatch.lancs.ac.uk/news/20150202_server_relocation"
+      }, 
+      "ttl": {
+        "$": "7200"
+      }, 
+      "value": {
+        "$": "Alerts not available tomorrow due to relocation of server"
+      }, 
+      "datetime": {
+        "$": "2015-02-01T13:20:00Z"
+      }
+    }, 
+    "@site_ids": "site_awn_lan1 site_awn_lan3 site_samnet_crk", 
+    "activity": [
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "3.2"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T14:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "4.1"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T15:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "16.0"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T16:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "20.7"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T17:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "13.9"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T18:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "16.8"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T19:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "26.2"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T20:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "21.6"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T21:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "16.9"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T22:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "19.5"
+        }, 
+        "datetime": {
+          "$": "2015-01-31T23:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "38.6"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T00:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "12.1"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T01:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "25.8"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T02:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "12.4"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T03:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "10.7"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T04:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "13.5"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T05:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "37.9"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T06:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "27.2"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T07:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "23.5"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T08:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "23.7"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T09:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "18.7"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T10:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "33.5"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T11:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "31.9"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T12:00:00Z"
+        }
+      }, 
+      {
+        "activity_value": {
+          "@status_id": "green", 
+          "$": "3.3"
+        }, 
+        "datetime": {
+          "$": "2015-02-01T13:00:00Z"
+        }
+      }
+    ], 
+    "created": {
+      "datetime": {
+        "$": "2015-01-30T13:23:56Z"
+      }
+    }
+  }
+}

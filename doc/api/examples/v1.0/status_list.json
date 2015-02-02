@@ -1,0 +1,74 @@
+{
+  "status_list": {
+    "status": [
+      {
+        "color": {
+          "$": "#33ff33"
+        }, 
+        "lower_threshold": {
+          "$": "0"
+        }, 
+        "meaning": {
+          "@lang": "en", 
+          "$": "Aurora is unlikey to be seen from anywhere in the UK"
+        }, 
+        "@id": "green", 
+        "description": {
+          "@lang": "en", 
+          "$": "No significant activity"
+        }
+      }, 
+      {
+        "color": {
+          "$": "#ffff00"
+        }, 
+        "lower_threshold": {
+          "$": "50"
+        }, 
+        "meaning": {
+          "@lang": "en", 
+          "$": "Aurora is unlikely to be visible from the UK except perhaps the extreme north of Scotland"
+        }, 
+        "@id": "yellow", 
+        "description": {
+          "@lang": "en", 
+          "$": "Minor geomagnetic activity"
+        }
+      }, 
+      {
+        "color": {
+          "$": "#ff9900"
+        }, 
+        "lower_threshold": {
+          "$": "100"
+        }, 
+        "meaning": {
+          "@lang": "en", 
+          "$": "Aurora is likely to be visible from Scotland, northern England and Northern Ireland"
+        }, 
+        "@id": "amber", 
+        "description": {
+          "@lang": "en", 
+          "$": "Amber alert: possible aurora"
+        }
+      }, 
+      {
+        "color": {
+          "$": "#ff0000"
+        }, 
+        "lower_threshold": {
+          "$": "200"
+        }, 
+        "meaning": {
+          "@lang": "en", 
+          "$": "It is likely that aurora will be visible from everywhere in the UK"
+        }, 
+        "@id": "red", 
+        "description": {
+          "@lang": "en", 
+          "$": "Red alert: aurora likely"
+        }
+      }
+    ]
+  }
+}

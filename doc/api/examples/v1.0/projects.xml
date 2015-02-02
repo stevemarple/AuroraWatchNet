@@ -11,11 +11,7 @@
 	<latitude>54.0</latitude>
 	<longitude>-2.78</longitude>
 	<copyright lang="en">Steve Marple</copyright>
-	<attribution lang="en">AuroraWatchNet LAN1 magnetometer data
-	by Steve Marple is licensed under a Creative Commons
-	Attribution-NonCommercial-ShareAlike 4.0 International
-	License. Based on a work at
-	http://aurorawatch.lancs.ac.uk/data/aurorawatchnet/lan1/</attribution>
+	<attribution lang="en">AuroraWatchNet LAN1 magnetometer data by Steve Marple is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at http://aurorawatch.lancs.ac.uk/data/aurorawatchnet/lan1/</attribution>
       </site>
       <site id="site_awn_lan3" project_id="project_awn">
 	<name>Lancaster #3, UK</name>
@@ -23,10 +19,7 @@
 	<latitude>54.1</latitude>
 	<longitude>-2.77</longitude>
 	<copyright lang="en">Lancaster University, UK</copyright>
-	<attribution lang="en">The Sub-Auroral Magnetometer Network
-	data (SAMNET) is operated by the Space Plasma Environment and
-	Radio Science (SPEARS) group, Department of Physics, Lancaster
-	University</attribution>
+	<attribution lang="en">AuroraWatchNet LAN3 magnetometer data by Department of Physics, Lancaster University, UK is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at http://aurorawatch.lancs.ac.uk/data/aurorawatchnet/lan3/</attribution>
       </site>
     </site_list>
   </project>
@@ -41,7 +34,7 @@
 	<latitude>57.09</latitude>
 	<longitude>-2.64</longitude>
 	<copyright lang="en">Lancaster University, UK</copyright>
-	<attribution lang="en"></attribution>
+	<attribution lang="en">The Sub-Auroral Magnetometer Network data (SAMNET) is operated by the Space Plasma Environment and Radio Science (SPEARS) group, Department of Physics, Lancaster University</attribution>
       </site>
     </site_list>
   </project>

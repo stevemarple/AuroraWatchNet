@@ -1,0 +1,32 @@
+{
+  "current_status": {
+    "message": {
+      "url": {
+        "$": "http://aurorawatch.lancs.ac.uk/news/20150202_server_relocation"
+      }, 
+      "ttl": {
+        "$": "7200"
+      }, 
+      "value": {
+        "$": "Alerts not available tomorrow due to relocation of server"
+      }, 
+      "datetime": {
+        "$": "2015-02-01T13:20:00Z"
+      }
+    }, 
+    "activity": {
+      "activity_value": {
+        "@status_id": "green", 
+        "$": "3.3"
+      }, 
+      "datetime": {
+        "$": "2015-02-01T13:00:00Z"
+      }
+    }, 
+    "created": {
+      "datetime": {
+        "$": "2015-01-30T13:23:56Z"
+      }
+    }
+  }
+}

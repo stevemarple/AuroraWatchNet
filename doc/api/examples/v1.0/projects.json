@@ -1,0 +1,108 @@
+{
+  "project_list": {
+    "project": [
+      {
+        "abbreviation": {
+          "$": "AWN"
+        }, 
+        "url": {
+          "$": "http://aurorawatch.net"
+        }, 
+        "@id": "project_awn", 
+        "name": {
+          "$": "AuroraWatchNet"
+        }, 
+        "site_list": {
+          "site": [
+            {
+              "attribution": {
+                "@lang": "en", 
+                "$": "AuroraWatchNet LAN1 magnetometer data by Steve Marple is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at http://aurorawatch.lancs.ac.uk/data/aurorawatchnet/lan1/"
+              }, 
+              "name": {
+                "$": "Lancaster #1, UK"
+              }, 
+              "copyright": {
+                "@lang": "en", 
+                "$": "Steve Marple"
+              }, 
+              "longitude": {
+                "$": "-2.78"
+              }, 
+              "abbreviation": {
+                "$": "LAN1"
+              }, 
+              "latitude": {
+                "$": "54.0"
+              }, 
+              "@project_id": "project_awn", 
+              "@id": "site_awn_lan1"
+            }, 
+            {
+              "attribution": {
+                "@lang": "en", 
+                "$": "AuroraWatchNet LAN3 magnetometer data by Department of Physics, Lancaster University, UK is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Based on a work at http://aurorawatch.lancs.ac.uk/data/aurorawatchnet/lan3/"
+              }, 
+              "name": {
+                "$": "Lancaster #3, UK"
+              }, 
+              "copyright": {
+                "@lang": "en", 
+                "$": "Lancaster University, UK"
+              }, 
+              "longitude": {
+                "$": "-2.77"
+              }, 
+              "abbreviation": {
+                "$": "LAN3"
+              }, 
+              "latitude": {
+                "$": "54.1"
+              }, 
+              "@project_id": "project_awn", 
+              "@id": "site_awn_lan3"
+            }
+          ]
+        }
+      }, 
+      {
+        "abbreviation": {
+          "$": "AWN"
+        }, 
+        "url": {
+          "$": "http://aurorawatch.net"
+        }, 
+        "@id": "project_samnet", 
+        "name": {
+          "$": "AuroraWatchNet"
+        }, 
+        "site_list": {
+          "site": {
+            "attribution": {
+              "@lang": "en", 
+              "$": "The Sub-Auroral Magnetometer Network data (SAMNET) is operated by the Space Plasma Environment and Radio Science (SPEARS) group, Department of Physics, Lancaster University"
+            }, 
+            "name": {
+              "$": "Crooktree, UK"
+            }, 
+            "copyright": {
+              "@lang": "en", 
+              "$": "Lancaster University, UK"
+            }, 
+            "longitude": {
+              "$": "-2.64"
+            }, 
+            "abbreviation": {
+              "$": "CRK"
+            }, 
+            "latitude": {
+              "$": "57.09"
+            }, 
+            "@project_id": "project_samnet", 
+            "@id": "site_samnet_crk"
+          }
+        }
+      }
+    ]
+  }
+}

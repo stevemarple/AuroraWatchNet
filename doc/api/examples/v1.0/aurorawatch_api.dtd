@@ -3,13 +3,8 @@
 
 <!ELEMENT activity (datetime,activity_value)>
 
-<!ELEMENT activity_list (activity+)>
-<!-- Ideally site_ids should be type IDREFS but to save on data transfer 
-     don't include the project and site list in this file -->
-<!ATTLIST activity_list site_ids CDATA #REQUIRED>
-
 <!ELEMENT activity_value (#PCDATA)>
-<!ATTLIST activity_value status_id IDREF #REQUIRED>
+<!ATTLIST activity_value status_id (green|yellow|amber|red) #REQUIRED>
 
 <!ELEMENT attribution (#PCDATA)>
 <!ATTLIST attribution lang CDATA #REQUIRED>
@@ -21,10 +16,7 @@
 
 <!ELEMENT created (datetime)>
 
-<!ELEMENT current_status EMPTY>
-<!ATTLIST current_status status_id IDREF #REQUIRED>
-
-<!ELEMENT daily_activity (created,status_list,activity_list,previous_status,current_status,message)>
+<!ELEMENT current_status (created,activity,message?)>
 
 <!ELEMENT data_location (#PCDATA)>
 
@@ -46,19 +38,17 @@
 
 <!-- Message value should not exceed 140 characters. 
      Aim to keep < 65 characters. -->
-<!ELEMENT message (datetime,ttl,value)>
+<!ELEMENT message (datetime,ttl,value,url?)>
 
 <!ELEMENT name (#PCDATA)>
-
-<!-- Previous status is the status before the current status,
-     not the status of the previous hour -->
- <!ELEMENT previous_status EMPTY>
- <!ATTLIST previous_status status_id IDREF #REQUIRED>
 
 <!ELEMENT project (name,abbreviation,url*,site_list)>
 <!ATTLIST project id ID #REQUIRED>
 
 <!ELEMENT project_list (project+)>
+
+<!ELEMENT recent_activity (created,activity+,message?)>
+<!ATTLIST recent_activity site_ids CDATA #REQUIRED>
 
 <!ELEMENT start_datetime (datetime)>
 
@@ -69,7 +59,7 @@
 <!ELEMENT site_list (site+)>
 
 <!ELEMENT status (lower_threshold,color,description,meaning)>
-<!ATTLIST status id ID #REQUIRED>
+<!ATTLIST status id (green|yellow|amber|red) #REQUIRED>
 
 <!ELEMENT status_list (status+)>
 
