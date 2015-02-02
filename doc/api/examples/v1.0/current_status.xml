@@ -1,0 +1,15 @@
+<current_status>
+  <created>
+    <datetime>2015-01-30T13:23:56Z</datetime>
+  </created>
+  <activity>
+    <datetime>2015-02-01T13:00:00Z</datetime>
+    <activity_value status_id="green">3.3</activity_value>
+  </activity>
+  <message>
+    <datetime>2015-02-01T13:20:00Z</datetime>
+    <ttl>7200</ttl>
+    <value>Alerts not available tomorrow due to relocation of server</value>
+    <url>http://aurorawatch.lancs.ac.uk/news/20150202_server_relocation</url>
+  </message>
+</current_status>

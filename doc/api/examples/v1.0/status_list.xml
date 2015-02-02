@@ -1,0 +1,26 @@
+<status_list>
+  <status id="green">
+    <lower_threshold>0</lower_threshold>
+    <color>#33ff33</color>
+    <description lang="en">No significant activity</description>
+    <meaning lang="en">Aurora is unlikey to be seen from anywhere in the UK</meaning>
+  </status>
+  <status id="yellow">
+    <lower_threshold>50</lower_threshold>
+    <color>#ffff00</color>
+    <description lang="en">Minor geomagnetic activity</description>
+    <meaning lang="en">Aurora is unlikely to be visible from the UK except perhaps the extreme north of Scotland</meaning>
+  </status>
+  <status id="amber">
+    <lower_threshold>100</lower_threshold>
+    <color>#ff9900</color>
+    <description lang="en">Amber alert: possible aurora</description>
+    <meaning lang="en">Aurora is likely to be visible from Scotland, northern England and Northern Ireland</meaning>
+  </status>
+  <status id="red">
+    <lower_threshold>200</lower_threshold>
+    <color>#ff0000</color>
+    <description lang="en">Red alert: aurora likely</description>
+    <meaning lang="en">It is likely that aurora will be visible from everywhere in the UK</meaning>
+  </status>
+</status_list>
