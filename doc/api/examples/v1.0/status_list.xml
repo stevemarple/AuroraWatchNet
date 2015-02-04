@@ -1,3 +1,4 @@
+<!DOCTYPE aurorawatch_api PUBLIC "-//AURORAWATCH//DTD REST 1.0//EN" "/dtd/aurorawatch_api_v1.0.dtd">
 <status_list>
   <status id="green">
     <lower_threshold>0</lower_threshold>
