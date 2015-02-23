@@ -204,6 +204,9 @@ bin_dir = os.path.join(os.path.expanduser('~' + user), 'bin')
 bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository, 
                                        'software', 'server', 
                                        'bin',  'awnetd.py'),
+             'awnetd_monitor.py': os.path.join(args.aurorawatchnet_repository, 
+                                               'software', 'server', 
+                                               'bin',  'awnetd_monitor.py'),
              'log_ip': os.path.join(args.aurorawatchnet_repository, 
                                     'software', 'server', 'bin', 'log_ip'),
              'send_cmd.py': os.path.join(args.aurorawatchnet_repository, 
@@ -225,3 +228,13 @@ target = os.path.join(args.aurorawatchnet_repository,
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
     logger.error('Service startup link ' + symlink + ' missing or incorrect')
     query_sudo_cmd(['sudo', 'ln', '-s', '-f', target, symlink])
+
+# # Check /etc/init.d/awnetd_monitor
+# symlink = '/etc/init.d/awnetd_monitor'
+# target = os.path.join(args.aurorawatchnet_repository, 
+#                       'software', 'server', 'bin',  'awnetd_monitor.py')
+
+# if not os.path.lexists(symlink) or os.readlink(symlink) != target:
+#     logger.error('Service startup link ' + symlink + ' missing or incorrect')
+#     query_sudo_cmd(['sudo', 'ln', '-s', '-f', target, symlink])
+

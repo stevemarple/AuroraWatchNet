@@ -59,16 +59,21 @@ logger = logging.getLogger(__name__)
 class FtdiMonitor():
     def __init__(self, progname, device=None, filename=None,
                  pidfile_path=None, pidfile_timeout=None, 
-                 username='nobody', group=None):
+                 username='pi', group='pi', foreground=False):
         self.progname = progname
         self.device = device
         self.filename = filename
         self.username = username
         self.group = group
 
-        self.stdin_path = '/dev/null'
-        self.stdout_path = '/dev/tty'
-        self.stderr_path = '/dev/tty'
+        if foreground:
+            self.stdin_path = '/dev/tty'
+            self.stdout_path = '/dev/tty'
+        else:
+            self.stdin_path = '/dev/null'
+            self.stdout_path = '/dev/null'
+
+        self.stderr_path = '/dev/null'
         self.pidfile_path = pidfile_path
         if self.pidfile_path is None:
             self.pidfile_path = '/var/run/' + progname + '.pid'
@@ -280,7 +285,8 @@ if __name__ == '__main__':
         led_active_low = True
     fm = FtdiMonitor(progname, device=device, filename=filename,
                      pidfile_path=pidfile_path, 
-                     username=config.get('dataqualitymonitor', 'username'))
+                     username=config.get('dataqualitymonitor', 'username'),
+                     foreground=args.foreground)
 
     if args.foreground:
         logger.info('running in foreground')
