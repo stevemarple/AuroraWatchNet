@@ -93,6 +93,22 @@ relating to \filename{ttyAMA0}. Either delete the line entirely or
 comment it out by inserting a hash character (\#) at the start of the
 line.
 
+\subsection{Force HDMI output (optional)}
+The default operation is to detect if a HDMI nomitor is connected at
+boot time; if one is it will be used otherwise the composite video
+output is selected. For the automatic detection to work the HDMI
+monitor must be switch on when the Raspberry Pi boots up. To force
+HDMI selection edit \filename{/boot/config.txt} as \rootUser
+\begin{Cmd}
+nano /boot/config.txt
+\end{Cmd}
+
+Ensure the following lines are enabled in the file (not commented out
+with a \code{#} symbol).
+\begin{Cmd}
+hdmi_force_hotplug=1
+hdmi_drive=2  
+\end{Cmd}
 
 \subsection{Configure proxy server}
 Not all networks require a proxy server (or web cache) to be used,
@@ -201,6 +217,20 @@ below.
 /dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
 \end{Cmd}
 
+\subsection{Automatically create symlinks for FTDI all-in-one}
+
+As user \rootUser
+\begin{Cmd}
+nano /etc/udev/rules.d/90-usb_serial.rules
+\end{Cmd}
+
+Insert the following lines into the file if they are not present:
+\begin{Cmd}[fontsize=\relsize{-3}]
+# Have symlinks based on serial number for FTDI devices. Used for 
+# awnetd_monitor
+SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="tty_ftdi_%s{serial}"  
+\end{Cmd}
+
 \subsection{Regenerate SSH host keys}
 
 As user \rootUser
@@ -268,8 +298,12 @@ terminate the last line by pressing the \myreturn\ key. This helps
 the AuroraWatch administrators monitor which stations are active. This
 reporting step can be omitted if you prefer.
 \begin{Cmd}[fontsize=\small]
+# Log IP address (useful for debugging)
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
+
+# Start the process which monitors the FTDI all-in-one
+@reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
 
 # Upload data
 */5 * * * * nice /home/pi/bin/upload_data.py -s today > /dev/null 2>&1
@@ -298,8 +332,17 @@ ln -s /home/pi/AuroraWatchNet/software/server/bin/log_ip
 As user \rootUser
 \begin{Cmd}
 cd /etc/init.d
-update-rc.d  awnetd defaults
+update-rc.d awnetd defaults
 \end{Cmd}
+
+%\subsection{Automatically start the daemon for the FTDI all-in-one}
+%
+% As user \rootUser
+% \begin{Cmd}
+% cd /etc/init.d
+% update-rc.d awnetd_monitor defaults
+% \end{Cmd}
+
 
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing
