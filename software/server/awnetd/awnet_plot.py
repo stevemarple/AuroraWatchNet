@@ -272,7 +272,7 @@ def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     # least-squares fit to remove baseline drifts. Data from the
     # current day is not used. This ensures that results do not change
     # over the current day when new data becomes available.
-    qdc_fit_interval = 3 * day
+    qdc_fit_interval = args.qdc_fit_interval * day
     fit_et = dt64.ceil(st, day) # Could be doing a rolling plot
     fit_st = fit_et - qdc_fit_interval
     fit_data = my_load_data(project, site, 'MagData', fit_st, fit_et, 
@@ -514,22 +514,27 @@ parser.add_argument('--sites',
                     required=True,
                     help='Whitespace-separated list of sites (prefixed with project)',
                     metavar='"PROJECT1/SITE1 PROJECT2/SITE2 ..."')
-parser.add_argument('--summary-dir', 
-                    default='/tmp',
-                    help='Base directory for summary plots',
-                    metavar='PATH')
 parser.add_argument('--plot-fit', 
                     action='store_true',
                     help='Plot and save QDC fit')
+parser.add_argument('--qdc-fit-interval',
+                    type=int,
+                    default=3,
+                    help='Number of days for fitting QDC',
+                    metavar='DAYS')
+parser.add_argument('--run-jobs',
+                    action='store_true',
+                    help='Run jobs')
 parser.add_argument('--show', 
                     action='store_true',
                     help='Show plots for final day')
 parser.add_argument('--stack-plot',
                     action='store_true',
                     help='Generate stack plot(s)')
-parser.add_argument('--run-jobs',
-                    action='store_true',
-                    help='Run jobs')
+parser.add_argument('--summary-dir', 
+                    default='/tmp',
+                    help='Base directory for summary plots',
+                    metavar='PATH')
 
 args = parser.parse_args()
 logging.basicConfig(level=getattr(logging, args.log_level.upper()),
