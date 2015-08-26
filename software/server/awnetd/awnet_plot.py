@@ -395,7 +395,7 @@ def combined_activity_plot(act, filename, exif_tags):
     returns: None
     '''
     # Calculate activity as proportion of amber alert
-    act_data = np.concatenate(map(lambda d: d.data / d.thresholds[2], act))
+    act_data = np.concatenate(map(lambda d: (d.data / d.thresholds[2]) if d else np.zeros([1,24]), act))
     act_data[np.isnan(act_data)] = 0
     
     if act_data.shape[0] == 2:
@@ -423,7 +423,7 @@ def combined_activity_plot(act, filename, exif_tags):
     ax.grid(True)
     # Set Y limit to be 1.5 times highest threshold. Units are
     # nanotesla since that was set when plotting.
-    ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
+    ax.set_ylim(0, activity_data.thresholds[-1] * 1.5 * 1e9)
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
     fig.subplots_adjust(bottom=0.1, top=0.85, 
