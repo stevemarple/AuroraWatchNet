@@ -136,7 +136,7 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
 
     if mag_qdc is None:
         activity = None
-        mag_data.plot(label=channel, color='black')
+        mag_data.plot(channels=channel, label=channel, color='black')
         fig = plt.gcf()
         ax2 = plt.gca()
     else:
@@ -254,13 +254,11 @@ def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     day = np.timedelta64(24, 'h')
 
     archive, archive_details = ap.get_archive_info(project, site, 'MagData')
-    channel = archive_details['channels'][0]
 
     # Load the data to plot. For rolling plots load upto midnight so
     # that both the rolling plot and the current day plot can be
     # generated efficiently.
-    mag_data = my_load_data(project, site, 'MagData', st, dt64.ceil(et, day),
-                            channels=[channel])
+    mag_data = my_load_data(project, site, 'MagData', st, dt64.ceil(et, day))
 
     if mag_data is None or \
             not np.any(np.logical_not(np.isnan(mag_data.data))): 
@@ -275,8 +273,7 @@ def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     qdc_fit_interval = args.qdc_fit_interval * day
     fit_et = dt64.ceil(st, day) # Could be doing a rolling plot
     fit_st = fit_et - qdc_fit_interval
-    fit_data = my_load_data(project, site, 'MagData', fit_st, fit_et, 
-                            channels=[channel])
+    fit_data = my_load_data(project, site, 'MagData', fit_st, fit_et)
 
     # Load a QDC. For the 4th or later in the month load the previous
     # month, otherwise go back two months. This gives a few days for
@@ -284,8 +281,8 @@ def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     qdc_t = dt64.get_start_of_previous_month(st)
     if dt64.get_day_of_month(st) < 4:
         qdc_t = dt64.get_start_of_previous_month(qdc_t)
-    mag_qdc = ap.magdata.load_qdc(project, site, qdc_t, 
-                                  channels=[channel], tries=6)
+    mag_qdc = ap.magdata.load_qdc(project, site, qdc_t, tries=6)
+
     if mag_qdc is None:
         logger.info('No QDC')
     elif fit_data is None:
