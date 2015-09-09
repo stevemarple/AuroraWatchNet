@@ -59,9 +59,13 @@ parser.add_argument('--plot',
                     action='count',
                     default=0,
                     help='Plot existing quiet day curves')
+parser.add_argument('--single-qdc',
+                    metavar='FILENAME',
+                    help='Make single QDC for given interval')
 parser.add_argument('-s', '--start-time',
                     help='Start time',
                     metavar='DATETIME');
+
 parser.add_argument('project_site',
                     nargs='+',
                     metavar="PROJECT[/SITE]")
@@ -102,8 +106,14 @@ else:
 logger.debug('Start date: ' + str(start_time))
 logger.debug('End date: ' + str(end_time))
 
+
 # Get names of all projects and sites to be processed.
 project_list, site_list = ap.parse_project_site_list(args.project_site)
+
+if args.single_qdc and len(project_list) != 1:
+    raise Exception('--single-qdc option requires one site')
+
+
 for site_num in range(len(site_list)):
     project_uc = project_list[site_num]
     project_lc = project_uc.lower()
@@ -118,9 +128,16 @@ for site_num in range(len(site_list)):
             pass
     
     ax = None
-    t1 = dt64.get_start_of_month(start_time)
+    if args.single_qdc:
+        t1 = start_time
+    else:
+        t1 = dt64.get_start_of_month(start_time)
+
     while t1 < end_time:
-        t2 = dt64.get_start_of_next_month(t1)
+        if args.single_qdc:
+            t2 = end_time
+        else:
+            t2 = dt64.get_start_of_next_month(t1)
 
         if args.plot:
             mag_qdc = ap.magdata.load_qdc(project_uc, site_uc, t1)
@@ -143,7 +160,10 @@ for site_num in range(len(site_list)):
                 qdc_archive, qdc_ad \
                     = ap.get_archive_info(project_uc, site_uc, 'MagQDC')
 
-                filename = dt64.strftime(t1, qdc_ad['path'])
+                if args.single_qdc:
+                    filename = args.single_qdc
+                else:
+                    filename = dt64.strftime(t1, qdc_ad['path'])
                 p = os.path.dirname(filename)
                 if not os.path.isdir(p):
                     os.makedirs(p)
