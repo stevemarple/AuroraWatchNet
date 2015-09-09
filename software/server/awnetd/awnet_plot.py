@@ -36,21 +36,6 @@ time.tzset()
 mpl.rcParams['legend.fontsize'] = 'medium'
 
 
-def parse_datetime(s):
-    # Parse datetime relative to 'now' variable, which in test mode
-    # may not be the current time.
-    if s == 'tomorrow':
-        return tomorrow
-    elif s == 'now':
-        return now
-    elif s == 'today':
-        return today
-    elif s == 'yesterday':
-        return yesterday
-    else:
-        return np.datetime64(s).astype('M8[us]')
-
-
 def my_load_data(project, site, data_type, start_time, end_time, **kwargs):
     r = ap.load_data(project, site, data_type, start_time, end_time, **kwargs)
     if r is not None and args.test_mode:
@@ -145,11 +130,10 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
         #     and len(mag_qdc.channels) == 1, \
         #     'Bad value for channels'
     
-        channel = mag_data.channels[0]
         activity = ap.auroralactivity.AuroraWatchActivity(magdata=mag_data, 
                                                           magqdc=mag_qdc,
+                                                          channels=channel,
                                                           fit=None)
-
         # To get another axes the position must be different. It is made
         # the same position later.
         pos2 = copy.copy(pos)
@@ -165,7 +149,10 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
         # nanotesla since that was set when plotting.
         ax.set_ylim(0, activity.thresholds[-1] * 1.5 * 1e9)
     
-        mag_data.plot(label=channel, color='black',axes=ax2)
+        mag_data.plot(channels=channel, 
+                      label=channel, 
+                      color='black',
+                      axes=ax2)
 
         # Align the QDC to regular intervals between start and end times
         qdc_cadence = np.timedelta64(1, 'm')
@@ -174,7 +161,10 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
                                        mag_data.end_time.astype('M8[m]'),
                                        num)
         qdc_aligned = mag_qdc.align(qdc_sample_times)
-        qdc_aligned.plot(label=channel + ' QDC', color='cyan', axes=ax2)
+        qdc_aligned.plot(channels=channel, 
+                         label=channel + ' QDC', 
+                         color='cyan', 
+                         axes=ax2)
 
         ax.set_axis_bgcolor('w')
         ax.axison = False
@@ -540,7 +530,7 @@ logging.basicConfig(level=getattr(logging, args.log_level.upper()),
 # Use a consistent value for current time, process any --now option
 # first.
 if args.now:
-    now = parse_datetime(args.now)
+    now = dt64.parse_datetime64(args.now, 'us')
 else:
     now = np.datetime64('now', 'us')
 
@@ -565,12 +555,12 @@ else:
     if args.start_time is None:
         start_time = today
     else:
-        start_time = parse_datetime(args.start_time)
+        start_time = dt64.parse_datetime64(args.start_time, 'us')
 
     if args.end_time is None:
         end_time = start_time + day
     else:
-        end_time = parse_datetime(args.end_time)
+        end_time = dt64.parse_datetime64(args.end_time, 'us')
 
 
 if args.run_jobs:
