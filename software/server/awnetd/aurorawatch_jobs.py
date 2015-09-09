@@ -13,16 +13,14 @@ The events which can cause actions are:
 Each event can trigger one or more jobs to run. These jobs include
 sending emails or social media messages. Some events make sense only
 for a specific site, and are only supported by the site_job()
-function. Detection of geomagnetic activity however makes most sense
-when performed on the combined activity dataset, and thus is supported
-by the activity_job() function.
+function.
 
 The behaviour of this module can be conveniently modified by
 configparser .ini files. In the absence of any files no jobs are
-run. The .ini files are stored in the $HOME/.aurorawatch_jobs
-directory. A common.ini file can be used to define commonly used
-settings (such as SMTP server settings) and is used for the site_job()
-and activity_job() functions. Settings common to all sites (nut not
+run. The .ini files are stored in the directory ~/.aurorawatch_jobs. A
+common.ini file can be used to define commonly used settings (such as
+SMTP server settings) and is used for the site_job() and
+activity_job() functions. Settings common to all sites (but not
 activity_job() can be stored in the all_sites.ini file, whilst
 site-specific settings can be stored in a site config file, named
 <project>_<site>.ini where <project> is the site's project name in
@@ -46,7 +44,7 @@ same timeout period.
 
 Timeouts are implemented by setting the modification time on an empty
 file. This approach ensures that the timeouts can be updated even if
-the disk is full. Te files are automatically created if missing; if a
+the disk is full. The files are automatically created if missing; if a
 missing file cannot be created the job will not run. Timeouts can be
 cleared by the clear_timeouts() function which sets the modfication
 time to the unix epoch.
@@ -54,8 +52,8 @@ time to the unix epoch.
 This module supports a test mode, whose purpose is to allow the jobs
 to be tested on historic data. As it is not desirable to alert normal
 users of historical events a separate set of .ini files are used. They
-have the same names as previously but are located in the
-$HOME/.aurorawatch_jobs/test directory.
+have the same names as previously but are located
+~/.aurorawatch_jobs/test directory.
 
 '''
 from __future__ import print_function
@@ -85,6 +83,8 @@ import auroraplot as ap
 import auroraplot.dt64tools as dt64
 import auroraplot.data
 
+logger = logging.getLogger(__name__)
+
 
 _ignore_timeout = False
 
@@ -102,7 +102,7 @@ def site_job(project, site, now, status_dir, test_mode,
     # Non-alert jobs should go here...
 
     if not config.getboolean('all_alerts', 'enabled'):
-        logging.debug('alerts disabled')
+        logger.debug('alerts disabled')
         return
     
     if act_data is not None:
@@ -122,7 +122,7 @@ def site_job(project, site, now, status_dir, test_mode,
             lower_limit=low_batt)
 
         if low_batt_time:
-            logging.debug('Low battery for ' + project + '/' + site)
+            logger.debug('Low battery for ' + project + '/' + site)
             if config.has_option('battery_voltage', 'twitter_username'):
                 username = config.get('battery_voltage', 'twitter_username')
                 twitter_mesg = expand_string(config.get('battery_voltage', 
@@ -136,7 +136,7 @@ def site_job(project, site, now, status_dir, test_mode,
                                        func_args=[username, twitter_mesg],
                                        name='battery_voltage_tweet')
                 
-                logging.debug('Low battery message: ' + twitter_mesg)
+                logger.debug('Low battery message: ' + twitter_mesg)
 
 
             if config.has_option('battery_voltage', 'facebook_cmd'):
@@ -176,7 +176,7 @@ def activity_job(combined_activity, activity_data_list, now, status_dir,
     # Non-alert jobs should go here...
     
     if not config.getboolean('all_alerts', 'enabled'):
-        logging.debug('alerts disabled')
+        logger.debug('alerts disabled')
         return
 
     if combined_activity is not None:
@@ -199,8 +199,8 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
     n = np.where(activity.data[0,-1] >= activity.thresholds)[0][-1]
 
 
-    logging.debug('Activity level for ' + activity.project + '/' 
-                  + activity.site + ': ' + str(n))
+    logger.debug('Activity level for ' + activity.project + '/' 
+                 + activity.site + ': ' + str(n))
     
     
     section_name = 'aurora_alert_' + str(n) 
@@ -208,7 +208,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
         # No significant activity
         return
     elif not config.has_section(section_name):
-        logging.debug('No [' + section_name + '] section found')
+        logger.debug('No [' + section_name + '] section found')
         return
 
     nowstr = dt64.strftime(now, '%Y-%m-%d %H:%M:%SUT')
@@ -242,7 +242,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
                                name=tweet_files[-1], 
                                also_update=tweet_files[:-1])
     else:
-        logging.debug('Sending tweet not configured')
+        logger.debug('Sending tweet not configured')
 
     # Post to facebook
     if config.has_option(section_name, 'facebook_cmd'):
@@ -256,7 +256,7 @@ def aurora_alert(activity, combined, now, status_dir, test_mode,
                                name=facebook_files[-1],
                                also_update=facebook_files[:-1])
     else:
-        logging.debug('Facebook posting not configured')
+        logger.debug('Facebook posting not configured')
 
 
     # Email. Leave to the send_email() function to determine if it is
@@ -335,7 +335,7 @@ def warn_missing_data(data, project, site, now, status_dir, test_mode, config):
     tstr = dt64.strftime(t, '%Y-%m-%d %H:%M:%SUT')
     if t < now - missing_interval:
         # Data is missing
-        logging.info(project + '/' + site + ' missing data')
+        logger.info(project + '/' + site + ' missing data')
         if config.has_option(section_name, 'twitter_username'):
             username = config.get(section_name, 'twitter_username')
             mesg = expand_string(config.get(section_name, 'twitter_message'),
@@ -401,7 +401,7 @@ def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None,
     if detection_time is None:
         detection_time = now
 
-    logging.debug('Processing job ' + name)
+    logger.debug('Processing job ' + name)
     # When considering the timeout use the time of the last data which
     # triggered the alert.
     rerun_time_s = dt64.dt64_to(detection_time - timeout, 's')
@@ -409,21 +409,21 @@ def run_if_timeout_reached(func, timeout, now, status_dir, detection_time=None,
     filename = os.path.join(status_dir, name)
     if not os.path.exists(filename):
         # Create the file, with an old time
-        logging.debug('timeout file missing: ' + filename)
+        logger.debug('timeout file missing: ' + filename)
         touch_file(filename, (0, 0))
     elif rerun_time_s < os.path.getmtime(filename) and not _ignore_timeout:
         # Too recent
-        logging.debug('job ' + name + ' ran too recently, skipping')
+        logger.debug('job ' + name + ' ran too recently, skipping')
         return
     
     try:
         # Call the function
         if func(*func_args, **func_kwargs):
-            logging.warning('Job ' + name + ' returned non-zero exit status')
+            logger.warning('Job ' + name + ' returned non-zero exit status')
             return # Want zero return status
     except Exception as e:
-        logging.error('Job ' + name + ' failed with exception: ' + str(e))
-        traceback.format_exc()
+        logger.error('Job ' + name + ' failed with exception: ' + str(e))
+        logger.error(traceback.format_exc())
         return
 
     # Must have completed, touch the file with the 'current'
@@ -459,7 +459,7 @@ associated with sending emails.
 # def send_email(config, section, ejob, subject, mesg):
 def send_email(config, section, ejob, project, site, now, test_mode, **kwargs):
 
-    logging.debug('Sending email to ' + config.get(section, ejob + '_to'))
+    logger.debug('Sending email to ' + config.get(section, ejob + '_to'))
 
     smtp_kwargs = {}
     smtp_options = ['host', 'port', 'local_hostname', 'timeout']
@@ -504,7 +504,7 @@ def send_email(config, section, ejob, project, site, now, test_mode, **kwargs):
             else:
                 m.add_header(a[0], None) # name only
 
-    logging.debug(m.as_string())
+    logger.debug(m.as_string())
 
     s = smtplib.SMTP(**smtp_kwargs)
     s.sendmail(config.get(section, ejob + '_from'), 
@@ -531,11 +531,10 @@ def read_config(test_mode, combined=False, project=None, site=None):
     # config.set('server', 'localhost')
     
 
-    path = [os.getenv('HOME'), '.' + __name__]
     if test_mode:
-        path = os.path.join(os.getenv('HOME'), '.' + __name__, 'test')
+        path = os.path.join(os.path.expanduser('~'), '.' + __name__, 'test')
     else:
-        path = os.path.join(os.getenv('HOME'), '.' + __name__)
+        path = os.path.join(os.path.expanduser('~'), '.' + __name__)
         
     if combined:
         # Data combined from multiple sites
@@ -653,9 +652,9 @@ def read_config(test_mode, combined=False, project=None, site=None):
                         os.path.join(path, project.lower() + '_' 
                                      + site.lower() + '.ini')]
 
-    logging.debug('Config files: ' + ', '.join(config_files))
+    logger.debug('Config files: ' + ', '.join(config_files))
     files_read = config.read(config_files)
-    logging.debug('Config files read: ' + ', '.join(files_read))
+    logger.debug('Config files read: ' + ', '.join(files_read))
     return config
 
 
@@ -671,3 +670,6 @@ def expand_string(s, project, site, now, test_mode, **kwargs):
     
     return s.format(**d)
     
+
+# def write_api_files_v0_1(mag_data):
+#   pass
