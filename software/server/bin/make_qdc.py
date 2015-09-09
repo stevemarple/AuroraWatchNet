@@ -45,7 +45,7 @@ parser.add_argument('--dry-run',
                     help='Test, do not save quiet day curves')
 parser.add_argument('-e', '--end-time',
                     help='End time',
-                    metavar='DATETIME');
+                    metavar='DATETIME')
 parser.add_argument('--log-level', 
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
@@ -62,9 +62,12 @@ parser.add_argument('--plot',
 parser.add_argument('--single-qdc',
                     metavar='FILENAME',
                     help='Make single QDC for given interval')
+parser.add_argument('--raise-all',
+                    action='store_true',
+                    help='No exception handling')
 parser.add_argument('-s', '--start-time',
                     help='Start time',
-                    metavar='DATETIME');
+                    metavar='DATETIME')
 
 parser.add_argument('project_site',
                     nargs='+',
@@ -121,7 +124,8 @@ for site_num in range(len(site_list)):
     site_lc = site_uc.lower()
     logger.debug('Processing %s/%s' % (project_uc, site_uc))
 
-    if not ap.projects.has_key(project_uc):
+    # Attempt to import missing projects
+    if project_uc not in ap.projects:
         try:
             __import__('auroraplot.datasets.' + project_lc)
         except:
@@ -154,7 +158,8 @@ for site_num in range(len(site_list)):
                                                               'archive'))
 
             mag_data = ap.load_data(project_uc, site_uc, 'MagData', t1, t2,
-                                    archive=archive)
+                                    archive=archive,
+                                    raise_all=args.raise_all)
             if mag_data is not None:
                 mag_qdc = mag_data.make_qdc(smooth=True)
                 qdc_archive, qdc_ad \
