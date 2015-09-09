@@ -793,16 +793,17 @@ for t1, t2, rolling in date_generator():
             try:
                 logger.info('Running site job for ' + project_uc + '/' \
                                  + site_uc)
-                aurorawatch_jobs.site_job(project=project_uc,
-                                          site=site_uc,
-                                          now=now,
-                                          status_dir=site_status_dir,
-                                          test_mode=args.test_mode,
-                                          ignore_timeout=args.ignore_timeout,
-                                          mag_data=mag_data,
-                                          act_data=None if md is None else md[4],
-                                          temp_data=temp_data,
-                                          voltage_data=voltage_data)
+                aurorawatch_jobs.site_job(project_uc,
+                                          site_uc,
+                                          now,
+                                          site_status_dir,
+                                          args.test_mode,
+                                          args.ignore_timeout,
+                                          mag_data,
+                                          None if mag_data is None \
+                                              else activity,
+                                          temp_data,
+                                          voltage_data)
                                        
             except Exception as e:
                 logger.error('Could not run job for ' + project_uc + '/' +
@@ -831,17 +832,13 @@ for t1, t2, rolling in date_generator():
     if rolling and args.run_jobs:
         try:
             logger.info('Running activity job')
-            status_dir = os.path.join(summary_dir, 
-                                      'job_status')
-            aurorawatch_jobs.activity_job(combined_activity=\
-                                              combined_activity,
-                                          activity_data_list=\
-                                              act_rolling,
-                                          now=now,
-                                          status_dir=status_dir,
-                                          test_mode=args.test_mode,
-                                          ignore_timeout=\
-                                              args.ignore_timeout,)
+            status_dir = os.path.join(summary_dir, 'job_status')
+            aurorawatch_jobs.activity_job(combined_activity,
+                                          activity_data_list,
+                                          now,
+                                          status_dir,
+                                          args.test_mode,
+                                          args.ignore_timeout,)
         except Exception as e:
             logger.error('Could not run activity job: ' + str(e))
             raise
