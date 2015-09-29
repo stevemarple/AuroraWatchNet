@@ -24,17 +24,19 @@ else
     action="$1"
 fi
 
+
 # Include date/time since Raspberry Pi is dependent upon NTP for
 # accurate time and some networks block access to the standard NTP
 # servers used by Raspbian.
+if [ "$action" = "reboot" ]; then
+    # Wait for network to be set and NTP to get started
+    sleep 60
+fi
+
 datetime=`date --utc '+%Y%m%dT%H%M%SZ'`
 URL="http://aurorawatch.lancs.ac.uk/log_ip?ip=${ip}&hostname=${hostname}&time=${datetime}"
 if [ -n "$action" ]; then
     URL="${URL}&action=${action}"
-    if [ "$action" = "reboot" ]; then
-        # Wait for network to be set
-        sleep 60
-    fi
 fi
 wget -q "$URL" -O /dev/null 
 
