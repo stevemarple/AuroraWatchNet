@@ -4288,8 +4288,6 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <plain>
 <text x="327.406" y="14.732" size="2.54" layer="94">2.1</text>
 <text x="329.946" y="4.572" size="2.54" layer="94">Steve Marple</text>
-<text x="231.14" y="208.28" size="1.778" layer="91" align="top-left">Use 20/21 which map to
-the equivalent mega pins.</text>
 <text x="327.66" y="139.7" size="2.54" layer="91">Temperature sensor</text>
 <text x="20.32" y="22.86" size="2.54" layer="91">3V3 boost regulator</text>
 <text x="20.32" y="20.32" size="1.778" layer="91" align="top-left">Fit only for battery-powered
@@ -4717,13 +4715,6 @@ wire link when voltages known in advance.</text>
 <label x="231.14" y="35.56" size="1.778" layer="95" rot="MR0"/>
 </segment>
 </net>
-<net name="XRF_ON" class="0">
-<segment>
-<pinref part="U$4" gate="G$1" pin="23"/>
-<wire x1="210.82" y1="203.2" x2="215.9" y2="203.2" width="0.1524" layer="91"/>
-<label x="218.44" y="203.2" size="1.778" layer="95"/>
-</segment>
-</net>
 <net name="!RESET" class="0">
 <segment>
 <wire x1="162.56" y1="220.98" x2="170.18" y2="220.98" width="0.1524" layer="91"/>
@@ -4760,20 +4751,6 @@ wire link when voltages known in advance.</text>
 <pinref part="R8" gate="G$1" pin="2"/>
 <wire x1="149.86" y1="160.02" x2="149.86" y2="162.56" width="0.1524" layer="91"/>
 <pinref part="U$4" gate="G$1" pin="9"/>
-</segment>
-</net>
-<net name="!XRF_RESET" class="0">
-<segment>
-<wire x1="170.18" y1="182.88" x2="160.02" y2="182.88" width="0.1524" layer="91"/>
-<label x="157.48" y="182.88" size="1.778" layer="95" rot="MR0"/>
-<pinref part="U$4" gate="G$1" pin="5"/>
-</segment>
-</net>
-<net name="XRF_SLEEP" class="0">
-<segment>
-<wire x1="170.18" y1="177.8" x2="160.02" y2="177.8" width="0.1524" layer="91"/>
-<label x="157.48" y="177.8" size="1.778" layer="95" rot="MR0"/>
-<pinref part="U$4" gate="G$1" pin="7"/>
 </segment>
 </net>
 <net name="A7" class="0">
@@ -5206,20 +5183,6 @@ wire link when voltages known in advance.</text>
 <wire x1="241.3" y1="185.42" x2="248.92" y2="185.42" width="0.1524" layer="91"/>
 <label x="251.46" y="185.42" size="1.778" layer="95"/>
 <pinref part="JP4" gate="A" pin="5"/>
-</segment>
-</net>
-<net name="RX1" class="0">
-<segment>
-<pinref part="U$4" gate="G$1" pin="2(RX1)@1"/>
-<wire x1="210.82" y1="190.5" x2="213.36" y2="190.5" width="0.1524" layer="91"/>
-<label x="215.9" y="190.5" size="1.778" layer="95"/>
-</segment>
-</net>
-<net name="TX1" class="0">
-<segment>
-<pinref part="U$4" gate="G$1" pin="3(TX1)@1"/>
-<wire x1="210.82" y1="187.96" x2="213.36" y2="187.96" width="0.1524" layer="91"/>
-<label x="215.9" y="187.96" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="N$10" class="1">
