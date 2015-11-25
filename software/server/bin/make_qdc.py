@@ -68,6 +68,14 @@ parser.add_argument('--raise-all',
 parser.add_argument('-s', '--start-time',
                     help='Start time',
                     metavar='DATETIME')
+parser.add_argument('--smooth', 
+                    action='store_true',
+                    default=True,
+                    help='Smooth QDC using truncated Fourier series')
+parser.add_argument('--no-smooth', 
+                    dest='smooth',
+                    action='store_false',
+                    help='Do not smooth QDC using truncated Fourier series')
 
 parser.add_argument('project_site',
                     nargs='+',
@@ -161,7 +169,7 @@ for site_num in range(len(site_list)):
                                     archive=archive,
                                     raise_all=args.raise_all)
             if mag_data is not None:
-                mag_qdc = mag_data.make_qdc(smooth=True)
+                mag_qdc = mag_data.make_qdc(smooth=args.smooth)
                 qdc_archive, qdc_ad \
                     = ap.get_archive_info(project_uc, site_uc, 'MagQDC')
 
