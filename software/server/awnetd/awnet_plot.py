@@ -156,10 +156,14 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
 
         # Align the QDC to regular intervals between start and end times
         qdc_cadence = np.timedelta64(1, 'm')
-        num = ((mag_data.end_time - mag_data.start_time)/ qdc_cadence) + 1
-        qdc_sample_times = np.linspace(mag_data.start_time.astype('M8[m]'),
-                                       mag_data.end_time.astype('M8[m]'),
-                                       num)
+#        num = ((mag_data.end_time - mag_data.start_time)/ qdc_cadence) + 1
+#        qdc_sample_times = np.linspace(mag_data.start_time.astype('M8[m]'),
+#                                       mag_data.end_time.astype('M8[m]'),
+#                                       num)
+        qdc_sample_times = list(dt64.dt64_range(mag_data.start_time,
+                                                mag_data.end_time,
+                                                qdc_cadence))
+
         qdc_aligned = mag_qdc.align(qdc_sample_times)
         qdc_aligned.plot(channels=channel, 
                          label=channel + ' QDC', 
