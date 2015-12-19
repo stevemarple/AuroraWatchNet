@@ -76,7 +76,7 @@ public:
     return (mag < numAxes) ? (adcConfig[mag] & 0x0F) : 0; 
   }
   
-  inline const int getState(void) const {
+  inline int getState(void) const {
     return state;
   }
 
