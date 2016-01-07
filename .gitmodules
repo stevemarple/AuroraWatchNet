@@ -40,3 +40,6 @@
 [submodule "software/magnetometer/libraries/MemoryFree"]
 	path = software/magnetometer/libraries/MemoryFree
 	url = https://github.com/stevemarple/MemoryFree.git
+[submodule "software/magnetometer/libraries/HIH61xx"]
+	path = software/magnetometer/libraries/HIH61xx
+	url = https://github.com/stevemarple/HIH61xx.git
