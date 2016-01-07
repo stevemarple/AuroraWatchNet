@@ -191,7 +191,7 @@ void get_mcusr(void)
 }
 
 
-void startSamplingCallback(uint8_t alarmNum, bool late, const void *context)
+void startSamplingCallback(uint8_t alarmNum __attribute__ ((unused)), bool late, const void *context __attribute__ ((unused)) )
 {
   // Indicate that main loop should commence sampling
   startSampling = true;
@@ -378,8 +378,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 
 uint8_t spmBuffer[SPM_PAGESIZE];
 // Process the response sent back from the server. Context must be a stream
-bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen,
-			 void *context)
+bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, void *context)
 {
   Stream *s = (Stream*)context;
   switch (tag) {
@@ -700,7 +699,7 @@ void beginW5100_UDP(void)
 			remoteIP, remotePort);
   console << "  Remote hostname: " << remoteHostname << endl;
     
-
+  console << "localIP uint32_t: " << (uint32_t(localIP)) << endl;
   wdt_reset();
   if (uint32_t(localIP))
     // Static IP

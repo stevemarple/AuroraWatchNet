@@ -73,10 +73,10 @@ bool startsWith_P(const char *match, const char *str, char **ep)
 Stream& printEepromContents(Stream &s, uint16_t address, uint16_t size)
 {
   s << "EEPROM values:\n";
-  while (address >= 0 && address <= E2END && size--) {
+  while (address <= E2END && size--) {
     s << "0x" << _HEX(address) << ": 0x";
     if (0 && address >= EEPROM_HMAC_KEY &&
-	address < EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE) 
+	address < EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE)
       s << "??\n"; // Don't print key!
     else
       s << _HEX(eeprom_read_byte((uint8_t*)address)) << endl;

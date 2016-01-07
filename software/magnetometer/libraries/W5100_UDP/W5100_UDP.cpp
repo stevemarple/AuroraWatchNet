@@ -64,7 +64,7 @@ bool W5100_UDP::reset(void)
 }
 
 
-bool W5100_UDP::begin(uint8_t *macAddress,
+bool W5100_UDP::begin(uint8_t *macAddress __attribute__ ((unused)),
 		      IPAddress localIP_, uint16_t localPort_, 
 		      IPAddress remoteIP_, uint16_t remotePort_,
 		      uint8_t ssPin_, uint8_t sdSsPin_)
