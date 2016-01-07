@@ -54,8 +54,9 @@
 const char firmwareVersion[AWPacket::firmwareNameLength] =
   "MagCloud-0.25a";
 // 1234567890123456
-uint8_t rtcAddressList[] = {RTCx_MCP7941x_ADDRESS,
-			    RTCx_DS1307_ADDRESS};
+uint8_t rtcAddressList[] = {RTCx::MCP7941xAddress,
+			    RTCx::DS1307Address};
+
 
 uint8_t ledPin = LED_BUILTIN;
 const uint8_t fanPin = eeprom_read_byte((uint8_t*)EEPROM_FAN_PIN);
