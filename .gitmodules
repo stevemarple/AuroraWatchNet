@@ -1,45 +1,45 @@
-[submodule "software/magnetometer/libraries/CounterRTC"]
-	path = software/magnetometer/libraries/CounterRTC
+[submodule "software/magnetometer/sketches/libraries/CounterRTC"]
+	path = software/magnetometer/sketches/libraries/CounterRTC
 	url = https://github.com/stevemarple/CounterRTC.git
-[submodule "software/magnetometer/libraries/RTCx"]
-	path = software/magnetometer/libraries/RTCx
+[submodule "software/magnetometer/sketches/libraries/RTCx"]
+	path = software/magnetometer/sketches/libraries/RTCx
 	url = https://github.com/stevemarple/RTCx.git
-[submodule "software/magnetometer/libraries/CircularStack"]
-	path = software/magnetometer/libraries/CircularStack
+[submodule "software/magnetometer/sketches/libraries/CircularStack"]
+	path = software/magnetometer/sketches/libraries/CircularStack
 	url = https://github.com/stevemarple/CircularStack.git
-[submodule "software/magnetometer/libraries/MCP342x"]
-	path = software/magnetometer/libraries/MCP342x
+[submodule "software/magnetometer/sketches/libraries/MCP342x"]
+	path = software/magnetometer/sketches/libraries/MCP342x
 	url = https://github.com/stevemarple/MCP342x.git
-[submodule "software/magnetometer/libraries/AsyncDelay"]
-	path = software/magnetometer/libraries/AsyncDelay
+[submodule "software/magnetometer/sketches/libraries/AsyncDelay"]
+	path = software/magnetometer/sketches/libraries/AsyncDelay
 	url = https://github.com/stevemarple/AsyncDelay.git
-[submodule "software/magnetometer/libraries/MultiReadCircBuffer"]
-	path = software/magnetometer/libraries/MultiReadCircBuffer
+[submodule "software/magnetometer/sketches/libraries/MultiReadCircBuffer"]
+	path = software/magnetometer/sketches/libraries/MultiReadCircBuffer
 	url = https://github.com/stevemarple/MultiReadCircBuffer.git
-[submodule "software/magnetometer/libraries/Streaming"]
-	path = software/magnetometer/libraries/Streaming
+[submodule "software/magnetometer/sketches/libraries/Streaming"]
+	path = software/magnetometer/sketches/libraries/Streaming
 	url = https://github.com/stevemarple/Streaming
-[submodule "software/magnetometer/libraries/RF12"]
-	path = software/magnetometer/libraries/RF12
+[submodule "software/magnetometer/sketches/libraries/RF12"]
+	path = software/magnetometer/sketches/libraries/RF12
 	url = https://github.com/stevemarple/RF12.git
-[submodule "software/magnetometer/libraries/RF12_Stream"]
-	path = software/magnetometer/libraries/RF12_Stream
+[submodule "software/magnetometer/sketches/libraries/RF12_Stream"]
+	path = software/magnetometer/sketches/libraries/RF12_Stream
 	url = https://github.com/stevemarple/RF12_Stream.git
-[submodule "software/magnetometer/libraries/CircBuffer"]
-	path = software/magnetometer/libraries/CircBuffer
+[submodule "software/magnetometer/sketches/libraries/CircBuffer"]
+	path = software/magnetometer/sketches/libraries/CircBuffer
 	url = https://github.com/stevemarple/CircBuffer.git
 [submodule "hardware/RPi_RFM12B_ISP"]
 	path = hardware/RPi_RFM12B_ISP
 	url = https://github.com/stevemarple/RPi_RFM12B_ISP.git
-[submodule "software/magnetometer/libraries/SoftWire"]
-	path = software/magnetometer/libraries/SoftWire
+[submodule "software/magnetometer/sketches/libraries/SoftWire"]
+	path = software/magnetometer/sketches/libraries/SoftWire
 	url = https://github.com/stevemarple/SoftWire.git
 [submodule "hardware/Calunium"]
 	path = hardware/Calunium
 	url = https://github.com/stevemarple/Calunium.git
-[submodule "software/magnetometer/libraries/MemoryFree"]
-	path = software/magnetometer/libraries/MemoryFree
+[submodule "software/magnetometer/sketches/libraries/MemoryFree"]
+	path = software/magnetometer/sketches/libraries/MemoryFree
 	url = https://github.com/stevemarple/MemoryFree.git
-[submodule "software/magnetometer/libraries/HIH61xx"]
-	path = software/magnetometer/libraries/HIH61xx
+[submodule "software/magnetometer/sketches/libraries/HIH61xx"]
+	path = software/magnetometer/sketches/libraries/HIH61xx
 	url = https://github.com/stevemarple/HIH61xx.git
