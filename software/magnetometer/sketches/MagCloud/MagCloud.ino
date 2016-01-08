@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "MagCloud.h"
+
 #include <Wire.h>
 #include <Streaming.h>
 
@@ -28,11 +30,24 @@
 #include <MCP342x.h>
 #include <CircBuffer.h>
 #include <CommsInterface.h>
+
+#ifndef COMMS_HW
+#error COMMS_HW must be defined
+
+#elif (COMMS_HW == COMMS_XRF || COMMS_HW == COMMS_W5100)
+// XRF and WizNet W5100 share same firmware (for now)
 #include <XRF_Radio.h>
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Dhcp.h>
 #include <W5100_UDP.h>
+
+#elif COMMS_HW == COMMS_W5500
+#error W5500 not supported at this time
+
+#else
+#error Unknown value for COMMS_HW
+#endif
 
 //#include <SD.h>
 
@@ -44,8 +59,6 @@
 #include "CommsHandler.h"
 
 #include "xbootapi.h"
-
-#include "MagCloud.h"
 
 #ifdef SHOW_MEM_USAGE
 #include <MemoryFree.h>
