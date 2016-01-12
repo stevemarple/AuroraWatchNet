@@ -43,3 +43,6 @@
 [submodule "software/magnetometer/sketches/libraries/HIH61xx"]
 	path = software/magnetometer/sketches/libraries/HIH61xx
 	url = https://github.com/stevemarple/HIH61xx.git
+[submodule "software/magnetometer/sketches/libraries/MicroNMEA"]
+	path = software/magnetometer/sketches/libraries/MicroNMEA
+	url = https://github.com/stevemarple/MicroNMEA.git
