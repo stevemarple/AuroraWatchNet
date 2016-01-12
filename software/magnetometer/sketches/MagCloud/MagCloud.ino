@@ -31,22 +31,39 @@
 #include <CircBuffer.h>
 #include <CommsInterface.h>
 
-#ifndef COMMS_HW
-#error COMMS_HW must be defined
+#if defined (COMMS_W5100) && defined (COMMS_W5500)
+#error Cannot build for both WIZnet W5100 and W5500 simultaneously
+#endif
 
-#elif (COMMS_HW == COMMS_XRF || COMMS_HW == COMMS_W5100)
-// XRF and WizNet W5100 share same firmware (for now)
+#undef COMMS_ARCH_DEFINED
+
+#ifdef COMMS_XRF
+#define COMMS_ARCH_DEFINED
 #include <XRF_Radio.h>
+#endif
+
+#ifdef COMMS_W5100
+#define COMMS_ARCH_DEFINED
 #include <SPI.h>
 #include <Ethernet.h>
+#include <Dns.h>
 #include <Dhcp.h>
-#include <W5100_UDP.h>
+#include <WIZnet_UDP.h>
+#endif
 
-#elif COMMS_HW == COMMS_W5500
-#error W5500 not supported at this time
+#ifdef COMMS_W5500
+#define COMMS_ARCH_DEFINED
+#include <SPI.h>
+#include <Ethernet2.h>
+#include <Dns.h>
+#include <Dhcp.h>
+#include <WIZnet_UDP.h>
+#endif
 
-#else
-#error Unknown value for COMMS_HW
+#ifndef COMMS_ARCH_DEFINED
+// One or more communication architectures are required. Build from
+// command line or include custom_include.h.
+#error No communications architecture defined
 #endif
 
 //#include <SD.h>
@@ -85,8 +102,14 @@ uint8_t messageCount = 0;
 
 Stream& console = Serial;
 uint8_t radioType;
+
 XRF_Radio xrf(Serial1);
-W5100_UDP w5100udp;
+const uint8_t xrfSleepPin = 7;
+const uint8_t xrfOnPin = 23;
+const uint8_t xrfResetPin = 5;
+
+WIZnet_UDP wiz_udp;
+
 uint8_t verbosity = 1;
 
 FLC100 flc100;
@@ -106,9 +129,6 @@ CounterRTC::Time as3935Timestamp;
 
 CommandHandler commandHandler;
 
-const uint8_t xrfSleepPin = 7;
-const uint8_t xrfOnPin = 23;
-const uint8_t xrfResetPin = 5;
 
 // Set if packets should be multiple of some particular length
 uint16_t commsBlockSize = 0; 
@@ -128,13 +148,8 @@ const CounterRTC::Time maxTimeError(1, 0);
 // zero.
 CounterRTC::Time timeAdjustment(0, 0);
 
-//AsyncDelay xrfResponseTimeout;
-// uint32_t xrfResponseTimeout_ms = 1000;
-
 // Don't sleep if samplingInterval is less than this value
 uint16_t counter2Frequency = 0;
-// const uint16_t minSleepInterval = 4; 
-//uint32_t samplingInterval = 8;
 CounterRTC::Time minSleepInterval(2, 0);
 CounterRTC::Time samplingInterval(30, 0);
 CounterRTC::Time minSamplingInterval(5, 0);
@@ -658,7 +673,7 @@ void printEthernetSettings(Stream &s,
 }
 
 
-void beginW5100_UDP(void)
+void begin_WIZnet_UDP(void)
 {
   uint8_t macAddress[6];
   uint8_t tmp[4];
@@ -764,7 +779,7 @@ void beginW5100_UDP(void)
 			dns, remoteIP, remotePort);
   console.println();
   
-  w5100udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
+  wiz_udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
 		 10, 4);
 }
 
@@ -1120,11 +1135,11 @@ void setup(void)
 
   // Configure radio module or Ethernet adaptor.
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
-    beginW5100_UDP();
+    begin_WIZnet_UDP();
     
     disableJTAG();
     ledPin = 17; // JTAG TDO
-    commsHandler.setCommsInterface(&w5100udp);
+    commsHandler.setCommsInterface(&wiz_udp);
     useLed = true;
     
   }

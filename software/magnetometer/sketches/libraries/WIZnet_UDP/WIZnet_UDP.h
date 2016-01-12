@@ -1,15 +1,24 @@
-#ifndef W5100_UDP_H
-#define W5100_UDP_H
+#ifndef WIZNET_UDP_H
+#define WIZNET_UDP_H
 
-#include <SPI.h>
-#include <Ethernet.h>
-#include <Dns.h>
+#if defined (COMMS_W5100) && defined (COMMS_W5500)
+#error Cannot build for both WIZnet W5100 and W5500 simultaneously
+#endif
+
+#ifdef COMMS_W5100
+#include <EthernetUdp.h>
+#endif
+
+#ifdef COMMS_W5500
+#include <EthernetUdp2.h>
+#endif
+
 #include <CommsInterface.h>
 
-class W5100_UDP : public CommsInterface
+class WIZnet_UDP : public CommsInterface
 {
 public:
-  W5100_UDP(void);
+  WIZnet_UDP(void);
   bool begin(uint8_t *macAddress,
 	     IPAddress localIP, uint16_t localPort_,
 	     IPAddress remoteIP_, uint16_t remotePort_,
@@ -23,11 +32,7 @@ public:
   virtual int read(void);
   virtual void flush(void);
   virtual size_t write(uint8_t);
-  using Print::write; // Apull in write(str) and write(buf, size) from Print
-  // size_t write(const char *str) { return write((const uint8_t *)str, strlen(str)); }
-  //size_t write(const char *str);
-  //virtual size_t write(const uint8_t *buffer, size_t size);
-    
+  using Print::write; // Pull in write(str) and write(buf, size) from Print
   
   virtual bool powerOn(void);
   virtual bool powerOff(void);
@@ -40,7 +45,6 @@ public:
   virtual void checkForResponse(void);
 
 private:
-  // Stream &stream;
   uint8_t ssPin;
   uint8_t sdSsPin;
   EthernetUDP udp;
@@ -50,7 +54,7 @@ private:
   IPAddress remoteIP;
 };
 
-const IPAddress& W5100_UDP::getRemoteIP(void) const {
+const IPAddress& WIZnet_UDP::getRemoteIP(void) const {
   return remoteIP;
 }
 

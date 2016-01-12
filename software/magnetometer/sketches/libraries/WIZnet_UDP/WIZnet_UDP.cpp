@@ -3,68 +3,68 @@
 #include <ctype.h>
 
 #include <Streaming.h>
-#include <W5100_UDP.h>
+#include <WIZnet_UDP.h>
 #include <AwEeprom.h>
 
 extern Stream& console;
 
-W5100_UDP::W5100_UDP(void) : ssPin(255), sdSsPin(255)
+WIZnet_UDP::WIZnet_UDP(void) : ssPin(255), sdSsPin(255)
 {
   ;
 }
 
-int W5100_UDP::available(void)
+int WIZnet_UDP::available(void)
 {
   return udp.available();
 }
 
-int W5100_UDP::peek(void)
+int WIZnet_UDP::peek(void)
 {
   return udp.peek();
 }
 
-int W5100_UDP::read(void)
+int WIZnet_UDP::read(void)
 {
   return udp.read();
 }
 
-void W5100_UDP::flush(void)
+void WIZnet_UDP::flush(void)
 {
   ; // return udp.flush();
 }
 
-size_t W5100_UDP::write(uint8_t c)
+size_t WIZnet_UDP::write(uint8_t c)
 {
   return udp.write(c);
 }
 
-// size_t W5100_UDP::write(const char* str)
+// size_t WIZnet_UDP::write(const char* str)
 // {
 //   return udp.write((const uint8_t *)str, strlen(str));
 // }
 
-// size_t W5100_UDP::write(const uint8_t *buffer, size_t size)
+// size_t WIZnet_UDP::write(const uint8_t *buffer, size_t size)
 // {
 //   return udp.write(buffer, size);
 // }
 
-bool W5100_UDP::powerOn(void)
+bool WIZnet_UDP::powerOn(void)
 {
   return true;
 }
 
-bool W5100_UDP::powerOff(void)
+bool WIZnet_UDP::powerOff(void)
 {
   return true;
 }
 
-bool W5100_UDP::reset(void)
+bool WIZnet_UDP::reset(void)
 {
   return true;
 }
 
 
-bool W5100_UDP::begin(uint8_t *macAddress __attribute__ ((unused)),
+bool WIZnet_UDP::begin(uint8_t *macAddress __attribute__ ((unused)),
 		      IPAddress localIP_, uint16_t localPort_, 
 		      IPAddress remoteIP_, uint16_t remotePort_,
 		      uint8_t ssPin_, uint8_t sdSsPin_)
@@ -88,27 +88,27 @@ bool W5100_UDP::begin(uint8_t *macAddress __attribute__ ((unused)),
   return true;
 }
 
-void W5100_UDP::poll(void)
+void WIZnet_UDP::poll(void)
 {
   ; // No polling needed
 }
 
-void W5100_UDP::messageStart(void)
+void WIZnet_UDP::messageStart(void)
 {
   udp.beginPacket(remoteIP, remotePort);
 }
 
-void W5100_UDP::messageEnd(void)
+void WIZnet_UDP::messageEnd(void)
 {
   udp.endPacket();
 }
 
-size_t W5100_UDP::messageWriteSize(void)
+size_t WIZnet_UDP::messageWriteSize(void)
 {
   return 0;
 }
 
-void W5100_UDP::checkForResponse(void)
+void WIZnet_UDP::checkForResponse(void)
 {
   udp.parsePacket();
 }

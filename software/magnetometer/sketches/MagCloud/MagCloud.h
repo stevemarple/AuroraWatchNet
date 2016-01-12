@@ -6,10 +6,6 @@
 
 // #define SHOW_MEM_USAGE
 
-#define COMMS_XRF 1
-#define COMMS_W5100 2
-#define COMMS_W5500 3
-
 
 #endif
 
