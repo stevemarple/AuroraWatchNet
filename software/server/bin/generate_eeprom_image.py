@@ -108,9 +108,12 @@ for k in eeprom:
         # If the argparse type conversion was employed then convert
         # back to a string
         s = str(s)
-
+        logger.debug("value: " + s)
         # Parse struct format string into order, quantity, type
         pfmt = awn.eeprom.parse_unpack_format(eeprom[k]['format'])
+
+        if pfmt[2] == 's' and len(s) > pfmt[1]:
+            raise Exception('Argument for ' + k + ' too long')
 
         if pfmt[2] in ('c', 's', 'p'):
             # String data
