@@ -157,7 +157,7 @@ tag_data = {
         'format': '!h',
         },
     # Voltage, millivolts.
-    'battery_voltage': {
+    'supply_voltage': {
         'id': 5,
         'length': 3,
         'format': '!H',

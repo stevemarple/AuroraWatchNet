@@ -246,18 +246,17 @@ void setAlarm(void)
   if (callbackWasLate) {
     CounterRTC::Time now;
     cRTC.getTime(now);
-    console << "startSamplingCallback()  LATE ====\n";
+    console << F("startSamplingCallback()  LATE ====\n");
     extern CounterRTC::Time alarmBlockTime[CounterRTC::numAlarms];
     extern uint8_t alarmCounter[CounterRTC::numAlarms];
-    console << "alarm block: " <<  alarmBlockTime[0].getSeconds()
+    console << F("alarm block: ") <<  alarmBlockTime[0].getSeconds()
 	    << ' ' << alarmBlockTime[0].getFraction()
 	    << ' ' << _DEC(alarmCounter[0])
-	    << endl
-	    << "now: " << now.getSeconds() << ' ' << now.getFraction() << endl;
+	    << F("\nnow: ") << now.getSeconds() << ' ' << now.getFraction() << endl;
   }
   else
-    console << "startSamplingCallback()\n";
-  console << "alarmTime: " << t.getSeconds() << ' ' << t.getFraction() << endl;
+    console << F("startSamplingCallback()\n");
+  console << F("alarmTime: ") << t.getSeconds() << ' ' << t.getFraction() << endl;
   // --------------------
   */
   cRTC.setAlarm(0, t, startSamplingCallback);
@@ -871,7 +870,7 @@ void setup(void)
 	  << F(" W5500")
 #endif
 	  << endl;
-
+  
   // Only use the LED following a reset initiated by user action
   // (JTAG, external reset and power on). Exclude brown-out and
   // watchdog resets.
@@ -1094,13 +1093,13 @@ void setup(void)
 			  
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
-  console << "Autoprobing to find RTC\n";
+  console << F("Autoprobing to find RTC\n");
   console.flush();
   
   if (rtc.autoprobe(rtcAddressList, sizeof(rtcAddressList)))
-    console << "Found RTC at address 0x" << _HEX(rtc.getAddress()) << endl;
+    console << F("Found RTC at address 0x") << _HEX(rtc.getAddress()) << endl;
   else
-    console << "No RTC found" << endl;
+    console << F("No RTC found") << endl;
   console.flush();
   
   // Enable the battery backup. This happens by default on the DS1307
@@ -1114,7 +1113,8 @@ void setup(void)
   rtc.startClock();
 
   if (rtc.getDevice() == RTCx::MCP7941x) {
-    console << "MCP7941x calibration: " << _DEC(rtc.getCalibration()) << endl;
+    console << F("MCP7941x calibration: ") << _DEC(rtc.getCalibration())
+	    << endl;
     console.flush();
   }
   
@@ -1124,7 +1124,7 @@ void setup(void)
 
   // Warn, if it stops at this point it means the jumper isn't fitted.
   // TODO: test if jumper for RTC output is fitted.
-  console << "Configuring MCU RTC\n";
+  console << F("Configuring MCU RTC\n");
   console.flush();
   
 #if 0
@@ -1144,10 +1144,10 @@ void setup(void)
     CounterRTC::Time t;
     t.setSeconds(RTCx::mktime(tm));
     cRTC.setTime(t);
-    console << "Set MCU RTC from hardware RTC\n";
+    console << F("Set MCU RTC from hardware RTC\n");
   }
   else
-    console << "Could not get time from hardware RTC\n";
+    console << F("Could not get time from hardware RTC\n");
   console.flush();
 
   // Set samplingInterval
@@ -1231,7 +1231,7 @@ void loop(void)
     setAlarm();
 
     resultsProcessed = false;
-    console << "Sampling started\n";
+    console << F("Sampling started\n");
 
     maintainDhcpLease = true; // Only do this once per sampling interval    
   }
@@ -1253,7 +1253,7 @@ void loop(void)
   
   commandHandler.process(console);
 
-  // console << "I2C state: " << (flc100.getI2CState()) << endl;
+  // console << F("I2C state: ") << (flc100.getI2CState()) << endl;
   if ((flc100Present == false || flc100.isFinished())
       && (mlx90614Present == false || mlx90614.isFinished())
       && (hih61xxPresent == false || hih61xx.isFinished())
@@ -1267,28 +1267,29 @@ void loop(void)
       // 	console << '\t' << (flc100.getMagData()[i]);
       // console << endl;
       
-      console << "Timestamp: " << sampleStartTime.getSeconds()
-	      << ", " << sampleStartTime.getFraction() << endl
-	      << "Sensor temperature: " << flc100.getSensorTemperature() << endl
-	      << "System temperature: " << houseKeeping.getSystemTemperature()
+      console << F("Timestamp: ") << sampleStartTime.getSeconds()
+	      << F(", ") << sampleStartTime.getFraction() << endl
+	      << F("Sensor temperature: ") << flc100.getSensorTemperature() << endl
+	      << F("System temperature: ") << houseKeeping.getSystemTemperature()
 	      << endl;
       if (houseKeeping.getVinDivider())
-	console << "Battery voltage: " << houseKeeping.getVin() << endl;
+	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
 
       if (mlx90614Present) {
-	console << "MLX temp: " << mlx90614.getAmbient() << endl
-		<< "Object 1: " << mlx90614.getObject1() << endl;
+	console << F("MLX temp: ") << mlx90614.getAmbient()
+		<< F("\nObject 1: ") << mlx90614.getObject1();
 	if (mlx90614.isDualSensor())
-	  console << "Object 2: " << mlx90614.getObject2() << endl;
+	  console << F("\nObject 2: ") << mlx90614.getObject2();
+	console.println();
       }
 
       if (hih61xxPresent) 
-	console << "Humidity: " << hih61xx.getRelHumidity() << endl
-		<< "Ambient: " << hih61xx.getAmbientTemp() << endl;
+	console << F("Humidity: ") << hih61xx.getRelHumidity()
+		<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
      
       if (flc100Present)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	  console << "magData[" << i << "]: " << (flc100.getMagData()[i])
+	  console << F("magData[") << i << F("]: ") << (flc100.getMagData()[i])
 		  << endl;
 
       // Buffer for storing the binary AW packet. Will also be used
@@ -1327,13 +1328,14 @@ void loop(void)
 	      break;
 	    sdFile.write(buffer, bytesRead);
 	    sdFile.flush();
-	    console << "Wrote to " << bytesRead << " to " << sdFilename << endl;
+	    console << F("Wrote to ") << bytesRead
+		    << F(" to ") << sdFilename << endl;
 	  } 
 	}
 	
 	if (strcmp(sdFilename, newFilename) != 0) {
 	  if (sdFile) {
-	    console << "Closing " << sdFilename << endl;
+	    console << F("Closing ") << sdFilename << endl;
 	    sdFile.close();
 	  }
 	  strncpy(sdFilename, newFilename, sizeof(sdFilename));
@@ -1342,12 +1344,12 @@ void loop(void)
 	  if (ptr) {
 	    *ptr = '\0'; // Remove filename part
 	    if (SD.mkdir(newFilename))
-	      console << "Created directory " << newFilename << endl;
+	      console << F("Created directory ") << newFilename << endl;
 	  }
 	  if ((sdFile = SD.open(sdFilename, FILE_WRITE)) == true)
-	    console << "Opened " << sdFilename << endl;
+	    console << F("Opened ") << sdFilename << endl;
 	  else
-	    console << "Failed to open " << sdFilename << endl;
+	    console << F("Failed to open ") << sdFilename << endl;
 	}
       }
 #endif
@@ -1365,7 +1367,7 @@ void loop(void)
       // console << endl;
 #endif
       
-      console << "Header length: " << AWPacket::getPacketLength(buffer) << endl;
+      console << F("Header length: ") << AWPacket::getPacketLength(buffer) << endl;
 
       if (flc100Present) {
 	uint8_t numSamples;
@@ -1401,7 +1403,7 @@ void loop(void)
 			  houseKeeping.getSystemTemperature());
       if (houseKeeping.getVinDivider())
 	packet.putDataUint16(buffer, sizeof(buffer),
-			     AWPacket::tagBatteryVoltage,
+			     AWPacket::tagSupplyVoltage,
 			     houseKeeping.getVin());
       // Upper 3 nibbles is seconds, lowest nibble is 16ths of second
       packet.putDataUint16(buffer, sizeof(buffer),
@@ -1449,7 +1451,7 @@ void loop(void)
 				 timeAdjustment.getFraction());
       
       if (eepromContentsLength) {
-	console << "EEPROM contents length: " << eepromContentsLength << endl;
+	console << F("EEPROM contents length: ") << eepromContentsLength << endl;
 	packet.putEepromContents(buffer, sizeof(buffer),
 				 eepromContentsAddress, eepromContentsLength);
       }
@@ -1478,7 +1480,7 @@ void loop(void)
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
     
-      console << " -----------" << endl;
+      console << F(" -----------") << endl;
     }
     
     if (startSampling == false &&
@@ -1546,45 +1548,46 @@ void loop(void)
       	RTCx::time_t t = now.getSeconds();
       	RTCx::gmtime_r(&t, &tm);
       	rtc.setClock(tm);
-	console << "Set HW clock\n";
+	console << F("Set HW clock\n");
       }
 
       if (radioType == EEPROM_COMMS_TYPE_W5100_UDP && maintainDhcpLease) {
 	maintainDhcpLease = false;
 	uint8_t m = Ethernet.maintain();
-	console << "DHCP ";
+	console << F("DHCP ");
 	switch (m) {
 	case DHCP_CHECK_NONE:
-	  console << "nothing done\n";
+	  console << F("nothing done\n");
 	  break;
 	case DHCP_CHECK_RENEW_FAIL:
 	case DHCP_CHECK_REBIND_FAIL:
-	  console << "lease failed, rebooting\n";
+	  console << F("lease failed, rebooting\n");
+	  console.flush();
 	  // Reboot
 	  wdt_enable(WDTO_8S);
 	  while (1)
 	    ;
 	  break;
 	case DHCP_CHECK_RENEW_OK:
-	  console << "lease renewed\n";
+	  console << F("lease renewed\n");
 	  break;
 	case DHCP_CHECK_REBIND_OK:
-	  console << "lease rebind\n";
+	  console << F("lease rebind\n");
 	  break;
 	default:
-	  console << "maintain returned " << _DEC(m) << endl;
+	  console << F("maintain returned ") << _DEC(m) << endl;
 	}
       }
 
 #ifdef SHOW_MEM_USAGE
-      console << "Free mem: " << freeMemory() << endl;
+      console << F("Free mem: ") << freeMemory() << endl;
 #endif
       
       if (enableSleep && samplingInterval >= minSleepInterval) {
-	console << "SLEEP!\n";
+	console << F("SLEEP!\n");
 	console.flush();
 	doSleep(SLEEP_MODE_PWR_SAVE);
-	console << "AWAKE!\n";
+	console << F("AWAKE!\n");
 	console.flush();
       }
     }

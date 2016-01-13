@@ -145,10 +145,10 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
             else:
                 data.append(float('NaN'))
 
-        if 'battery_voltage' in message_tags:
+        if 'supply_voltage' in message_tags:
             found = True
-            data.append(struct.unpack(awn.message.tag_data['battery_voltage']['format'], 
-                                      str(message_tags['battery_voltage'][0]))[0] 
+            data.append(struct.unpack(awn.message.tag_data['supply_voltage']['format'], 
+                                      str(message_tags['supply_voltage'][0]))[0] 
                         / 1000.0)
         else:
             data.append(float('NaN'))

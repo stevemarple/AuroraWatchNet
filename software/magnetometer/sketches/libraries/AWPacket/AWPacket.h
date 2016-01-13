@@ -45,7 +45,7 @@ public:
     tagMagDataZ = 2,
     tagSensorTemperature = 3,
     tagMCUTemperature = 4,
-    tagBatteryVoltage = 5,
+    tagSupplyVoltage = 5,
     tagTimeAdjustment = 6,
     tagRebootFlags = 7,
     tagSamplingInterval = 8,

@@ -114,18 +114,18 @@ def site_job(project, site, now, status_dir, test_mode,
 
     # Warn if battery nearly exhausted
     if voltage_data is not None and \
-            'Battery voltage' in voltage_data.channels:
-        low_batt = float(config.get('battery_voltage', 'low_voltage'))
+            'Supply voltage' in voltage_data.channels:
+        low_batt = float(config.get('supply_voltage', 'low_voltage'))
         low_batt_timeout = np.timedelta64(24, 'h')
         low_batt_time = limit_exceeded(\
-            voltage_data.extract(channels=['Battery voltage']),
+            voltage_data.extract(channels=['Supply voltage']),
             lower_limit=low_batt)
 
         if low_batt_time:
-            logger.debug('Low battery for ' + project + '/' + site)
-            if config.has_option('battery_voltage', 'twitter_username'):
-                username = config.get('battery_voltage', 'twitter_username')
-                twitter_mesg = expand_string(config.get('battery_voltage', 
+            logger.debug('Low supply for ' + project + '/' + site)
+            if config.has_option('supply_voltage', 'twitter_username'):
+                username = config.get('supply_voltage', 'twitter_username')
+                twitter_mesg = expand_string(config.get('supply_voltage', 
                                                       'twitter_message'),
                                      project, site, now, test_mode, 
                                      low_voltage=low_batt)
@@ -134,15 +134,15 @@ def site_job(project, site, now, status_dir, test_mode,
                                        now, status_dir,
                                        detection_time=low_batt_time, 
                                        func_args=[username, twitter_mesg],
-                                       name='battery_voltage_tweet')
+                                       name='supply_voltage_tweet')
                 
                 logger.debug('Low battery message: ' + twitter_mesg)
 
 
-            if config.has_option('battery_voltage', 'facebook_cmd'):
-                fbcmd_opts = config.get('battery_voltage', 
+            if config.has_option('supply_voltage', 'facebook_cmd'):
+                fbcmd_opts = config.get('supply_voltage', 
                                         'facebook_cmd').split()
-                facebook_mesg = expand_string(config.get('battery_voltage', 
+                facebook_mesg = expand_string(config.get('supply_voltage', 
                                                          'facebook_message'),
                                               project, site, now, test_mode, 
                                               low_voltage=low_batt)
@@ -150,21 +150,21 @@ def site_job(project, site, now, status_dir, test_mode,
                                        now, status_dir,
                                        detection_time=low_batt_time, 
                                        func_args=[fbcmd_opts, facebook_mesg],
-                                       name='battery_voltage_facebook')
+                                       name='supply_voltage_facebook')
 
             # Email. Leave to the send_email() function to determine
             # if it is configured since there are many possible
             # settings in the config file.  Run each email job
             # separately in case of failure to send.
-            for ejob in get_email_jobs(config, 'battery_voltage'):
+            for ejob in get_email_jobs(config, 'supply_voltage'):
                 run_if_timeout_reached(send_email, low_batt_timeout, 
                                        now, status_dir,
                                        detection_time=low_batt_time, 
-                                       func_args=[config, 'battery_voltage',
+                                       func_args=[config, 'supply_voltage',
                                                   ejob, project, site, 
                                                   now, test_mode],
                                        func_kwargs={'low_voltage': low_batt},
-                                       name='battery_voltage_' + ejob)
+                                       name='supply_voltage_' + ejob)
                     
 
 def activity_job(combined_activity, activity_data_list, now, status_dir, 
@@ -582,16 +582,16 @@ def read_config(test_mode, combined=False, project=None, site=None):
                         os.path.join(path, 'combined.ini')]
     else:
         # Data from a single site
-        config.add_section('battery_voltage')
-        config.set('battery_voltage', 'low_voltage', '2.35')
-        # batt_low_mesg = 'Battery voltage low (< {low_voltage!s}V) for ' + 
-        batt_low_mesg = 'Battery voltage low (< {low_voltage:.2f}V) for ' + \
+        config.add_section('supply_voltage')
+        config.set('supply_voltage', 'low_voltage', '2.35')
+        # batt_low_mesg = 'Supply voltage low (< {low_voltage!s}V) for ' + 
+        batt_low_mesg = 'Supply voltage low (< {low_voltage:.2f}V) for ' + \
             '{project}/{site} {datetime}.'
-        config.set('battery_voltage', 'twitter_message', batt_low_mesg)
-        config.set('battery_voltage', 'facebook_message', batt_low_mesg)
-        config.set('battery_voltage', 'email_subject', 
-                   '{project}/{site}: Battery low')
-        config.set('battery_voltage', 'email_message', batt_low_mesg)
+        config.set('supply_voltage', 'twitter_message', batt_low_mesg)
+        config.set('supply_voltage', 'facebook_message', batt_low_mesg)
+        config.set('supply_voltage', 'email_subject', 
+                   '{project}/{site}: Supply low')
+        config.set('supply_voltage', 'email_message', batt_low_mesg)
 
         # Single sites should only warn of disturbance, only issue
         # alerts for the combined data set where multiple sites are in
