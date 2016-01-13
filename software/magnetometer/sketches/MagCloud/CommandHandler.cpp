@@ -89,7 +89,7 @@ void CommandHandler::process(Stream &console)
 {
   while (console.available()) {
     char c = console.read();
-    if (c == '\r' || c == '\n') {
+    if ((c == '\r' || c == '\n') && ptr > buffer) {
       // Check for matching substr
       char *ep;
       if (startsWith_P(PSTR("eepromRead="), buffer, &ep)) {
@@ -185,16 +185,16 @@ void CommandHandler::process(Stream &console)
 	    verbosity = v;
 	  }
 	}
-	console << "verbosity:" << verbosity << endl;
+	console << F("verbosity:") << verbosity << endl;
       }
       else {
-	console << "ERROR: unknown command\n";
+	console << F("ERROR: unknown command: '") << buffer << F("'\n");
       }
       
       memset(buffer, 0, sizeof(buffer));
       ptr = buffer;
     }
-    else if (ptr - buffer < bufferLen) {
+    else if (ptr - buffer < bufferLen && isprint(c)) {
       // Add to buffer
       *ptr++ = c;
     }

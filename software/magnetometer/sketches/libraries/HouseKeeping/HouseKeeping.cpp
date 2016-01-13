@@ -8,7 +8,6 @@ HouseKeeping houseKeeping;
 
 HouseKeeping::HouseKeeping(void) : _state(off),
 				   _VinDivider(1),
-				   _readVin(true),
 				   _systemTemperature(0),
 				   _Vin(0)
 {
@@ -17,16 +16,16 @@ HouseKeeping::HouseKeeping(void) : _state(off),
 
 bool HouseKeeping::initialise(uint8_t VinADC, uint8_t temperatureADC,
 			      uint8_t temperaturePowerPin,
-			      bool readVin, bool alwaysOn)
+			      uint8_t VinDivider, bool alwaysOn)
 {
   _VinADC = VinADC;
   _temperatureADC = temperatureADC;
   _temperaturePowerPin = temperaturePowerPin;
+  _VinDivider = VinDivider;
   _alwaysOn = alwaysOn;
-  _readVin = readVin;
 
   // Set up pin modes
-  if (_readVin)
+  if (_VinDivider)
     pinMode(analogInputToDigitalPin(_VinADC), INPUT);
   pinMode(analogInputToDigitalPin(_temperatureADC), INPUT);
   if (_temperaturePowerPin != 255)
@@ -129,7 +128,7 @@ void HouseKeeping::process(void)
      */
     _systemTemperature = (((10 * int32_t(analogRead(_temperatureADC))
 			    * adcRefVoltage_mV) + 512) / 1023) - 6000;
-    if (_readVin)
+    if (_VinDivider)
       _state = getVin0;
     else
       _state = ready;

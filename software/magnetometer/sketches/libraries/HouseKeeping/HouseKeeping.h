@@ -18,12 +18,12 @@ public:
     
   bool initialise(uint8_t VinADC, uint8_t temperatureADC,
 		  uint8_t temperaturePowerPin,
-		  bool readVin, bool alwaysOn);
+		  uint8_t VinDivider, bool alwaysOn);
   inline bool isFinished(void) const;
   inline bool isSampling(void) const; // start called, results not ready
   inline bool isPowerOff(void) const;
 
-  inline bool getReadVin(void) const;
+  inline bool getVinDivider(void) const;
   
   void start(void);
   void process(void);
@@ -56,9 +56,6 @@ private:
   uint8_t _VinDivider;
   bool _alwaysOn;
   
-  // Configuration
-  bool _readVin;
-  
   // Data fields
   int16_t _systemTemperature; // hundredths of degrees Celsius
   uint16_t _Vin; // millivolts
@@ -82,9 +79,9 @@ bool HouseKeeping::isPowerOff(void) const
   return _state == off;
 }
 
-bool HouseKeeping::getReadVin(void) const
+bool HouseKeeping::getVinDivider(void) const
 {
-  return _readVin;
+  return _VinDivider;
 }
 
 #endif

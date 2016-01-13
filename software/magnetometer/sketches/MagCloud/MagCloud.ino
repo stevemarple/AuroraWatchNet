@@ -100,10 +100,11 @@ bool useLed = false;
 // planned for!
 uint8_t messageCount = 0;
 
-Stream& console = Serial;
+HardwareSerial& console = Serial;
+HardwareSerial& xrfSerial = Serial1;
 uint8_t radioType;
 
-XRF_Radio xrf(Serial1);
+XRF_Radio xrf(xrfSerial);
 const uint8_t xrfSleepPin = 7;
 const uint8_t xrfOnPin = 23;
 const uint8_t xrfResetPin = 5;
@@ -385,9 +386,9 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 			&console,
 			processResponseTags, AWPacket::printUnknownTag);
   if (verbosity) {
-    console << "====\nResponse:\n";
+    console << F("====\nResponse:\n");
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
-    console << "====\n";
+    console << F("====\n");
   }
   if (verbosity > 1 && flc100Present) {
     for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
@@ -396,7 +397,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 	console << ' ' << flc100.getMagDataSamples(i, j);
       console << '\n';
     }
-    console << " -----------" << endl;
+    console << F(" -----------") << endl;
   }
 }
 
@@ -424,14 +425,14 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       CounterRTC::Time timeError = ourTime - serverTime;
       if (abs_(timeError) > maxTimeError) {
       	cRTC.setTime(serverTime);
-      	console << "Time set\n";
+      	console << F("Time set\n");
       	timeAdjustment = -timeError;
       }
       if (verbosity > 2) {
-	console << "Server time: " << secs << ' ' << frac
-		<< "\nOur time: "  << ourTime.getSeconds() << ' '
+	console << F("Server time: ") << secs << ' ' << frac
+		<< F("\nOur time: ")  << ourTime.getSeconds() << ' '
 		<< ourTime.getFraction()
-		<< "\ntimeError (our-server): " << timeError.getSeconds() << ' '
+		<< F("\ntimeError (our-server): ") << timeError.getSeconds() << ' '
 		<< timeError.getFraction() << endl;
       }
     }
@@ -450,7 +451,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       else if (samplingInterval > maxSamplingInterval)
 	samplingInterval = maxSamplingInterval;
       samplingIntervalChanged = true;
-      (*s) << "SAMPLING INTERVAL CHANGED! "
+      (*s) << F("SAMPLING INTERVAL CHANGED! ")
 	   << samplingInterval.getSeconds() << ',' 
 	   << samplingInterval.getFraction() << endl;
     }
@@ -467,20 +468,20 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       // Not currently upgrading, honour request
       memcpy(upgradeFirmwareVersion, data, AWPacket::firmwareNameLength);
       upgradeFirmwareVersion[sizeof(upgradeFirmwareVersion)-1] = '\0';
-      console << "Received upgrade firmware tag: "
+      console << F("Received upgrade firmware tag: ")
 	      << upgradeFirmwareVersion << endl;
       if (strncmp(upgradeFirmwareVersion, firmwareVersion,
 		  AWPacket::firmwareNameLength) == 0) {
 	// Same as current so clear upgradeFirmwareVersion.
 	upgradeFirmwareVersion[0] = '\0';
-	console << "Already have firmware version " << firmwareVersion << endl;
+	console << F("Already have firmware version ") << firmwareVersion << endl;
 
 	// TODO: Send firmwareVersion so that server knows to cancel
 	// the request.
 	sendFirmwareVersion = true;
        	break;
       }
-      console << "Upgrade firmware to " << upgradeFirmwareVersion << endl;
+      console << F("Upgrade firmware to ") << upgradeFirmwareVersion << endl;
 
       AWPacket::networkToAvr(&upgradeFirmwareNumBlocks,
 			     data + AWPacket::firmwareNameLength,
@@ -505,8 +506,8 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       const uint8_t blocksPerSpmPage = (SPM_PAGESIZE /
 					AWPacket::firmwareBlockSize);
       uint8_t i = upgradeFirmwareGetBlockNumber % blocksPerSpmPage;
-      console << "Processing FW upgrade " << upgradeFirmwareGetBlockNumber
-	      << " " << i << endl; 
+      console << F("Processing FW upgrade ") << upgradeFirmwareGetBlockNumber
+	      << ' ' << i << endl; 
       memcpy(spmBuffer + (i * AWPacket::firmwareBlockSize),
 	     data + AWPacket::firmwareNameLength +
 	     AWPacket::sizeOfFirmwarePageNumber,
@@ -514,7 +515,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       if (i == blocksPerSpmPage - 1) {
 	if (upgradeFirmwareGetBlockNumber == blocksPerSpmPage - 1) {
 	  uint8_t r = xboot_app_temp_erase();
-	  console << "Erased temporary application area in flash "
+	  console << F("Erased temporary application area in flash ")
 		  << r << endl;
 	}
 	
@@ -522,12 +523,12 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	uint32_t addr = ((upgradeFirmwareGetBlockNumber - i) *
 			 (uint32_t)AWPacket::firmwareBlockSize);
 	uint8_t r = xboot_app_temp_write_page(addr, spmBuffer, 0);
-	console << "copied spmBuffer to flash: " << addr << " " << r << endl;
+	console << F("copied spmBuffer to flash: ") << addr << ' ' << r << endl;
       }
       
       if (upgradeFirmwareGetBlockNumber == upgradeFirmwareNumBlocks - 1) {
-	console << "Firmware download for " << upgradeFirmwareVersion
-		<< " completed\n";
+	console << F("Firmware download for ") << upgradeFirmwareVersion
+		<< F(" completed\n");
 	
 	if (i != blocksPerSpmPage - 1) {
 	  // Ensure partially filled buffer to written to flash
@@ -538,8 +539,8 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 			   (uint32_t)AWPacket::firmwareBlockSize);
 	  uint8_t r = xboot_app_temp_write_page(addr, spmBuffer, 0);
 
-	  console << "copied partial spmBuffer to flash: " << addr
-		  << " " << r << endl;
+	  console << F("copied partial spmBuffer to flash: ") << addr
+		  << ' ' << r << endl;
 	}
 	
 	// Disable further upgrades
@@ -547,12 +548,12 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	// TODO: CRC and issue command to upgrade/reboot
 	uint16_t crc;
 	uint8_t crcStatus = xboot_app_temp_crc16(&crc);
-	console << "Firmware CRC: " << upgradeFirmwareCRC << endl
-		<< "Download CRC: " << crc << endl
-		<< "CRC status: " << crcStatus << endl;
+	console << F("Firmware CRC: ") << upgradeFirmwareCRC << endl
+		<< F("Download CRC: ") << crc << endl
+		<< F("CRC status: ") << crcStatus << endl;
 	delay(100);
 	uint8_t installResult =  xboot_install_firmware(upgradeFirmwareCRC);
-	console << "Install FW result: " << installResult << endl;
+	console << F("Install FW result: ") << installResult << endl;
 	console.flush();
 	delay(1000);
 	xboot_reset();
@@ -654,22 +655,22 @@ void printEthernetSettings(Stream &s,
 			   const IPAddress (&dns)[EEPROM_NUM_DNS],
 			   const IPAddress &remoteIP, uint16_t remotePort)
 {
-  s << "  Local: " << localIP << ':' << localPort << "\n  Mask: "
-    << subnetMask << "\n  GW: "
-    << gatewayIP << "\n  DNS: ";
+  s << F("  Local: ") << localIP << ':' << localPort << F("\n  Mask: ")
+    << subnetMask << F("\n  GW: ")
+    << gatewayIP << F("\n  DNS: ");
 
   bool dnsFound = false;
   for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n)
     if (uint32_t((IPAddress)dns[n])) {
       if (dnsFound)
-	s << ", ";
+	s << F(", ");
       s << dns[n];
       dnsFound = true;
     }
   if (!dnsFound)
-    s << "(none)";
+    s << F("(none)");
 
-  s << "\n  Remote: " << remoteIP << ':' << remotePort << endl;
+  s << F("\n  Remote: ") << remoteIP << ':' << remotePort << endl;
 }
 
 
@@ -712,7 +713,7 @@ void begin_WIZnet_UDP(void)
   eeprom_read_block(remoteHostname, (void*)EEPROM_REMOTE_HOSTNAME,
 		    EEPROM_REMOTE_HOSTNAME_SIZE);
 
-  console << "EEPROM settings:\n  MAC: ";
+  console << F("EEPROM settings:\n  MAC: ");
   for (uint8_t i = 0; i < 6; ++i) {
     if (i)
       console << ':';
@@ -725,15 +726,17 @@ void begin_WIZnet_UDP(void)
   printEthernetSettings(console, localIP, localPort,
 			netmask, gateway, dns,
 			remoteIP, remotePort);
-  console << "  Remote hostname: " << remoteHostname << endl;
+  console << F("  Remote hostname: ") << remoteHostname << endl;
     
-  console << "localIP uint32_t: " << (uint32_t(localIP)) << endl;
   wdt_reset();
-  if (uint32_t(localIP))
+  if (uint32_t(localIP)) {
     // Static IP
+    console << F("Using static IP\n");
     Ethernet.begin(macAddress, localIP, dns[0], gateway, netmask);
+  }
   else {
     // Use DHCP to obtain dynamic IP
+    console << F("Requesting IP\n");
     Ethernet.begin(macAddress);
     dns[0] = Ethernet.dnsServerIP(); // Primary IP from DHCP
     // Disable sleeping. It prevents millis() from working correctly
@@ -755,13 +758,16 @@ void begin_WIZnet_UDP(void)
 	  break;
 	}
 
-    if (!found) {
-      console.print("Cannot resolve ");
-      console.println(remoteHostname);
-      console.flush();
+    if (found) 
+      console << remoteHostname << F(" resolves to ") << ip;
+    else {
+      // Fall back to EEPROM setting for IP address
+      remoteIP = ip;
+      console << F("Cannot resolve ") << remoteHostname;
     }
-    // Fall back to EEPROM setting for IP address
-    remoteIP = ip;
+    console.println();
+    console.flush();
+    
   }
 
 
@@ -773,7 +779,7 @@ void begin_WIZnet_UDP(void)
       ;
   }
   
-  console << "Active settings:\n";
+  console << F("Active settings:\n");
   printEthernetSettings(console, Ethernet.localIP(), localPort,
 			Ethernet.subnetMask(), Ethernet.gatewayIP(),
 			dns, remoteIP, remotePort);
@@ -810,8 +816,20 @@ void setup(void)
   uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
   uint8_t adcGainList[FLC100::numAxes] = {1, 1, 1};
 
-  Serial.begin(9600);
-  Serial1.begin(9600);
+  uint32_t consoleBaudRate;
+  eeprom_read_block(&consoleBaudRate, (void*)EEPROM_CONSOLE_BAUD_RATE,
+		    EEPROM_CONSOLE_BAUD_RATE_SIZE);
+
+  if (consoleBaudRate > 260000L || consoleBaudRate < 4800)
+    // Ignore EEPROM  value and use a sensible default
+    if (F_CPU > 8000000L)
+      console.begin(115200);
+    else
+      console.begin(9600);
+  else
+    console.begin(consoleBaudRate);
+  
+  xrfSerial.begin(9600);
   
   // Explicitly set the pull-ups for the serial port in case the
   // Arduino IDE disables them.
@@ -823,25 +841,36 @@ void setup(void)
 #error No pull-ups enabled for serial ports
 #endif
 
-  console.print((__FlashStringHelper*)PSTR("\nFirmware version: "));
-  console.println(firmwareVersion);
-
   // Print fuses
   uint8_t lowFuse = boot_lock_fuse_bits_get(GET_LOW_FUSE_BITS);
   uint8_t highFuse = boot_lock_fuse_bits_get(GET_HIGH_FUSE_BITS);
   uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
-  console << "Low fuse: " << _HEX(lowFuse) << endl
-	  << "High fuse: " << _HEX(highFuse) << endl
-	  << "Extended fuse: " << _HEX(extendedFuse) << endl;
+  console << F("Low fuse: ") << _HEX(lowFuse) << endl
+	  << F("High fuse: ") << _HEX(highFuse) << endl
+	  << F("Extended fuse: ") << _HEX(extendedFuse) << endl;
 
   // Is the internal RC oscillator in use? Programmed fuses read low
   uint8_t ckselMask = (uint8_t)~(FUSE_CKSEL3 & FUSE_CKSEL2 &
 				 FUSE_CKSEL1 & FUSE_CKSEL0);
   bool isRcOsc = ((lowFuse & ckselMask) ==
 		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
-  console << "Uses RC osc.: " << isRcOsc
-	  << "\nCKSEL: " << _HEX(lowFuse & ckselMask)
-	  << "\nMCUSR: " << _HEX(mcusrCopy) << endl; 
+  console << F("Uses RC osc.: ") << isRcOsc
+	  << F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
+	  << F("\nMCUSR: ") << _HEX(mcusrCopy) << endl; 
+
+  // Print the supported communication protocols
+  console << F("\nFirmware version: ") << firmwareVersion
+	  << F("\nComms:")
+#ifdef COMMS_XRF
+	  << F(" XRF")
+#endif
+#ifdef COMMS_W5100
+	  << F(" W5100")
+#endif
+#ifdef COMMS_W5500
+	  << F(" W5500")
+#endif
+	  << endl;
 
   // Only use the LED following a reset initiated by user action
   // (JTAG, external reset and power on). Exclude brown-out and
@@ -860,12 +889,14 @@ void setup(void)
 
   // Fan control
   if (fanPin != 0xFF) {
-    console.print((__FlashStringHelper*)PSTR("Fan temperature: "));
-    console.println((int16_t)eeprom_read_word((const uint16_t*)
-					      EEPROM_FAN_TEMPERATURE));
-    console.print((__FlashStringHelper*)PSTR("Fan hysteresis: "));
-    console.println((int16_t)eeprom_read_word((const uint16_t*)
-					      EEPROM_FAN_HYSTERESIS));
+    console << F("Fan temperature: ")
+	    << ((int16_t)eeprom_read_word((const uint16_t*)
+					  EEPROM_FAN_TEMPERATURE))
+	    << endl;
+    console << F("Fan hysteresis: ")
+	    << ((int16_t)eeprom_read_word((const uint16_t*)
+					  EEPROM_FAN_HYSTERESIS))
+	    << endl;
   }
   
 #if USE_SD_CARD
@@ -876,21 +907,21 @@ void setup(void)
     digitalWrite(sdSelect, HIGH);
     if (useSd) {
       if (!SD.begin(sdSelect)) {
-	console << "Cannot initialise SD card on #" << sdSelect << endl;
+	console << F("Cannot initialise SD card on #") << sdSelect << endl;
 	useSd = false;
       }
       else
-	console << "SD configured on #" << sdSelect << endl;
+	console << F("SD configured on #") << sdSelect << endl;
     }
     else {
       digitalWrite(sdSelect, HIGH);
-      console << "SD disabled on #" << sdSelect << endl;
+      console << F("SD disabled on #") << sdSelect << endl;
     }
   }
 #endif
 
   // Copy key from EEPROM
-  console << "HMAC key: ";
+  console << F("HMAC key: ");
   for (uint8_t i = 0; i < EEPROM_HMAC_KEY_SIZE; ++i) {
     hmacKey[i] = eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i));
     console << ' ' << _HEX(hmacKey[i]);
@@ -966,12 +997,15 @@ void setup(void)
 			 aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
     
     for (int i = 0; i < FLC100::numAxes; ++i)
-      console << "ADC[" << i << "]: Ox" << _HEX(adcAddressList[i])
-	      << ", channel: " << (adcChannelList[i]) << endl;
-    console << "numSamples: " << numSamples << endl
-	    << "aggregate: " << (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES ? "trimmed " : "")
-	    << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? "median" : "mean") << endl;
+      console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
+	      << F(", channel: ") << (adcChannelList[i]) << endl;
 
+    console << F("numSamples: ") << numSamples
+	    << F("\naggregate: ");
+    if (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES)
+      console << F("trimmed ");
+    console << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? F("median") : F("mean")) << endl;
+    
     console.flush();
   }
 
@@ -1051,8 +1085,12 @@ void setup(void)
     // Not set so default to XRF as used in original version
     radioType = EEPROM_COMMS_TYPE_XRF;
 
-  bool readVin = (radioType != EEPROM_COMMS_TYPE_W5100_UDP);
-  houseKeeping.initialise(2, 7, A6, readVin, !readVin);
+  uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
+  if (VinDivider == 0xFF)
+    VinDivider = 1; // For compatibility with older firmware
+  houseKeeping.initialise(2, 7, A6, VinDivider,
+			  (radioType != EEPROM_COMMS_TYPE_XRF &&
+			   radioType != EEPROM_COMMS_TYPE_RFM12B));
 			  
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
@@ -1234,7 +1272,7 @@ void loop(void)
 	      << "Sensor temperature: " << flc100.getSensorTemperature() << endl
 	      << "System temperature: " << houseKeeping.getSystemTemperature()
 	      << endl;
-      if (houseKeeping.getReadVin())
+      if (houseKeeping.getVinDivider())
 	console << "Battery voltage: " << houseKeeping.getVin() << endl;
 
       if (mlx90614Present) {
@@ -1361,7 +1399,7 @@ void loop(void)
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagMCUTemperature,
 			  houseKeeping.getSystemTemperature());
-      if (houseKeeping.getReadVin())
+      if (houseKeeping.getVinDivider())
 	packet.putDataUint16(buffer, sizeof(buffer),
 			     AWPacket::tagBatteryVoltage,
 			     houseKeeping.getVin());
