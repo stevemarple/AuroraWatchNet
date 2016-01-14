@@ -18,6 +18,7 @@ extern "C" {
 extern Stream& console;
 extern uint8_t verbosity;
 extern uint16_t commsBlockSize;
+extern uint16_t maxMessagesNoAck;
 
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
@@ -125,8 +126,6 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
       errno = errorResponseTimeout;
 
       ++ messagesWithoutAck;
-      uint8_t maxMessagesNoAck
-	= eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
       if (maxMessagesNoAck && messagesWithoutAck >= maxMessagesNoAck) {
 	Serial.println("Reboot due to timeout"); // DEBUG
 	delay(1000);

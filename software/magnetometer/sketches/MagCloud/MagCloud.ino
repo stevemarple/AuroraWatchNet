@@ -113,6 +113,8 @@ WIZnet_UDP wiz_udp;
 
 uint8_t verbosity = 1;
 
+uint8_t maxMessagesNoAck = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
+
 FLC100 flc100;
 bool flc100Present = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
 
@@ -736,7 +738,13 @@ void begin_WIZnet_UDP(void)
   else {
     // Use DHCP to obtain dynamic IP
     console << F("Requesting IP\n");
-    Ethernet.begin(macAddress);
+    if (Ethernet.begin(macAddress) == 0) {
+      console << F("DHCP failed, rebooting...\n");
+      console.flush();
+      wdt_enable(WDTO_8S);
+      while (1)
+	;
+    }
     dns[0] = Ethernet.dnsServerIP(); // Primary IP from DHCP
     // Disable sleeping. It prevents millis() from working correctly
     // which breaks the DHCP lease maintenance.
@@ -749,40 +757,52 @@ void begin_WIZnet_UDP(void)
     IPAddress ip;
     bool found = false;
     for (uint8_t t = 0; t < 3; ++t) 
-      for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n)
+      for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n) {
+	wdt_reset();
 	// Attempt lookup only if DNS server IP non-zero
 	if (uint32_t(dns[n]) &&
 	    (dnsLookup(dns[n], remoteHostname, ip) == 1)) {
 	  found = true;
 	  break;
 	}
-
-    if (found) 
+      }
+    if (found) {
       console << remoteHostname << F(" resolves to ") << ip;
-    else {
-      // Fall back to EEPROM setting for IP address
       remoteIP = ip;
-      console << F("Cannot resolve ") << remoteHostname;
     }
-    console.println();
-    console.flush();
+    else 
+      // Fall back to EEPROM setting for IP address
+      console << F("Cannot resolve ") << remoteHostname;
     
+    console.println();
   }
-
 
   if (uint32_t(remoteIP) == 0) {
     // Cannot resolve (or undefined) remote host and no fallback
-    // IP. Reboot.
-    wdt_enable(WDTO_8S);
-    while (1)
-      ;
+    // IP. Try broadcasting on local subnet in hope of finding the
+    // server.
+    IPAddress broadcastIP(uint32_t(Ethernet.localIP()) |
+			  ~uint32_t(Ethernet.subnetMask()));  
+    remoteIP = broadcastIP;
+
+    // Override the EEPROM setting of maxMessagesNoAck to
+    // force a reboot after a few failed communication tries. If the
+    // problem is due to a misconfiguration this approach may give
+    // some opportunity for remote recovery; if the failure is just
+    // due to DNS problems then it should recover when DNS returns.
+    maxMessagesNoAck = 5;
+    console << F("No remote host, making ") << maxMessagesNoAck
+	    << F("attempts to communicate to ") << broadcastIP << endl;
   }
-  
+
   console << F("Active settings:\n");
   printEthernetSettings(console, Ethernet.localIP(), localPort,
 			Ethernet.subnetMask(), Ethernet.gatewayIP(),
 			dns, remoteIP, remotePort);
   console.println();
+  console.flush();  
+
+
   
   wiz_udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
 		 10, 4);
