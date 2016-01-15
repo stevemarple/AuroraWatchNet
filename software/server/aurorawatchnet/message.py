@@ -292,6 +292,16 @@ tag_data = {
         'length': 3,
         'format': '!H',
         },
+    'gps_status': {
+        'id': 29,
+        'length': 8,
+        'format': '!lcBB',
+        },
+    'gps_location': {
+        'id': 30,
+        'length': 13,
+        'format': 'lll',
+        },
     }
 
 tag_id_to_name = {}

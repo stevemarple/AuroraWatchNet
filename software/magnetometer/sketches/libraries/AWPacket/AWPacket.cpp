@@ -14,7 +14,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[29] = {
+const uint16_t AWPacket::tagLengths[31] = {
   6, // 0 = X
   6, // 1 = Y
   6, // 2 = Z
@@ -47,6 +47,8 @@ const uint16_t AWPacket::tagLengths[29] = {
   3, // 26 = cloudTempObject2
   3, // 27 = ambientTemp
   3, // 28 = relHumidity
+  8, // 29 = gpsStatus
+  13,// 30 = gpsLocation
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
@@ -144,7 +146,7 @@ bool AWPacket::printTag(uint8_t tag, const uint8_t *data, uint16_t dataLen,
   Stream *s = (Stream*)context;
   s->print("Tag ");
   s->print(tag, DEC);
-  s->print(":");
+  s->print(':');
 
   for (uint16_t i = 0; i < dataLen; ++i) {
     s->print(' ');
@@ -195,7 +197,7 @@ Stream& AWPacket::printPacket(const uint8_t* buffer, uint16_t bufferLength,
     s.println(*p++, HEX);
     s.print("Retries: ");
     s.println(*p++, HEX);
-    s.print("HMAC-MD5:");
+    s.print("HMAC-MD5: ");
     for (uint8_t i = hmacLength; i; --i) {
       s.print(' ');
       s.print(*p++, HEX);

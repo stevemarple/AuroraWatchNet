@@ -24,7 +24,7 @@ public:
   static const uint8_t numAxes = 3;
   static const uint8_t magicLength = 2;
   static const char magic[magicLength];
-  static const uint16_t tagLengths[29];
+  static const uint16_t tagLengths[31];
 
   static const uint8_t sizeOfTag = 1;
   static const uint8_t sizeOfPacketLength = 2;
@@ -69,6 +69,8 @@ public:
     tagCloudTempObject2 = 26,
     tagAmbientTemp = 27,
     tagRelHumidity = 28,
+    tagGpsStatus = 29,
+    tagGpsLocation = 30,
   };
   
   static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
