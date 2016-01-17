@@ -110,6 +110,26 @@ def format_get_firmware_page(tag_name, data_len, payload):
         format(version=payload[0:16].split('\0')[0],
                page=payload[16]*256 + payload[17])
 
+def format_gnss_status(tag_name, data_len, payload):
+    fix_datetime, fix_status, num_sat, hdop_tenths = \
+        struct.unpack(tag_data[tag_name]['format'], str(payload))
+    dt = datetime.utcfromtimestamp(fix_datetime)
+    fix_valid = (fix_status & 0x80) != 0
+    nav_system = chr(fix_status & 0x7f)
+    return dt.isoformat() + ', valid=' + \
+        ('Y' if fix_valid else 'N') + ', sys=' + nav_system + \
+        ', sat=' + str(num_sat) + ', HDOP=' + str(hdop_tenths / 10.0)
+ 
+def format_gnss_location(tag_name, data_len, payload):
+    raw_lat, raw_lon, raw_alt = struct.unpack(tag_data[tag_name]['format'], 
+                                              str(payload))
+    d = {'lat': abs(raw_lat * 1e-6),
+         'ns': 'N' if raw_lat > 0 else ('S' if raw_lat < 0 else ''),
+         'lon': abs(raw_lon * 1e-6),
+         'ew': 'E' if raw_lon > 0 else ('W' if raw_lon < 0 else ''),
+         'alt': raw_alt * 1e-3,
+         }
+    return '{lat:9.6f}{ew}, {lon:10.6f}{ns}, {alt:.3f}m'.format(d)
 
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
@@ -292,15 +312,17 @@ tag_data = {
         'length': 3,
         'format': '!H',
         },
-    'gps_status': {
+    'gnss_status': {
         'id': 29,
         'length': 8,
-        'format': '!lcBB',
+        'format': '!lBBB',
+        'formatter': format_gnss_status,
         },
-    'gps_location': {
+    'gnss_location': {
         'id': 30,
         'length': 13,
-        'format': 'lll',
+        'format': '!lll',
+        'formatter': format_gnss_location,
         },
     }
 
@@ -330,7 +352,6 @@ def decode_cloud_temp(tag_name, payload):
 def format_tag_cloud_temp(tag_name, dataLen, payload):
     return str(decode_cloud_temp(tag_name, payload)) + 'C'
  
-    
 def get_header_field(buf, offset, size):
     if len(buf) < offset + size:
         return None
