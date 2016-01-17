@@ -48,7 +48,7 @@ const uint16_t AWPacket::tagLengths[31] = {
   3, // 27 = ambientTemp
   3, // 28 = relHumidity
   8, // 29 = gnssStatus
-  13,// 30 = gnssLocation
+  0, // 30 = gnssLocation
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;

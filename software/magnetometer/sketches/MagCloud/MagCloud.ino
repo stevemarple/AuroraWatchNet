@@ -151,7 +151,7 @@ volatile bool ppsTriggered = false;
 char gnssBuffer[85];
 RTCx::time_t gnssFixTime;
 bool gnssFixValid = false;
-long latitude, longitude, altitude;
+long gnssLocation[3];
 bool altitudeValid;
 char navSystem;
 uint8_t numSat;
@@ -1314,9 +1314,10 @@ void loop(void)
 
 #ifdef FEATURE_GNSS
     // Save the GNSS fix data
-    gnssFixValid = gnss_clock.readClock(gnssFixTime, latitude, longitude,
-					altitude, altitudeValid,
-					navSystem, numSat, hdop);
+    gnssFixValid = gnss_clock.readClock(gnssFixTime, gnssLocation[0],
+					gnssLocation[1], gnssLocation[2],
+					altitudeValid, navSystem,
+					numSat, hdop);
 #endif
     console << F("Sampling started\n");
 
@@ -1417,9 +1418,10 @@ void loop(void)
 	// auto sep = F(", ");
 	const char* sep = ", ";
 	console << F("Fix time: ") << gnssFixTime << ' ' << _HEX(gnssFixTime)
-		<< F("\nPosition: ") << latitude << sep << longitude;
+		<< F("\nPosition: ") << gnssLocation[0] << sep
+		<< gnssLocation[1];
 	if (altitudeValid)
-	  console << sep << altitude;
+	  console << sep << gnssLocation[2];
 	console << F("\nStatus: ") << navSystem << sep << int(numSat)
 		<< sep << int(hdop) << endl;
       }
@@ -1592,8 +1594,13 @@ void loop(void)
       packet.putGnssStatus(buffer, sizeof(buffer),
 			   gnssFixTime, gnssFixValid, navSystem,
 			   numSat, hdop);
+      console << "sizeof(buffer) " << sizeof(buffer) << endl
+	      << "sizeof(gnssLocation[0]): " << sizeof(gnssLocation[0]) << endl
+	      << "AWPacket::tagGnssLocation" << AWPacket::tagGnssLocation << endl;
       if (gnssFixValid) {
-	;
+	packet.putDataArray(buffer, sizeof(buffer),
+			    AWPacket::tagGnssLocation, 4,
+			    (altitudeValid ? 3 : 2), gnssLocation);
       }
 #endif
       

@@ -121,15 +121,18 @@ def format_gnss_status(tag_name, data_len, payload):
         ', sat=' + str(num_sat) + ', HDOP=' + str(hdop_tenths / 10.0)
  
 def format_gnss_location(tag_name, data_len, payload):
-    raw_lat, raw_lon, raw_alt = struct.unpack(tag_data[tag_name]['format'], 
-                                              str(payload))
-    d = {'lat': abs(raw_lat * 1e-6),
-         'ns': 'N' if raw_lat > 0 else ('S' if raw_lat < 0 else ''),
-         'lon': abs(raw_lon * 1e-6),
-         'ew': 'E' if raw_lon > 0 else ('W' if raw_lon < 0 else ''),
-         'alt': raw_alt * 1e-3,
+    data = list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
+    if len(data) == 2:
+        alt = '?'
+    else:
+        alt = '%.2fm' % (data[2] * 1e-3)
+    d = {'lat': abs(data[0] * 1e-6),
+         'ns': 'N' if data[0] > 0 else ('S' if data[0] < 0 else ''),
+         'lon': abs(data[1] * 1e-6),
+         'ew': 'E' if data[1] > 0 else ('W' if data[1] < 0 else ''),
+         'alt': alt,
          }
-    return '{lat:9.6f}{ew}, {lon:10.6f}{ns}, {alt:.3f}m'.format(d)
+    return '{lat:.6f}{ns}, {lon:.6f}{ew}, {alt}'.format(**d)
 
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
@@ -320,8 +323,7 @@ tag_data = {
         },
     'gnss_location': {
         'id': 30,
-        'length': 13,
-        'format': '!lll',
+        'length': 0,
         'formatter': format_gnss_location,
         },
     }
