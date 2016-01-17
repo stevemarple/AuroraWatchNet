@@ -69,8 +69,8 @@ public:
     tagCloudTempObject2 = 26,
     tagAmbientTemp = 27,
     tagRelHumidity = 28,
-    tagGpsStatus = 29,
-    tagGpsLocation = 30,
+    tagGnssStatus = 29,
+    tagGnssLocation = 30,
   };
   
   static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
@@ -157,6 +157,10 @@ public:
 			 int32_t seconds, int16_t fraction) const;
   bool putEepromContents(uint8_t* buffer, size_t bufferLength,
 			 uint16_t address, uint16_t length) const;
+
+  bool putGnssStatus(uint8_t* buffer, size_t bufferLength,
+		     int32_t timestamp, bool isValid, char navSystem,
+		     uint8_t numSat, uint8_t hdop) const;
   bool putDataArray(uint8_t* buffer, size_t bufferLength,
 		    uint8_t tag, uint8_t elemSize, uint8_t numElems,
 		    const void* data) const;

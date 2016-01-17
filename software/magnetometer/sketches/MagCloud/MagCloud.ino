@@ -15,10 +15,11 @@
 #include <AWPacket.h>
 #include <FLC100_shield.h>
 #include <SoftWire.h>
+
 #include <MLX90614.h>
 #include <HIH61xx.h>
 
-#ifdef USE_AS3935
+#ifdef FEATURE_AS3935
 #include <AS3935.h>
 #endif
 
@@ -30,6 +31,16 @@
 #include <MCP342x.h>
 #include <CircBuffer.h>
 #include <CommsInterface.h>
+
+
+#ifdef FEATURE_GNSS
+// Sanity check, they use the same serial port
+#ifdef COMMS_XRF
+#error Cannot support both XRF communications and GNSS clock
+#endif
+#include <MicroNMEA.h>
+#include <GNSS_Clock.h>
+#endif
 
 #if defined (COMMS_W5100) && defined (COMMS_W5500)
 #error Cannot build for both WIZnet W5100 and W5500 simultaneously
@@ -101,13 +112,15 @@ bool useLed = false;
 uint8_t messageCount = 0;
 
 HardwareSerial& console = Serial;
-HardwareSerial& xrfSerial = Serial1;
 uint8_t radioType;
 
+#ifdef COMMS_XRF
+HardwareSerial& xrfSerial = Serial1;
 XRF_Radio xrf(xrfSerial);
 const uint8_t xrfSleepPin = 7;
 const uint8_t xrfOnPin = 23;
 const uint8_t xrfResetPin = 5;
+#endif
 
 WIZnet_UDP wiz_udp;
 
@@ -124,10 +137,25 @@ bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
 HIH61xx hih61xx;
 bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
 
-#ifdef USE_AS3935
+#ifdef FEATURE_AS3935
 AS3935 as3935;
 bool as3935Present = eeprom_read_byte((uint8_t*)EEPROM_AS3935_PRESENT);
 CounterRTC::Time as3935Timestamp;
+#endif
+
+
+#ifdef FEATURE_GNSS
+HardwareSerial& gnssSerial = Serial1;
+const uint8_t gnssPpsPin = 6;
+volatile bool ppsTriggered = false;
+char gnssBuffer[85];
+RTCx::time_t gnssFixTime;
+bool gnssFixValid = false;
+long latitude, longitude, altitude;
+bool altitudeValid;
+char navSystem;
+uint8_t numSat;
+uint8_t hdop;
 #endif
 
 CommandHandler commandHandler;
@@ -625,7 +653,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 }
 
 
-#ifdef USE_AS3935
+#ifdef FEATURE_AS3935
 void as3935InterruptHandler(void)
 {
   // The AS3935 interrupt handler is inline code
@@ -808,6 +836,12 @@ void begin_WIZnet_UDP(void)
 		 10, 4);
 }
 
+#ifdef FEATURE_GNSS
+void gnssPpsCallback(const GNSS_Clock __attribute__((unused)) &clock)
+{
+  ppsTriggered = true;
+}
+#endif
 
 void setup(void)
 {
@@ -847,8 +881,6 @@ void setup(void)
       console.begin(9600);
   else
     console.begin(consoleBaudRate);
-  
-  xrfSerial.begin(9600);
   
   // Explicitly set the pull-ups for the serial port in case the
   // Arduino IDE disables them.
@@ -1067,7 +1099,7 @@ void setup(void)
     console.print(notStr);
   console.println(presentStr);
 
-#ifdef USE_AS3935
+#ifdef FEATURE_AS3935
   __FlashStringHelper* as3935Str = (__FlashStringHelper*)PSTR("AS3935");
   if (as3935Present) {
     console.print(initialisingStr);
@@ -1100,10 +1132,32 @@ void setup(void)
   
   // Identify communications method to be used.
   radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
-  if (radioType == 0xFF)
+#ifdef COMMS_XRF
+  if (radioType == 0xFF) {
     // Not set so default to XRF as used in original version
     radioType = EEPROM_COMMS_TYPE_XRF;
+    xrfSerial.begin(9600);
+  }
+#endif
 
+
+#ifdef FEATURE_GNSS
+  gnssSerial.begin(115200);
+  gnss_clock.begin(gnssBuffer, sizeof(gnssBuffer), gnssPpsPin);
+
+  // TODO: reset GNSS  module
+
+  // Compatibility mode off
+  MicroNMEA::sendSentence(gnssSerial, "$PNVGNME,2,7,1");
+  
+   // Clear the list of messages which are sent.
+  MicroNMEA::sendSentence(gnssSerial, "$PORZB");
+
+  // Send RMC and GGA messages.
+  MicroNMEA::sendSentence(gnssSerial, "$PORZB,RMC,1,GGA,1");
+
+#endif
+  
   uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
   if (VinDivider == 0xFF)
     VinDivider = 1; // For compatibility with older firmware
@@ -1201,18 +1255,24 @@ void setup(void)
     useLed = true;
     
   }
-  else {
+#ifdef COMMS_XRF
+  if (radioType == EEPROM_COMMS_TYPE_XRF) {
     commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
     xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
     commsHandler.setCommsInterface(&xrf);
   }
-
+#endif
+  
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
   
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
 
-  console.println((__FlashStringHelper*)PSTR("Setup complete\n"));
+#ifdef FEATURE_GNSS
+  gnss_clock.set1ppsCallback(gnssPpsCallback);
+#endif
+  
+  console.println(F("Setup complete"));
   console.flush();
   
   setAlarm();
@@ -1251,23 +1311,62 @@ void loop(void)
     setAlarm();
 
     resultsProcessed = false;
+
+#ifdef FEATURE_GNSS
+    // Save the GNSS fix data
+    gnssFixValid = gnss_clock.readClock(gnssFixTime, latitude, longitude,
+					altitude, altitudeValid,
+					navSystem, numSat, hdop);
+#endif
     console << F("Sampling started\n");
 
     maintainDhcpLease = true; // Only do this once per sampling interval    
   }
 
+  if (ppsTriggered) {
+    ppsTriggered = false;
+    // TODO: update clock, but only when not sampling
+
+    // RTCx::time_t t;
+    // bool valid = gnss_clock.readClock(t);
+    // console.print(F("Valid: "));
+    // console.println(valid ? F("true") : F("false"));
+    // console.print(F("Seconds since epoch: "));
+    // console.println(t);
+
+    // struct RTCx::tm tm;
+    // gnss_clock.readClock(tm);
+    
+    // char isoDateTime[25];
+    // snprintf(isoDateTime, sizeof(isoDateTime),
+    // 	     "%04d-%02d-%02d %02d:%02d:%02dZ",
+    // 	     tm.tm_year + 1900, tm.tm_mon+1, tm.tm_mday,
+    // 	     tm.tm_hour, tm.tm_min, tm.tm_sec);
+    // console.print("Date/time: ");
+    // console.println(isoDateTime);
+
+  }
+  
   if (flc100Present)
     flc100.process();
   if (mlx90614Present)
     mlx90614.process();
   if (hih61xxPresent)
     hih61xx.process();
-#ifdef USE_AS3935
+#ifdef FEATURE_AS3935
   if (as3935Present)
     as3935.process();
 #endif
   houseKeeping.process();
 
+#ifdef FEATURE_GNSS
+  while (!ppsTriggered && gnssSerial.available()) {
+    char c = gnssSerial.read();
+    console.print(c);
+    gnss_clock.process(c);
+  }
+#endif
+  
   if (commsHandler.process(responseBuffer, responseBufferLen))
     processResponse(responseBuffer, responseBufferLen);
   
@@ -1312,6 +1411,20 @@ void loop(void)
 	  console << F("magData[") << i << F("]: ") << (flc100.getMagData()[i])
 		  << endl;
 
+#ifdef FEATURE_GNSS
+      console << F("GNSS Valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
+      if (gnssFixValid) {
+	// auto sep = F(", ");
+	const char* sep = ", ";
+	console << F("Fix time: ") << gnssFixTime << ' ' << _HEX(gnssFixTime)
+		<< F("\nPosition: ") << latitude << sep << longitude;
+	if (altitudeValid)
+	  console << sep << altitude;
+	console << F("\nStatus: ") << navSystem << sep << int(numSat)
+		<< sep << int(hdop) << endl;
+      }
+#endif
+      
       // Buffer for storing the binary AW packet. Will also be used
       // when writing to SD card.
       const uint16_t bufferLength = SD_SECTOR_SIZE;
@@ -1475,7 +1588,15 @@ void loop(void)
 	packet.putEepromContents(buffer, sizeof(buffer),
 				 eepromContentsAddress, eepromContentsLength);
       }
-			       
+#ifdef FEATURE_GNSS
+      packet.putGnssStatus(buffer, sizeof(buffer),
+			   gnssFixTime, gnssFixValid, navSystem,
+			   numSat, hdop);
+      if (gnssFixValid) {
+	;
+      }
+#endif
+      
       // Add the signature
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
 

@@ -47,8 +47,8 @@ const uint16_t AWPacket::tagLengths[31] = {
   3, // 26 = cloudTempObject2
   3, // 27 = ambientTemp
   3, // 28 = relHumidity
-  8, // 29 = gpsStatus
-  13,// 30 = gpsLocation
+  8, // 29 = gnssStatus
+  13,// 30 = gnssLocation
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
@@ -436,6 +436,26 @@ bool AWPacket::putDataArray(uint8_t* buffer, size_t bufferLength,
   }
   return true;
 }
+
+
+bool AWPacket::putGnssStatus(uint8_t* buffer, size_t bufferLength,
+			     int32_t timestamp, bool isValid, char navSystem,
+			     uint8_t numSat, uint8_t hdop) const
+{
+  uint16_t len = getPacketLength(buffer);
+  if (len + tagLengths[tagGnssStatus] > bufferLength)
+    return false;
+  uint8_t *p = buffer + len;
+  *p++ = tagGnssStatus;
+  avrToNetwork(p, &timestamp, sizeof(timestamp));
+  p += sizeof(timestamp);
+  *p++ = ((uint8_t)navSystem) | (isValid ? 0x80 : 0);
+  *p++ = numSat;
+  *p++ = hdop;
+  setPacketLength(buffer,len + tagLengths[tagGnssStatus]);
+  return true;
+}
+
 
 bool AWPacket::putPadding(uint8_t* buffer, size_t bufferLength,
 			  uint16_t paddingLength) const
