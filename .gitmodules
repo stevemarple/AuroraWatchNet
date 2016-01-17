@@ -49,3 +49,6 @@
 [submodule "software/magnetometer/sketches/libraries/MLX90614"]
 	path = software/magnetometer/sketches/libraries/MLX90614
 	url = https://github.com/stevemarple/MLX90614.git
+[submodule "software/magnetometer/sketches/libraries/GNSS_Clock"]
+	path = software/magnetometer/sketches/libraries/GNSS_Clock
+	url = https://github.com/stevemarple/GNSS_Clock.git
