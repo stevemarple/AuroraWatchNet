@@ -837,7 +837,7 @@ void begin_WIZnet_UDP(void)
 }
 
 #ifdef FEATURE_GNSS
-void gnssPpsCallback(const GNSS_Clock __attribute__((unused)) &clock)
+void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
 {
   ppsTriggered = true;
 }
