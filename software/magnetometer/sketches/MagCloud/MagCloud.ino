@@ -90,6 +90,7 @@
 
 #ifdef SHOW_MEM_USAGE
 #include <MemoryFree.h>
+bool freeMemShown = false; // Show once per sampling interval
 #endif 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
@@ -98,6 +99,7 @@ const char firmwareVersion[AWPacket::firmwareNameLength] =
 uint8_t rtcAddressList[] = {RTCx::MCP7941xAddress,
 			    RTCx::DS1307Address};
 
+const char *sep = ", ";
 
 uint8_t ledPin = LED_BUILTIN;
 const uint8_t fanPin = eeprom_read_byte((uint8_t*)EEPROM_FAN_PIN);
@@ -148,6 +150,9 @@ CounterRTC::Time as3935Timestamp;
 HardwareSerial& gnssSerial = Serial1;
 const uint8_t gnssPpsPin = 6;
 volatile bool ppsTriggered = false;
+volatile AsyncDelay ppsTimeout;
+volatile bool useGnss = false;
+CounterRTC::Time maxGnssTimeError(1, 0);
 char gnssBuffer[85];
 RTCx::time_t gnssFixTime;
 bool gnssFixValid = false;
@@ -164,7 +169,7 @@ CommandHandler commandHandler;
 // Set if packets should be multiple of some particular length
 uint16_t commsBlockSize = 0; 
 
-const uint16_t commsStackBufferLen = 4096;
+const uint16_t commsStackBufferLen = 8192;
 uint8_t commsStackBuffer[commsStackBufferLen];
 CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
 
@@ -426,7 +431,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 	console << ' ' << flc100.getMagDataSamples(i, j);
       console << '\n';
     }
-    console << F(" -----------") << endl;
+    console << F(" -----------\n");
   }
 }
 
@@ -441,6 +446,14 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
   Stream *s = (Stream*)context;
   switch (tag) {
   case AWPacket::tagCurrentUnixTime:
+#ifdef FEATURE_GNSS
+    // When GNSS timing is in operation don't adjust the clock based
+    // on time received from the server
+    if (useGnss) {
+      console.println(F("*** GNSS time in operation, not updating time from server"));
+      break;
+    }
+#endif
     {
       uint32_t secs;
       uint16_t frac;
@@ -454,7 +467,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       CounterRTC::Time timeError = ourTime - serverTime;
       if (abs_(timeError) > maxTimeError) {
       	cRTC.setTime(serverTime);
-      	console << F("Time set\n");
+      	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
       }
       if (verbosity > 2) {
@@ -481,7 +494,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	samplingInterval = maxSamplingInterval;
       samplingIntervalChanged = true;
       (*s) << F("SAMPLING INTERVAL CHANGED! ")
-	   << samplingInterval.getSeconds() << ',' 
+	   << samplingInterval.getSeconds() << sep 
 	   << samplingInterval.getFraction() << endl;
     }
     break;
@@ -503,7 +516,8 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 		  AWPacket::firmwareNameLength) == 0) {
 	// Same as current so clear upgradeFirmwareVersion.
 	upgradeFirmwareVersion[0] = '\0';
-	console << F("Already have firmware version ") << firmwareVersion << endl;
+	console << F("Already have firmware version ") << firmwareVersion
+		<< endl;
 
 	// TODO: Send firmwareVersion so that server knows to cancel
 	// the request.
@@ -577,9 +591,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	// TODO: CRC and issue command to upgrade/reboot
 	uint16_t crc;
 	uint8_t crcStatus = xboot_app_temp_crc16(&crc);
-	console << F("Firmware CRC: ") << upgradeFirmwareCRC << endl
-		<< F("Download CRC: ") << crc << endl
-		<< F("CRC status: ") << crcStatus << endl;
+	console << F("Firmware CRC: ") << upgradeFirmwareCRC
+		<< F("\nDownload CRC: ") << crc
+		<< F("\nCRC status: ") << crcStatus << endl;
 	delay(100);
 	uint8_t installResult =  xboot_install_firmware(upgradeFirmwareCRC);
 	console << F("Install FW result: ") << installResult << endl;
@@ -692,7 +706,7 @@ void printEthernetSettings(Stream &s,
   for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n)
     if (uint32_t((IPAddress)dns[n])) {
       if (dnsFound)
-	s << F(", ");
+	s << sep;
       s << dns[n];
       dnsFound = true;
     }
@@ -839,7 +853,28 @@ void begin_WIZnet_UDP(void)
 #ifdef FEATURE_GNSS
 void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
 {
-  ppsTriggered = true;
+  if (!clock.isValid()) {
+    useGnss = false;
+    return;
+  }
+  
+  if (useGnss)
+    if (ppsTimeout.isExpired()) {
+      // Don't use this pulse, nor the next one.
+      useGnss = false;
+      return;
+    }
+    else
+      ppsTriggered = true;
+  else
+    // Don't use this pulse but accept the next one if it occurs
+    // within the expected time interval
+    useGnss = true;
+  
+  // Allow for some delay in responding to the the PPS interrupt and
+  // for timing errors by millis() as the system clock frequency may
+  // not be accurate.
+  ppsTimeout.start(1200, AsyncDelay::MILLIS);
 }
 #endif
 
@@ -896,9 +931,9 @@ void setup(void)
   uint8_t lowFuse = boot_lock_fuse_bits_get(GET_LOW_FUSE_BITS);
   uint8_t highFuse = boot_lock_fuse_bits_get(GET_HIGH_FUSE_BITS);
   uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
-  console << F("Low fuse: ") << _HEX(lowFuse) << endl
-	  << F("High fuse: ") << _HEX(highFuse) << endl
-	  << F("Extended fuse: ") << _HEX(extendedFuse) << endl;
+  console << F("Low fuse: ") << _HEX(lowFuse)
+	  << F("\nHigh fuse: ") << _HEX(highFuse)
+	  << F("\nExtended fuse: ") << _HEX(extendedFuse) << endl;
 
   // Is the internal RC oscillator in use? Programmed fuses read low
   uint8_t ckselMask = (uint8_t)~(FUSE_CKSEL3 & FUSE_CKSEL2 &
@@ -1055,7 +1090,8 @@ void setup(void)
 	    << F("\naggregate: ");
     if (aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES)
       console << F("trimmed ");
-    console << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? F("median") : F("mean")) << endl;
+    console << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? F("median\n")
+		: F("mean\n"));
     
     console.flush();
   }
@@ -1173,7 +1209,7 @@ void setup(void)
   if (rtc.autoprobe(rtcAddressList, sizeof(rtcAddressList)))
     console << F("Found RTC at address 0x") << _HEX(rtc.getAddress()) << endl;
   else
-    console << F("No RTC found") << endl;
+    console << F("No RTC found\n");
   console.flush();
   
   // Enable the battery backup. This happens by default on the DS1307
@@ -1191,26 +1227,94 @@ void setup(void)
 	    << endl;
     console.flush();
   }
-  
-  // Ensure square-wave output is enabled.
-  rtc.setSQW(RTCx::freq4096Hz);
+
   pinMode(15, INPUT);
 
   // Warn, if it stops at this point it means the jumper isn't fitted.
   // TODO: test if jumper for RTC output is fitted.
   console << F("Configuring MCU RTC\n");
   console.flush();
+
+
+#if defined(COMMS_XRF) && (F_CPU) == 8000000L
+  // Assume battery-powered operation. Efficient sleep cycles are
+  // required. HAve the counter RTC ticking at 16Hz, giving maximum
+  // sleep time of 16s.
   
-#if 0
-  // Input: 4096Hz, prescaler is divide by 1, clock tick is 4096Hz
-  cRTC.begin(4096, true, _BV(CS20));
-  counter2Frequency = 4096;
-#else
+  // Ensure square-wave output is enabled.
+  rtc.setSQW(RTCx::freq4096Hz);
+  
   // Input: 4096Hz, prescaler is divide by 256, clock tick is 16Hz
   cRTC.begin(16, true, (_BV(CS22) | _BV(CS21))); 
   counter2Frequency = 16;
+  
+#else
+  // XRF communications are not compiled in, or the clock speed is
+  // wrong for battery operation. Assume efficient sleeping is not
+  // important so optimiate the counter RTC for high resolution
+  // measurements instead.
+  
+#if 0
+  // Ensure square-wave output is enabled.
+  rtc.setSQW(RTCx::freq4096Hz);
+
+  // Input: 4096Hz, prescaler is divide by 1, clock tick is 4096Hz
+  cRTC.begin(4096, true, _BV(CS20));
+  counter2Frequency = 4096;
+#ifdef FEATURE_GNSS
+  maxGnssTimeError = CounterRTC::Time(0, 64);
 #endif
 
+#elif 0
+  // Ensure square-wave output is enabled. Set the highest input
+  // frequency possible so that register changes which rely upon
+  // transtions of TOSC1 happen fastest.
+  rtc.setSQW(RTCx::freq32768Hz);
+
+  // Input: 32768Hz, prescaler is divide by 8, clock tick is 4096Hz
+  cRTC.begin(4096, true, _BV(CS21));
+  counter2Frequency = 4096;
+#ifdef FEATURE_GNSS
+  maxGnssTimeError = CounterRTC::Time(0, 64);
+#endif
+  
+#elif 1
+  // Ensure square-wave output is enabled. Set the highest input
+  // frequency possible so that register changes which rely upon
+  // transtions of TOSC1 happen fastest.
+  rtc.setSQW(RTCx::freq32768Hz);
+
+  // Input: 32768Hz, prescaler is divide by 1, clock tick is 32768Hz
+  cRTC.begin(32768, true, _BV(CS20));
+  counter2Frequency = 32768;
+#ifdef FEATURE_GNSS
+  maxGnssTimeError = CounterRTC::Time(0, 328);				      
+#endif
+  
+#else
+  // Ensure square-wave output is enabled.
+  rtc.setSQW(RTCx::freq4096Hz);
+
+  // Input: 4096Hz, prescaler is divide by 256, clock tick is 16Hz
+  cRTC.begin(16, true, (_BV(CS22) | _BV(CS21))); 
+  counter2Frequency = 16;
+#ifdef FEATURE_GNSS
+  maxGnssTimeError = CounterRTC::Time(0, 1 * (CounterRTC::fractionsPerSecond /
+					      counter2Frequency));
+#endif
+#endif
+  
+#endif
+
+  console << F("TCNT2 freq: ") << counter2Frequency << "Hz\n";
+
+  /*
+#ifdef FEATURE_GNSS
+  maxGnssTimeError = CounterRTC::Time(0, (CounterRTC::fractionsPerSecond /
+					  counter2Frequency) * 1);
+#endif
+  */
+  
   
   // Set counter RTC time from the hardware RTC
   struct RTCx::tm tm;
@@ -1239,10 +1343,8 @@ void setup(void)
   else if (samplingInterval > maxSamplingInterval)
     samplingInterval = maxSamplingInterval;
 
-  console.print((__FlashStringHelper*)PSTR("Sampling interval (s): "));
-  console.print(samplingInterval.getSeconds());
-  console.print((__FlashStringHelper*)PSTR(", "));
-  console.println(samplingInterval.getFraction());
+  console << F("Sampling interval (s): ") << samplingInterval.getSeconds()
+	  << sep << samplingInterval.getFraction() << endl;
   console.flush();
 
   // Configure radio module or Ethernet adaptor.
@@ -1284,7 +1386,33 @@ CounterRTC::Time sampleStartTime;
 void loop(void)
 {
   wdt_reset();
-  
+
+#ifdef FEATURE_GNSS
+  if (ppsTriggered) {
+    ppsTriggered = false;
+
+    RTCx::time_t gnss_t;
+    if (!startSampling && useGnss && gnss_clock.readClock(gnss_t))  {
+      CounterRTC::Time ourTime;
+      cRTC.getTime(ourTime);
+      CounterRTC::Time gnssTime(gnss_t, 0);
+      CounterRTC::Time timeError = ourTime - gnssTime;
+
+      if (abs_(timeError) > maxGnssTimeError) {
+	// Update clock
+	cRTC.setTime(gnssTime);
+	console << F("Time set from GNSS\n");
+	timeAdjustment = -timeError;
+      }
+      
+      console << F("*** time error: ")
+	      << timeError.getSeconds() << sep << timeError.getFraction()
+	      << endl;
+
+    }
+  }
+#endif
+
   if (startSampling) {
     cRTC.getTime(sampleStartTime);
     
@@ -1322,32 +1450,13 @@ void loop(void)
     console << F("Sampling started\n");
 
     maintainDhcpLease = true; // Only do this once per sampling interval    
-  }
 
-  if (ppsTriggered) {
-    ppsTriggered = false;
-    // TODO: update clock, but only when not sampling
-
-    // RTCx::time_t t;
-    // bool valid = gnss_clock.readClock(t);
-    // console.print(F("Valid: "));
-    // console.println(valid ? F("true") : F("false"));
-    // console.print(F("Seconds since epoch: "));
-    // console.println(t);
-
-    // struct RTCx::tm tm;
-    // gnss_clock.readClock(tm);
-    
-    // char isoDateTime[25];
-    // snprintf(isoDateTime, sizeof(isoDateTime),
-    // 	     "%04d-%02d-%02d %02d:%02d:%02dZ",
-    // 	     tm.tm_year + 1900, tm.tm_mon+1, tm.tm_mday,
-    // 	     tm.tm_hour, tm.tm_min, tm.tm_sec);
-    // console.print("Date/time: ");
-    // console.println(isoDateTime);
+#ifdef SHOW_MEM_USAGE
+  freeMemShown = false; // Show once per sampling interval
+#endif
 
   }
-  
+
   if (flc100Present)
     flc100.process();
   if (mlx90614Present)
@@ -1363,7 +1472,7 @@ void loop(void)
 #ifdef FEATURE_GNSS
   while (!ppsTriggered && gnssSerial.available()) {
     char c = gnssSerial.read();
-    console.print(c);
+    //console.print(c);
     gnss_clock.process(c);
   }
 #endif
@@ -1388,9 +1497,9 @@ void loop(void)
       // console << endl;
       
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
-	      << F(", ") << sampleStartTime.getFraction() << endl
-	      << F("Sensor temperature: ") << flc100.getSensorTemperature() << endl
-	      << F("System temperature: ") << houseKeeping.getSystemTemperature()
+	      << sep << sampleStartTime.getFraction()
+	      << F("\nSensor temperature: ") << flc100.getSensorTemperature()
+	      << F("\nSystem temperature: ") << houseKeeping.getSystemTemperature()
 	      << endl;
       if (houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
@@ -1415,9 +1524,7 @@ void loop(void)
 #ifdef FEATURE_GNSS
       console << F("GNSS Valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
       if (gnssFixValid) {
-	// auto sep = F(", ");
-	const char* sep = ", ";
-	console << F("Fix time: ") << gnssFixTime << ' ' << _HEX(gnssFixTime)
+	console << F("Fix time: ") << gnssFixTime
 		<< F("\nPosition: ") << gnssLocation[0] << sep
 		<< gnssLocation[1];
 	if (altitudeValid)
@@ -1502,7 +1609,8 @@ void loop(void)
       // console << endl;
 #endif
       
-      console << F("Header length: ") << AWPacket::getPacketLength(buffer) << endl;
+      console << F("Header length: ") << AWPacket::getPacketLength(buffer)
+	      << endl;
 
       if (flc100Present) {
 	uint8_t numSamples;
@@ -1586,7 +1694,8 @@ void loop(void)
 				 timeAdjustment.getFraction());
       
       if (eepromContentsLength) {
-	console << F("EEPROM contents length: ") << eepromContentsLength << endl;
+	console << F("EEPROM contents length: ") << eepromContentsLength
+		<< endl;
 	packet.putEepromContents(buffer, sizeof(buffer),
 				 eepromContentsAddress, eepromContentsLength);
       }
@@ -1594,9 +1703,6 @@ void loop(void)
       packet.putGnssStatus(buffer, sizeof(buffer),
 			   gnssFixTime, gnssFixValid, navSystem,
 			   numSat, hdop);
-      console << "sizeof(buffer) " << sizeof(buffer) << endl
-	      << "sizeof(gnssLocation[0]): " << sizeof(gnssLocation[0]) << endl
-	      << "AWPacket::tagGnssLocation" << AWPacket::tagGnssLocation << endl;
       if (gnssFixValid) {
 	packet.putDataArray(buffer, sizeof(buffer),
 			    AWPacket::tagGnssLocation, 4,
@@ -1628,7 +1734,7 @@ void loop(void)
       //if (verbosity)
       //AWPacket::printPacket(buffer, bufferLength, console);
     
-      console << F(" -----------") << endl;
+      console << F(" -----------\n");
     }
     
     if (startSampling == false &&
@@ -1702,10 +1808,10 @@ void loop(void)
       if (radioType == EEPROM_COMMS_TYPE_W5100_UDP && maintainDhcpLease) {
 	maintainDhcpLease = false;
 	uint8_t m = Ethernet.maintain();
-	console << F("DHCP ");
+	console << F("DHCP: ");
 	switch (m) {
 	case DHCP_CHECK_NONE:
-	  console << F("nothing done\n");
+	  console << F("lease ok\n");
 	  break;
 	case DHCP_CHECK_RENEW_FAIL:
 	case DHCP_CHECK_REBIND_FAIL:
@@ -1728,7 +1834,10 @@ void loop(void)
       }
 
 #ifdef SHOW_MEM_USAGE
-      console << F("Free mem: ") << freeMemory() << endl;
+      if (!freeMemShown) {
+	console << F("*** Free mem: ") << freeMemory() << endl;
+	freeMemShown = true;
+      }
 #endif
       
       if (enableSleep && samplingInterval >= minSleepInterval) {
