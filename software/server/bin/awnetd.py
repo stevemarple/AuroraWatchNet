@@ -264,6 +264,46 @@ def write_raw_magnetometer_samples(t, message_tags, fstr, extension):
     #   print('Could not write raw magnetometer samples data: ' + str(e))
 
     
+gnss_file = None
+def write_gnss_data(message_tags, fstr):
+    global gnss_file
+    found = False
+    t = None
+    try:
+        if 'gnss_status' in message_tags:
+            t, val_navsys, num_sat, hdop = \
+                struct.unpack(awn.message.tag_data['gnss_status']['format'],
+                              str(message_tags['gnss_status'][0]))
+            is_valid = bool(val_navsys & 0x80)
+            nav_system = (val_navsys & 0x7f)
+            hdop /= 10.0
+            if 'gnss_location' in message_tags:
+                data = awn.message.decode_tag_array_of_longs\
+                    ('gnss_location', len(message_tags['gnss_location'][0]),
+                         message_tags['gnss_location'][0])
+                if len(data) == 2:
+                    data.append(np.nan)
+            else:
+                data = [np.nan, np.nan, np.nan]
+            lat = data[0] * 1e-6
+            lon = data[1] * 1e-6
+            alt = data[2] * 1e-3
+            gnss_file = get_file_for_time(t, gnss_file, fstr)
+            
+            gnss_file.write(('{t:d}\t{is_valid:d}\t{nav_system}\t' + 
+                             '{num_sat:02d}\t{hdop:03.1f}\t' + 
+                             '{lat:10.6f}\t{lon:11.6f}\t' + 
+                             '{alt:8.3f}\n').format(**locals()))
+
+            global close_after_write
+            if close_after_write:
+                gnss_file.close()        
+
+    except Exception as e:
+        print('Could not save GNSS data: ' + str(e))
+
+        
+
 def iso_timestamp(t):
     '''
     Create an ISO timestamp with microseconds. Uses UTC.
@@ -1055,6 +1095,11 @@ while running:
                         timestamp_s, message_tags, 
                         config.get('magnetometerrawsamples', 'filename'), 
                         data_quality_extension)
+                    
+                if (config.has_option('gnss', 'filename') and
+                    not awn.message.is_response_message(message)):
+                    write_gnss_data(message_tags,
+                                    config.get('gnss', 'filename'))
 
 
                 # Realtime transfer must be last since it alters the
