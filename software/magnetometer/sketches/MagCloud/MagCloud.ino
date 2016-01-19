@@ -121,7 +121,7 @@ bool freeMemShown = false; // Show once per sampling interval
 #endif 
 
 const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.25a";
+  "MagCloud-0.26a";
 // 1234567890123456
 uint8_t rtcAddressList[] = {RTCx::MCP7941xAddress,
 			    RTCx::DS1307Address};
