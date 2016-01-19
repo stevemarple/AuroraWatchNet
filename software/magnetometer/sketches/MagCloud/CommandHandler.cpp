@@ -132,6 +132,7 @@ void CommandHandler::process(Stream &console)
       }
       else if (startsWith_P(PSTR("REBOOT=true"), buffer, &ep)) {
 	console << "Rebooting ..." << endl;
+	console.flush();
 	xboot_reset();
 	//wdt_enable(WDTO_8S);
 	//while (1)

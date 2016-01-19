@@ -1,3 +1,30 @@
+/*
+ * MagCloud
+ *
+ * Firmware to support AuroraWatchNet magnetometer and cloud detector
+ * hardware.
+ *
+ * Debugging and informational messages are sent to Serial. For 8MHz
+ * and lower system clock frequencies the baud rate is 9600, otherwise
+ * 115200 baud is used. Commands can be sent to Serial to alter the
+ * behaviour from default; the behaviour is not persistent across
+ * reboots, set EEPROM values for that. For the full list of commands
+ * see CommandHandler.cpp. Commands should be terminated with a
+ * carriage return or newline character.
+ * 
+ * By default a minimal set of information is output to Serial, the
+ * verbosity can be increased by sending "verbosity=n" where n is an
+ * integer value to Serial.
+ *
+ * verbosity:
+ *  0: minimal output (firmware update messages, system clock updated, DHCP)
+ *  1: extended output
+ *  2: differences between system and server or GNSS clock
+ *  10: print message and response
+ *  11: print all magnetometer data samples
+ *  12: print GNSS messages
+ */
+
 #include <avr/eeprom.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
@@ -88,7 +115,7 @@
 
 #include "xbootapi.h"
 
-#ifdef SHOW_MEM_USAGE
+#ifdef FEATURE_MEM_USAGE
 #include <MemoryFree.h>
 bool freeMemShown = false; // Show once per sampling interval
 #endif 
@@ -126,7 +153,11 @@ const uint8_t xrfResetPin = 5;
 
 WIZnet_UDP wiz_udp;
 
-uint8_t verbosity = 1;
+#ifdef FEATURE_VERBOSITY
+uint8_t verbosity = FEATURE_VERBOSITY;
+#else
+uint8_t verbosity = 0;
+#endif
 
 uint8_t maxMessagesNoAck = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
 
@@ -419,17 +450,19 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   AWPacket::parsePacket(responseBuffer, responseBufferLen,
 			&console,
 			processResponseTags, AWPacket::printUnknownTag);
-  if (verbosity) {
+  if (verbosity == 10) {
     console << F("====\nResponse:\n");
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
     console << F("====\n");
   }
-  if (verbosity > 1 && flc100Present) {
+  if (verbosity == 11 && flc100Present) {
     for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
-      console << char('X' + i) << ':';
-      for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
-	console << ' ' << flc100.getMagDataSamples(i, j);
-      console << '\n';
+      if (flc100.getAdcPresent(i)) {
+	console << char('X' + i) << ':';
+	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
+	  console << ' ' << flc100.getMagDataSamples(i, j);
+	console << '\n';
+      }
     }
     console << F(" -----------\n");
   }
@@ -449,10 +482,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 #ifdef FEATURE_GNSS
     // When GNSS timing is in operation don't adjust the clock based
     // on time received from the server
-    if (useGnss) {
-      console.println(F("*** GNSS time in operation, not updating time from server"));
+    if (useGnss) 
       break;
-    }
+    
 #endif
     {
       uint32_t secs;
@@ -470,11 +502,12 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
       }
-      if (verbosity > 2) {
+      if (verbosity > 1) {
 	console << F("Server time: ") << secs << ' ' << frac
 		<< F("\nOur time: ")  << ourTime.getSeconds() << ' '
 		<< ourTime.getFraction()
-		<< F("\ntimeError (our-server): ") << timeError.getSeconds() << ' '
+		<< F("\nTime error (our-server): ")
+		<< timeError.getSeconds() << sep
 		<< timeError.getFraction() << endl;
       }
     }
@@ -1404,10 +1437,11 @@ void loop(void)
 	console << F("Time set from GNSS\n");
 	timeAdjustment = -timeError;
       }
-      
-      console << F("*** time error: ")
-	      << timeError.getSeconds() << sep << timeError.getFraction()
-	      << endl;
+
+      if (verbosity > 1)
+	console << F("Time error (our-GNSS): ")
+		<< timeError.getSeconds() << sep
+		<< timeError.getFraction() << endl;
 
     }
   }
@@ -1446,12 +1480,16 @@ void loop(void)
 					gnssLocation[1], gnssLocation[2],
 					altitudeValid, navSystem,
 					numSat, hdop);
+    // readClock() returns current time at second boundary, adjust to
+    // get true time of position fix
+    --gnssFixTime;
+    
 #endif
     console << F("Sampling started\n");
 
     maintainDhcpLease = true; // Only do this once per sampling interval    
 
-#ifdef SHOW_MEM_USAGE
+#ifdef FEATURE_MEM_USAGE
   freeMemShown = false; // Show once per sampling interval
 #endif
 
@@ -1472,7 +1510,8 @@ void loop(void)
 #ifdef FEATURE_GNSS
   while (!ppsTriggered && gnssSerial.available()) {
     char c = gnssSerial.read();
-    //console.print(c);
+    if (verbosity == 12)
+      console.print(c);
     gnss_clock.process(c);
   }
 #endif
@@ -1518,19 +1557,22 @@ void loop(void)
      
       if (flc100Present)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	  console << F("magData[") << i << F("]: ") << (flc100.getMagData()[i])
-		  << endl;
+	  if (flc100.getAdcPresent(i)) 
+	    console << F("magData[") << i << F("]: ")
+		    << (flc100.getMagData()[i]) << endl;
 
 #ifdef FEATURE_GNSS
-      console << F("GNSS Valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
-      if (gnssFixValid) {
-	console << F("Fix time: ") << gnssFixTime
-		<< F("\nPosition: ") << gnssLocation[0] << sep
-		<< gnssLocation[1];
-	if (altitudeValid)
-	  console << sep << gnssLocation[2];
-	console << F("\nStatus: ") << navSystem << sep << int(numSat)
-		<< sep << int(hdop) << endl;
+      if (verbosity) {
+	console << F("GNSS valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
+	if (gnssFixValid) {
+	  console << F("Fix time: ") << gnssFixTime
+		  << F("\nPosition: ") << gnssLocation[0] << sep
+		  << gnssLocation[1];
+	  if (altitudeValid)
+	    console << sep << gnssLocation[2];
+	  console << F("\nStatus: ") << navSystem << sep << int(numSat)
+		  << sep << int(hdop) << endl;
+	}
       }
 #endif
       
@@ -1730,10 +1772,7 @@ void loop(void)
 	  useLed = false;
 	digitalWrite(ledPin, useLed);
       }
-      
-      //if (verbosity)
-      //AWPacket::printPacket(buffer, bufferLength, console);
-    
+ 
       console << F(" -----------\n");
     }
     
@@ -1833,9 +1872,9 @@ void loop(void)
 	}
       }
 
-#ifdef SHOW_MEM_USAGE
+#ifdef FEATURE_MEM_USAGE
       if (!freeMemShown) {
-	console << F("*** Free mem: ") << freeMemory() << endl;
+	console << F("Free mem: ") << freeMemory() << endl;
 	freeMemShown = true;
       }
 #endif

@@ -98,7 +98,7 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
     // HardwareSerial.write() waits until the buffer has room but
     // in future it might return immediately with a return value of
     // zero.
-    if (bytesSent == 0 && verbosity)
+    if (bytesSent == 0 && verbosity == 10)
       AWPacket::printPacket(messageBuffer, messageLen, console);
     
     if (bytesSent == 0)
