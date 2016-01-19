@@ -6,11 +6,12 @@ BUILDER = $(ARDUINO_DIR)/arduino-builder
 
 # Extra compilation flags passed to arduino-builder, such as to
 # indicate which communication hardware should be supported.
-C_EXTRA_FLAGS = -DCOMMS_W5100 -DCOMMS_XRF
-CPP_EXTRA_FLAGS = -DCOMMS_W5100 -DCOMMS_XRF
+EXTRA_FLAGS = -DCOMMS_W5100 -DCOMMS_XRF
+C_EXTRA_FLAGS = $(EXTRA_FLAGS)
+CPP_EXTRA_FLAGS = $(EXTRA_FLAGS)
 
-# Communication hardware name.
-COMMS_HW=XRF_W5100
+# Hardware identifier
+HW_IDENT=XRF_W5100
 
 BUILDER_PREFS = -prefs=build.warn_data_percentage=$(WARN_PERCENTAGE) -prefs="compiler.c.extra_flags=$(C_EXTRA_FLAGS)" -prefs="compiler.cpp.extra_flags=$(CPP_EXTRA_FLAGS)"
 
@@ -32,11 +33,11 @@ PPID = $(strip $(shell ps -o ppid= -p $$PPID))
 
 # Use a sparate build directory for each firmware version (different
 # clock speed, communication hardware etc)
-BUILD_DIR = /tmp/build-$(SKETCH_NAME).$(PPID)/$(SKETCH_NAME)-$(SPEED)-$(COMMS_HW)
+BUILD_DIR = /tmp/build-$(SKETCH_NAME).$(PPID)/$(SKETCH_NAME)-$(SPEED)-$(HW_IDENT)
 
-SPEED = 12MHz
+SPEED = 8MHz_RC
 WARN_PERCENTAGE = 45
-FIRMWARE_DIR = $(SKETCH_DIR)/firmware/ATmega1284P/$(SPEED)/$(COMMS_HW)
+FIRMWARE_DIR = $(SKETCH_DIR)/firmware/ATmega1284P/$(SPEED)/$(HW_IDENT)
 FIRMWARE_NAME = MagCloud-0.25a
 COPY = cp
 MKDIR = mkdir
@@ -71,7 +72,7 @@ compile : dump-prefs
 	-echo Firmware copied to $(FIRMWARE_DIR)
 
 all :
-	$(MAKE) PPID=$(PPID) SPEED=8MHz_RC COMMS_HW=XRF_W5100 EXTRA_FLAGS="-DCOMMS_W5100 -DCOMMS_XRF" CPP_EXTRA_FLAGS="-DCOMMS_W5100 -DCOMMS_XRF" compile
-	$(MAKE) PPID=$(PPID) SPEED=12MHz COMMS_HW=XRF_W5100 C_EXTRA_FLAGS="-DCOMMS_W5100 -DCOMMS_XRF" CPP_EXTRA_FLAGS="-DCOMMS_W5100 -DCOMMS_XRF" compile
-	$(MAKE) PPID=$(PPID) SPEED=12MHz COMMS_HW=XRF_W5500 C_EXTRA_FLAGS="-DCOMMS_W5500 -DCOMMS_XRF" CPP_EXTRA_FLAGS="-DCOMMS_W5500 -DCOMMS_XRF" compile
+	$(MAKE) PPID=$(PPID) SPEED=8MHz_RC HW_IDENT=XRF_W5100 EXTRA_FLAGS="-DCOMMS_XRF -DCOMMS_W5100" compile
+	$(MAKE) PPID=$(PPID) SPEED=12MHz HW_IDENT=W5100_GNSS EXTRA_FLAGS="-DCOMMS_W5100 -DFEATURE_GNSS" compile
+	$(MAKE) PPID=$(PPID) SPEED=12MHz HW_IDENT=W5500_GNSS EXTRA_FLAGS="-DCOMMS_W5500 -DFEATURE_GNSS" compile
 	@echo Success
