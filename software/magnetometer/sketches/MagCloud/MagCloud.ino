@@ -120,9 +120,11 @@
 bool freeMemShown = false; // Show once per sampling interval
 #endif 
 
-const char firmwareVersion[AWPacket::firmwareNameLength] =
-  "MagCloud-0.26a";
-// 1234567890123456
+#define FIRMWARE_VERSION "MagCloud-0.26a"
+//                        1234567890123456
+// Firmware version limited to 16 characters
+
+const char firmwareVersion[AWPacket::firmwareNameLength] = FIRMWARE_VERSION;
 uint8_t rtcAddressList[] = {RTCx::MCP7941xAddress,
 			    RTCx::DS1307Address};
 
@@ -973,23 +975,43 @@ void setup(void)
 				 FUSE_CKSEL1 & FUSE_CKSEL0);
   bool isRcOsc = ((lowFuse & ckselMask) ==
 		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
-  console << F("Uses RC osc.: ") << isRcOsc
+  console << F("RC osc.: ") << isRcOsc
 	  << F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
 	  << F("\nMCUSR: ") << _HEX(mcusrCopy) << endl; 
 
-  // Print the supported communication protocols
-  console << F("\nFirmware version: ") << firmwareVersion
-	  << F("\nComms:")
+#if F_CPU == 8000000UL
+#define F_CPU_STR "8MHz"
+#elif F_CPU == 12000000UL
+#define F_CPU_STR "12MHz"
+#elif F_CPU == 16000000UL
+#define F_CPU_STR "16MHz"
+#elif F_CPU == 20000000UL
+#define F_CPU_STR "20MHz"
+#else
+#error Unknown F_CPU value
+#endif
+
+  // Print the firmware version, clock speed and supported
+  // communication protocols. Place in one long string to minimise
+  // flash usage.
+  console << F("\nFirmware: " FIRMWARE_VERSION "\n"
+	       "F_CPU: " F_CPU_STR "\n"
+	       "Comms:"
 #ifdef COMMS_XRF
-	  << F(" XRF")
+	       " XRF"
 #endif
 #ifdef COMMS_W5100
-	  << F(" W5100")
+	       " W5100"
 #endif
 #ifdef COMMS_W5500
-	  << F(" W5500")
+	       " W5500"
 #endif
-	  << endl;
+	       "\n"
+	       "Features:"
+#ifdef FEATURE_GNSS
+	       " GNSS"
+#endif
+	       "\n");
   
   // Only use the LED following a reset initiated by user action
   // (JTAG, external reset and power on). Exclude brown-out and
@@ -1008,11 +1030,11 @@ void setup(void)
 
   // Fan control
   if (fanPin != 0xFF) {
-    console << F("Fan temperature: ")
+    console << F("Fan temp.: ")
 	    << ((int16_t)eeprom_read_word((const uint16_t*)
 					  EEPROM_FAN_TEMPERATURE))
 	    << endl;
-    console << F("Fan hysteresis: ")
+    console << F("Fan hyst.: ")
 	    << ((int16_t)eeprom_read_word((const uint16_t*)
 					  EEPROM_FAN_HYSTERESIS))
 	    << endl;
@@ -1117,7 +1139,8 @@ void setup(void)
     
     for (int i = 0; i < FLC100::numAxes; ++i)
       console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
-	      << F(", channel: ") << (adcChannelList[i]) << endl;
+	      << F(" ch. ") << (adcChannelList[i])
+	      << (flc100.getAdcPresent(i) ? F(" present\n") : F(" missing\n"));
 
     console << F("numSamples: ") << numSamples
 	    << F("\naggregate: ");
@@ -1265,7 +1288,7 @@ void setup(void)
 
   // Warn, if it stops at this point it means the jumper isn't fitted.
   // TODO: test if jumper for RTC output is fitted.
-  console << F("Configuring MCU RTC\n");
+  console << F("Configuring system clock\n");
   console.flush();
 
 
@@ -1339,7 +1362,7 @@ void setup(void)
   
 #endif
 
-  console << F("TCNT2 freq: ") << counter2Frequency << "Hz\n";
+  console << F("System clock: ") << counter2Frequency << "Hz\n";
 
   /*
 #ifdef FEATURE_GNSS
@@ -1355,7 +1378,7 @@ void setup(void)
     CounterRTC::Time t;
     t.setSeconds(RTCx::mktime(tm));
     cRTC.setTime(t);
-    console << F("Set MCU RTC from hardware RTC\n");
+    console << F("Set system clock from hardware RTC\n");
   }
   else
     console << F("Could not get time from hardware RTC\n");
@@ -1537,8 +1560,8 @@ void loop(void)
       
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
 	      << sep << sampleStartTime.getFraction()
-	      << F("\nSensor temperature: ") << flc100.getSensorTemperature()
-	      << F("\nSystem temperature: ") << houseKeeping.getSystemTemperature()
+	      << F("\nSensor temp.: ") << flc100.getSensorTemperature()
+	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature()
 	      << endl;
       if (houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
@@ -1764,6 +1787,11 @@ void loop(void)
       // Send by radio
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       ++messageCount;
+
+      // if (verbosity == 10) 
+      // 	AWPacket::printPacket(buffer, AWPacket::getPacketLength(buffer),
+      // 			      console);
+      
       // DEBUG: message queued, turn on LED
       if (useLed) {
 	uint8_t maxMessages
