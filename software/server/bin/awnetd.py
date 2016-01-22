@@ -695,6 +695,17 @@ def describe_pending_tags():
              r.append(k)
     return ','.join(r)
 
+def add_current_time_tag(message):
+    if (config.has_option('ntp_status', 'filename') and 
+        config.has_option('ntp_status', 'max_age') and 
+        (not os.path.exists(config.get('ntp_status', 'filename')) or 
+         time.time() - os.stat(config.get('ntp_status', 'filename')).st_mtime
+         > config.get('ntp_status', 'max_age'))):
+        # NTP status file is missing/old, assume NTP not running
+        return
+    awn.message.put_current_epoch_time(message)
+    return
+
 # ==========================================================================
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -995,7 +1006,9 @@ while running:
                                            site_id=awn.message.get_site_id(message),
                                            timestamp=timestamp,
                                            flags=(1 << awn.message.flags_response_bit))
-                    awn.message.put_current_epoch_time(response)
+                    # awn.message.put_current_epoch_time(response)
+                    # Add current time, subject to NTP running
+                    add_current_time_tag(response)
                     
                     # Handle packet requests. These tags live only for the 
                     # duration between receiving the request and sending the

@@ -383,3 +383,32 @@ A flag indicating if the \dtr\ signal line should be pulled low to
 turn on the \led.
 
 Default: true.
+
+\section{\code{[ntp_status]}}
+
+Configuration details for data recording daemon (\filename{awnetd.py})
+and also used by the \filename{check_ntp_status} program. As the
+Raspberry Pi does not have an onboard real-time clock it must obtain
+the time from the network using \ntp. At boot time, and other
+occasions when the \ntp\ servers are not accessible, the system clock
+on the Raspberry Pi may not be correct. The data recording daemon can
+be made aware that \ntp\ is running and correctly synchronized by the
+presence of a semaphore file. The file's age is also checked to ensure
+that the presence of a stale semaphore file is not
+misinterpreted. When the data recording daemon is configured to check
+\ntp\ status the current time is sent to the microcontroller only if
+\ntp\ is synchronized.
+
+\subsection{\code{filename}}
+The filename of the semaphore file. Required for
+\filename{check_ntp_status}. Not required by \filename{awnetd.py} and
+if missing \ntp\ status is not checked.
+
+\subsection{\code{max_age}}
+The maximum allowable age in seconds for the semaphore file to be
+considered valid. The presence of a file older than this age is
+ignored. Required for \filename{check_ntp_status}. Not required by
+\filename{awnetd.py} and if missing \ntp\ status is not checked.
+
+
+
