@@ -97,7 +97,7 @@ for n in range(args.tries):
 
     if sync:
         logger.info('NTP synchronized')
-        with open(status_file, 'a') as f:
+        with open(status_file, 'w+') as f:
             logger.debug('Created ' + status_file)
         break
     else:
