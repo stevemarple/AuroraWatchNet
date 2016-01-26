@@ -71,14 +71,27 @@ def read_config_file(filename):
 def get_rt_tranfer_info(config):
     '''Read realtime transfer details.
 
-    Return a list of hosts to transfer data to in real time. Messages,
-    and daemon responses, are sent as UDP packets to each host on the
-    list. List items are dicts containing 'hostname', 'ip', 'port' and
-    'key'. Each message is signed with the host's key.'''
+    Return a list of hosts to transfer data to in real time. List
+    items are dicts containing 'hostname', 'ip', 'port' and
+    'key'. Each message is signed with the host's key.
 
-    sec = 'realtime_transfer'
+    Messages, and daemon responses, are sent as UDP packets to each
+    host on the list. Section names must start with
+    'realtime_transfer'; for multiple hosts the preferred format is to
+    use section names of the form '[realtime_transfer:a]',
+    '[realtime_transfer:b]', etc with just one hostname, ip and port
+    defined for each section.
+
+    The previously supported method of transferring data to multiple
+    hosts was to enable multiple hostname, ip and port items to be
+    inserted into the '[realtime_transfer]' section, with item name
+    having the a unique suffix appended.  Support for the older method
+    has been retained.
+    '''
+
+    sections = config.sections()
     r = []
-    if config.has_section(sec):
+    for sec in [s for s in sections if s.startswith('realtime_transfer')]:
         for i in config.items(sec):
             mo = re.match('^remote_host(.*)$', i[0])
             if mo:

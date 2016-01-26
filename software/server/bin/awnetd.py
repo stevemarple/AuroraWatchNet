@@ -282,9 +282,9 @@ def write_gnss_data(message_tags, fstr):
                     ('gnss_location', len(message_tags['gnss_location'][0]),
                          message_tags['gnss_location'][0])
                 if len(data) == 2:
-                    data.append(np.nan)
+                    data.append(float('NaN'))
             else:
-                data = [np.nan, np.nan, np.nan]
+                data = [float('NaN'), float('NaN'), float('NaN')]
             lat = data[0] * 1e-6
             lon = data[1] * 1e-6
             alt = data[2] * 1e-3
@@ -741,6 +741,11 @@ args = parser.parse_args()
 
 config = awn.read_config_file(args.config_file)
 rt_transfer = awn.get_rt_tranfer_info(config)
+if rt_transfer:
+    rt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+else:
+    rt_socket = None
+
 
 # Should the device be opened read-only? Some need setup strings
 # writing to them even if acknowledgements are not sent.
@@ -887,12 +892,6 @@ if device_socket is not None:
 if control_socket is not None:
     select_list.append(control_socket)
     
-
-if config.has_section('realtime_transfer'):
-    rt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-else:
-    rt_socket = None
-
 if not config.has_option('magnetometer', 'key'):
     print('Config file missing key from magnetometer section')
     exit(1)
