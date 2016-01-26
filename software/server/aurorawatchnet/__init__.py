@@ -86,24 +86,31 @@ def get_rt_tranfer_info(config):
     hosts was to enable multiple hostname, ip and port items to be
     inserted into the '[realtime_transfer]' section, with item name
     having the a unique suffix appended.  Support for the older method
-    has been retained.
+    has been retained for compatibility.
+
+    Each section can contain an optional 'enabled' item to control if
+    real-time data is transferred to the host(s). Only if present and
+    set to a false value is data not transferred.
+
     '''
 
     sections = config.sections()
     r = []
     for sec in [s for s in sections if s.startswith('realtime_transfer')]:
-        for i in config.items(sec):
-            mo = re.match('^remote_host(.*)$', i[0])
-            if mo:
-                suf = mo.group(1) # suffix
-                hmac_key = config.get(sec, 'remote_key' + suf).decode('hex')
-                # Hostnames may resolve to multiple IP addresses, add all
-                for ip in socket.gethostbyname_ex(i[1])[2]:
-                    r.append({'hostname': i[1],
-                              'ip': ip,
-                              'port': int(config.get(sec, 'remote_port' 
-                                                     + suf)),
-                              'key': hmac_key})
+        if not config.has_option(sec, 'enabled') \
+                or config.getboolean(sec, 'enabled'):
+            for i in config.items(sec):
+                mo = re.match('^remote_host(.*)$', i[0])
+                if mo:
+                    suf = mo.group(1) # suffix
+                    hmac_key = config.get(sec, 'remote_key' + suf).decode('hex')
+                    # Hostnames may resolve to multiple IP addresses, add all
+                    for ip in socket.gethostbyname_ex(i[1])[2]:
+                        r.append({'hostname': i[1],
+                                  'ip': ip,
+                                  'port': int(config.get(sec, 'remote_port' 
+                                                         + suf)),
+                                  'key': hmac_key})
     return r
 
 
