@@ -40,14 +40,18 @@
 #include <Streaming.h>
 
 #include <AWPacket.h>
+
+#ifdef FEATURE_FLC100
 #include <FLC100_shield.h>
-#include <SoftWire.h>
+#endif
 
 #ifdef FEATURE_MLX90614
+#include <SoftWire.h>
 #include <MLX90614.h>
 #endif
 
 #ifdef FEATURE_HIH61XX
+#include <SoftWire.h>
 #include <HIH61xx.h>
 #endif
 
@@ -168,8 +172,10 @@ uint8_t verbosity = 0;
 
 uint8_t maxMessagesNoAck = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
 
+#ifdef FEATURE_FLC100
 FLC100 flc100;
 bool flc100Present = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
+#endif
 
 #ifdef FEATURE_MLX90614
 MLX90614 mlx90614;
@@ -466,6 +472,8 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
     console << F("====\n");
   }
+
+#ifdef FEATURE_FLC100
   if (verbosity == 11 && flc100Present) {
     for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
       if (flc100.getAdcPresent(i)) {
@@ -477,6 +485,7 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
     }
     console << F(" -----------\n");
   }
+#endif
 }
 
 
@@ -680,7 +689,8 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       }
     }
     break;
-  
+
+#ifdef FEATURE_FLC100
   case AWPacket::tagNumSamples:
     {
       uint8_t numSamples, control;
@@ -694,6 +704,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       }
     }
     break;
+#endif
     
   case AWPacket::tagAllSamples:
     {
@@ -944,12 +955,13 @@ void setup(void)
     digitalWrite(heaterPin, LOW);
   }
   
-
+#ifdef FEATURE_FLC100
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
   uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
   uint8_t adcGainList[FLC100::numAxes] = {1, 1, 1};
-
+#endif
+  
   uint32_t consoleBaudRate;
   eeprom_read_block(&consoleBaudRate, (void*)EEPROM_CONSOLE_BAUD_RATE,
 		    EEPROM_CONSOLE_BAUD_RATE_SIZE);
@@ -1019,6 +1031,9 @@ void setup(void)
 #endif
 	       "\n"
 	       "Features:"
+#ifdef FEATURE_FLC100
+	       " FLC100"
+#endif
 #ifdef FEATURE_HIH61XX
 	       " HIH61XX"
 #endif
@@ -1085,14 +1100,25 @@ void setup(void)
     console << ' ' << _HEX(hmacKey[i]);
   }
   console.println();
-    
+
+  Wire.begin();
+
+  // Get key
+  eeprom_read_block(hmacKey, (uint8_t*)EEPROM_HMAC_KEY, EEPROM_HMAC_KEY_SIZE);
+  AWPacket::setDefaultSiteId(eeprom_read_word((const uint16_t*)EEPROM_SITE_ID));
+
+  __FlashStringHelper* initialisingStr
+    = (__FlashStringHelper*)PSTR("Initialising ");
+  __FlashStringHelper* notStr = (__FlashStringHelper*)PSTR(" not");
+  __FlashStringHelper* presentStr = (__FlashStringHelper*)PSTR(" present");
+  __FlashStringHelper* powerUpDelayStr
+    = (__FlashStringHelper*)PSTR(" power-up delay (ms): ");
+
+#ifdef FEATURE_FLC100
   // Turn on 5V supply
   pinMode(FLC100_POWER, OUTPUT);
   digitalWrite(FLC100_POWER, HIGH);
   delay(FLC100::powerUpDelay_ms);
-  
-  Wire.begin();
-
   
   // Get ADC addresses
   for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
@@ -1123,10 +1149,6 @@ void setup(void)
 	adcGainList[i] = gain; 
     }
   }
-    
-  // Get key
-  eeprom_read_block(hmacKey, (uint8_t*)EEPROM_HMAC_KEY, EEPROM_HMAC_KEY_SIZE);
-  AWPacket::setDefaultSiteId(eeprom_read_word((const uint16_t*)EEPROM_SITE_ID));
 
   uint8_t numSamples = eeprom_read_byte((uint8_t*)EEPROM_NUM_SAMPLES);
   if (numSamples == 0 || numSamples > FLC100::maxSamples)
@@ -1135,13 +1157,6 @@ void setup(void)
   if (aggregate == 255)
     aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
   allSamples = eeprom_read_byte((uint8_t*)EEPROM_ALL_SAMPLES);
-
-  __FlashStringHelper* initialisingStr
-    = (__FlashStringHelper*)PSTR("Initialising ");
-  __FlashStringHelper* notStr = (__FlashStringHelper*)PSTR(" not");
-  __FlashStringHelper* presentStr = (__FlashStringHelper*)PSTR(" present");
-  __FlashStringHelper* powerUpDelayStr
-    = (__FlashStringHelper*)PSTR(" power-up delay (ms): ");
 
   __FlashStringHelper* flc100Str = (__FlashStringHelper*)PSTR("FLC100");
   if (flc100Present) {
@@ -1178,6 +1193,7 @@ void setup(void)
     console.print(powerUpDelayStr);
     console.println(FLC100::powerUpDelay_ms);
   }
+#endif
 
 #ifdef FEATURE_MLX90614
   __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");   
@@ -1493,10 +1509,10 @@ void loop(void)
 
   if (startSampling) {
     cRTC.getTime(sampleStartTime);
-    
+#ifdef FEATURE_FLC100
     if (flc100Present && !flc100.isSampling())
       flc100.start();
-
+#endif
 #ifdef FEATURE_MLX90614
     if (!mlx90614.isSampling()) 
       mlx90614.start();
@@ -1543,8 +1559,10 @@ void loop(void)
 
   }
 
+#ifdef FEATURE_FLC100
   if (flc100Present)
     flc100.process();
+#endif
 #ifdef FEATURE_MLX90614
   if (mlx90614Present)
     mlx90614.process();
@@ -1574,7 +1592,10 @@ void loop(void)
   commandHandler.process(console);
 
   // console << F("I2C state: ") << (flc100.getI2CState()) << endl;
-  if ((flc100Present == false || flc100.isFinished())
+  if (1
+#ifdef FEATURE_FLC100
+      && (flc100Present == false || flc100.isFinished())
+#endif
 #ifdef FEATURE_MLX90614
       && (mlx90614Present == false || mlx90614.isFinished())
 #endif
@@ -1593,8 +1614,10 @@ void loop(void)
       
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
 	      << sep << sampleStartTime.getFraction()
-	      << F("\nSensor temp.: ") << flc100.getSensorTemperature()
 	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature()
+#ifdef FEATURE_FLC100
+	      << F("\nFLC100 temp.: ") << flc100.getSensorTemperature()
+#endif
 	      << endl;
       if (houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
@@ -1614,12 +1637,14 @@ void loop(void)
 	console << F("Humidity: ") << hih61xx.getRelHumidity()
 		<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
 #endif
+#ifdef FEATURE_FLC100
       if (flc100Present)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
 	  if (flc100.getAdcPresent(i)) 
 	    console << F("magData[") << i << F("]: ")
 		    << (flc100.getMagData()[i]) << endl;
-
+#endif
+      
 #ifdef FEATURE_GNSS
       if (verbosity) {
 	console << F("GNSS valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
@@ -1713,6 +1738,7 @@ void loop(void)
       console << F("Header length: ") << AWPacket::getPacketLength(buffer)
 	      << endl;
 
+#ifdef FEATURE_FLC100
       if (flc100Present) {
 	uint8_t numSamples;
 	bool median;
@@ -1741,6 +1767,7 @@ void loop(void)
 			     median);
 
       }
+#endif
       
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagMCUTemperature,
@@ -1850,8 +1877,8 @@ void loop(void)
       // transmission commsHandler.isFinished() != TRUE until the
       // acknowledgement has been received.
 
-      // Increment the sequence number since the timestamp inside
-      // flc100 will not change until the next sampling action.
+      // Increment the sequence number since the timestamp will not
+      // change until the next sampling action.
       AWPacket::incrementDefaultSequenceId();
 
       // Buffer for storing the binary AW packet

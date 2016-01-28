@@ -7,6 +7,8 @@
 #define COMMS_W5100
 //#define COMMS_W5500
 
+#define FEATURE_FLC100
+
 #define FEATURE_GNSS
 #define FEATURE_VERBOSITY 1
 #define FEATURE_MEM_USAGE
