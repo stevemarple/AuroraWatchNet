@@ -836,9 +836,11 @@ void begin_WIZnet_UDP(void)
     for (uint8_t t = 0; t < 3; ++t) 
       for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n) {
 	wdt_reset();
-	// Attempt lookup only if DNS server IP non-zero
+	// Attempt lookup only if DNS server IP non-zero. Ethernet
+	// library can claim to have resolved host (retunrs 1) when it
+	// hasn't. Check the IP address is non-zero.
 	if (uint32_t(dns[n]) &&
-	    (dnsLookup(dns[n], remoteHostname, ip) == 1)) {
+	    (dnsLookup(dns[n], remoteHostname, ip) == 1 && ip)) {
 	  found = true;
 	  break;
 	}
@@ -869,7 +871,7 @@ void begin_WIZnet_UDP(void)
     // due to DNS problems then it should recover when DNS returns.
     maxMessagesNoAck = 5;
     console << F("No remote host, making ") << maxMessagesNoAck
-	    << F("attempts to communicate to ") << broadcastIP << endl;
+	    << F(" attempts to communicate to ") << broadcastIP << endl;
   }
 
   console << F("Active settings:\n");
@@ -1787,10 +1789,6 @@ void loop(void)
       // Send by radio
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       ++messageCount;
-
-      // if (verbosity == 10) 
-      // 	AWPacket::printPacket(buffer, AWPacket::getPacketLength(buffer),
-      // 			      console);
       
       // DEBUG: message queued, turn on LED
       if (useLed) {

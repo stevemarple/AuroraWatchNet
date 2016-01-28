@@ -43,6 +43,11 @@ const char* CommsHandler::errorMessages[4] = {
 
 void CommsHandler::addMessage(void *ptr, uint16_t len)
 {
+  if (len > messageBufferLen) {
+    console.println(strBufferTooSmall);
+    errno = errorBufferTooSmall;
+  }
+
   stack.write(ptr, len);
   errno = errorNoError;
 
@@ -122,12 +127,12 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 
   case stateWaitingForResponse:
     if (responseTimeout.isExpired()) {
-      Serial.println("Message timeout");
+      console.println(strResponseTimeout);
       errno = errorResponseTimeout;
 
       ++ messagesWithoutAck;
       if (maxMessagesNoAck && messagesWithoutAck >= maxMessagesNoAck) {
-	Serial.println("Reboot due to timeout"); // DEBUG
+	console.println(F("Reboot due to timeout")); // DEBUG
 	delay(1000);
 	xboot_reset();
 	//wdt_enable(WDTO_1S);
@@ -147,8 +152,8 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	stack.write(messageBuffer, AWPacket::getPacketLength(messageBuffer));
       }
       else {
-	Serial.print("Too many retries: ");
-	AWPacket::printPacket(messageBuffer, messageBufferLen, Serial);
+	console.print(F("Too many retries: "));
+	AWPacket::printPacket(messageBuffer, messageBufferLen, console);
       }
       state = stateTimedOut;
       break;
@@ -192,10 +197,10 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	}
 	else {
 	  // Need another response
-	  Serial.println("######################");
-	  Serial.println("Packet valid but incorrect response");
-	  AWPacket::printPacket(responseBuffer, responseLen, Serial);
-	  Serial.println("######################");
+	  console.println(F("######################"));
+	  console.println(F("Packet valid but incorrect response"));
+	  AWPacket::printPacket(responseBuffer, responseLen, console);
+	  console.println(F("######################"));
 	  
 	  responseLen = 0;
 	  responsePacketLen = 65535; // Use maximum value until we know

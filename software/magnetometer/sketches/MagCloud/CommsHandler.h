@@ -52,7 +52,7 @@ private:
     stateTimedOut = 4,
   };
 
-  static const uint16_t messageBufferLen = 260;
+  static const uint16_t messageBufferLen = 512;
   // static const int powerUpDelay_ms = 250;
   // static const int resetDelay_us = 250;
   static const int responseTimeout_ms = 2000;
