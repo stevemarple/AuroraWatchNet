@@ -200,8 +200,9 @@ eeprom = {
     'max_messages_no_ack': {
         'address': 0x49,
         'format': 'B',
-        'default': '0',
-        'help': 'Number of messages without receiving an ACK before rebooting',
+        'type': int,
+        'default': 0,
+        'help': 'Maximum number of messages without receiving an acknowledgement before rebooting (DEPRECATED)',
         'metavar': 'NUMBER'
         },
     'max_messages_led': {
@@ -408,6 +409,21 @@ eeprom = {
         'help': 'Tertiary DNS',
         'metavar': 'IP_ADDRESS',
         },
-
+    'console_baud_rate': {
+        'address': 0xd4,
+        'format': 'H',
+        'type': int,
+        'default': 9600,
+        'help': 'Console baud rate',
+        'metavar': 'BAUD',
+        },
+    'max_time_no_ack': {
+        'address': 0xd8,
+        'format': 'H',
+        'type': int,
+        'default': 3 * 3600,
+        'help': 'Maximum time (in seconds) without receiving an acknowledgement before rebooting',
+        'metavar': 'NUMBER',
+        },
 }
 

@@ -215,4 +215,9 @@
 
 #define EEPROM_CONSOLE_BAUD_RATE 0xD4
 #define EEPROM_CONSOLE_BAUD_RATE_SIZE 4
+
+// Maximum number of messages without an acknowledgement
+#define EEPROM_MAX_TIME_NO_ACK 0xD8
+#define EEPROM_MAX_TIME_NO_ACK_SIZE 2
+
 #endif
