@@ -39,6 +39,7 @@ public:
 
   inline uint16_t getBytesSent(void) const;
   inline uint8_t getState(void) const;
+  inline bool isBufferEmpty(void) const;
   inline CommsInterface* getCommsInterface(void) const;
   inline void setCommsInterface(CommsInterface* cip);
   
@@ -126,6 +127,11 @@ uint16_t CommsHandler::getBytesSent(void) const
 uint8_t CommsHandler::getState(void) const
 {
   return state;
+}
+
+bool CommsHandler::isBufferEmpty(void) const
+{
+  return stack.isEmpty();
 }
 
 CommsInterface* CommsHandler::getCommsInterface(void) const
