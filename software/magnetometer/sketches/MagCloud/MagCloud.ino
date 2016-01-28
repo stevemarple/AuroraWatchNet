@@ -43,8 +43,13 @@
 #include <FLC100_shield.h>
 #include <SoftWire.h>
 
+#ifdef FEATURE_MLX90614
 #include <MLX90614.h>
+#endif
+
+#ifdef FEATURE_HIH61XX
 #include <HIH61xx.h>
+#endif
 
 #ifdef FEATURE_AS3935
 #include <AS3935.h>
@@ -166,11 +171,15 @@ uint8_t maxMessagesNoAck = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK
 FLC100 flc100;
 bool flc100Present = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
 
+#ifdef FEATURE_MLX90614
 MLX90614 mlx90614;
 bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
+#endif
 
+#ifdef FEATURE_HIH61XX
 HIH61xx hih61xx;
 bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
+#endif
 
 #ifdef FEATURE_AS3935
 AS3935 as3935;
@@ -233,7 +242,7 @@ uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
 // Flag indicating if all data samples should be sent, or just the aggregate
 bool allSamples = false;
 
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
 // SD card data
 bool useSd = false;
 const int sdBufferLength = 1024;   // Size of buffer
@@ -262,7 +271,7 @@ uint16_t upgradeFirmwareGetBlockNumber;
 uint16_t eepromContentsAddress = 0;
 uint16_t eepromContentsLength = 0;
 
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
 // /data/YYYY/MM/DD/YYYYMMDD.HH
 // 123456789012345678901234567890
 const uint8_t sdFilenameLen = 29; // Remember to include space for '\0'
@@ -346,7 +355,7 @@ Stream& printBinaryBuffer(Stream &s, const void* buffer, int len)
 }
 #endif
 
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
 void createFilename(char *ptr, const uint8_t len, RTCx::time_t t)
 {
   struct RTCx::tm tm;
@@ -1010,6 +1019,12 @@ void setup(void)
 #endif
 	       "\n"
 	       "Features:"
+#ifdef FEATURE_HIH61XX
+	       " HIH61XX"
+#endif
+#ifdef FEATURE_MLX90614
+	       " MLX90614"
+#endif
 #ifdef FEATURE_GNSS
 	       " GNSS"
 #endif
@@ -1042,7 +1057,7 @@ void setup(void)
 	    << endl;
   }
   
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
   useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
   if (sdSelect < NUM_DIGITAL_PINS) {
@@ -1163,7 +1178,8 @@ void setup(void)
     console.print(powerUpDelayStr);
     console.println(FLC100::powerUpDelay_ms);
   }
-  
+
+#ifdef FEATURE_MLX90614
   __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");   
   if (mlx90614Present) {
     console.print(initialisingStr);
@@ -1171,7 +1187,6 @@ void setup(void)
     mlx90614.getSoftWire().setDelay_us(2);
     mlx90614Present = mlx90614.initialise();
   }
-
   console.print(mlx90614Str);
   if (!mlx90614Present)
     console.print(notStr);
@@ -1181,7 +1196,9 @@ void setup(void)
     console.print(powerUpDelayStr);
     console.println(MLX90614::powerUpDelay_ms);
   }
+#endif
 
+#ifdef FEATURE_HIH61XX
   __FlashStringHelper* hih61xxStr = (__FlashStringHelper*)PSTR("HIH61xx");
   if (hih61xxPresent) {
     console.print(initialisingStr);
@@ -1192,7 +1209,8 @@ void setup(void)
   if (!hih61xxPresent)
     console.print(notStr);
   console.println(presentStr);
-
+#endif
+  
 #ifdef FEATURE_AS3935
   __FlashStringHelper* as3935Str = (__FlashStringHelper*)PSTR("AS3935");
   if (as3935Present) {
@@ -1478,13 +1496,17 @@ void loop(void)
     
     if (flc100Present && !flc100.isSampling())
       flc100.start();
-    
+
+#ifdef FEATURE_MLX90614
     if (!mlx90614.isSampling()) 
       mlx90614.start();
+#endif
     
+#ifdef FEATURE_HIH61XX    
     if (!hih61xx.isSampling())
       hih61xx.start();
-
+#endif
+    
     // AS3935 does not need starting here. It is kept powered.
     
     if (!houseKeeping.isSampling())
@@ -1523,10 +1545,14 @@ void loop(void)
 
   if (flc100Present)
     flc100.process();
+#ifdef FEATURE_MLX90614
   if (mlx90614Present)
     mlx90614.process();
+#endif
+#ifdef FEATURE_HIH61XX
   if (hih61xxPresent)
     hih61xx.process();
+#endif
 #ifdef FEATURE_AS3935
   if (as3935Present)
     as3935.process();
@@ -1549,8 +1575,12 @@ void loop(void)
 
   // console << F("I2C state: ") << (flc100.getI2CState()) << endl;
   if ((flc100Present == false || flc100.isFinished())
+#ifdef FEATURE_MLX90614
       && (mlx90614Present == false || mlx90614.isFinished())
+#endif
+#ifdef FEATURE_HIH61XX
       && (hih61xxPresent == false || hih61xx.isFinished())
+#endif
       && houseKeeping.isFinished()) {
     // Process SD card when normal sampling is not running; SD card
     // access can be slow and block.
@@ -1569,6 +1599,7 @@ void loop(void)
       if (houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
 
+#ifdef FEATURE_MLX90614
       if (mlx90614Present) {
 	console << F("MLX temp: ") << mlx90614.getAmbient()
 		<< F("\nObject 1: ") << mlx90614.getObject1();
@@ -1576,11 +1607,13 @@ void loop(void)
 	  console << F("\nObject 2: ") << mlx90614.getObject2();
 	console.println();
       }
-
+#endif
+      
+#ifdef FEATURE_HIH61XX
       if (hih61xxPresent) 
 	console << F("Humidity: ") << hih61xx.getRelHumidity()
 		<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
-     
+#endif
       if (flc100Present)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
 	  if (flc100.getAdcPresent(i)) 
@@ -1622,7 +1655,7 @@ void loop(void)
       }
 	    
       
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
       if (useSd) {
 	// Check if the SD card circular buffer should be written to disk
 	char newFilename[sdFilenameLen];
@@ -1723,6 +1756,7 @@ void loop(void)
 			    samplingInterval.getFraction() >>
 			    (CounterRTC::fractionsPerSecondLog2 - 4)));
 
+#ifdef FEATURE_MLX90614
       if (mlx90614Present) {
 	packet.putDataInt16(buffer, sizeof(buffer),
 			    AWPacket::tagCloudTempAmbient,
@@ -1735,7 +1769,9 @@ void loop(void)
 			       AWPacket::tagCloudTempObject2,
 			       mlx90614.getObject2());
       }
-
+#endif
+      
+#ifdef FEATURE_HIH61XX
       if (hih61xxPresent) {
 	packet.putDataInt16(buffer, sizeof(buffer),
 			    AWPacket::tagAmbientTemp,
@@ -1744,7 +1780,7 @@ void loop(void)
 			     AWPacket::tagRelHumidity,
 			     hih61xx.getRelHumidity());
       }
-      
+#endif
       if (firstMessage) {
 	// Cancelled when first response is received
 	packet.putDataUint8(buffer, sizeof(buffer),
@@ -1781,7 +1817,7 @@ void loop(void)
       // Add the signature
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
 
-#if USE_SD_CARD
+#ifdef FEATURE_SD_CARD
       // Log to a file (if desired)
       if (useSd)
 	sdCircularBuffer.write(buffer, AWPacket::getPacketLength(buffer));
