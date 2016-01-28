@@ -64,14 +64,13 @@ bool WIZnet_UDP::reset(void)
 }
 
 
-bool WIZnet_UDP::begin(uint8_t *macAddress __attribute__ ((unused)),
-		      IPAddress localIP_, uint16_t localPort_, 
-		      IPAddress remoteIP_, uint16_t remotePort_,
-		      uint8_t ssPin_, uint8_t sdSsPin_)
+bool WIZnet_UDP::begin(uint16_t localPort_,
+		       IPAddress remoteIP_, uint16_t remotePort_,
+		       uint8_t ssPin_, uint8_t sdSsPin_)
 {
   ssPin = ssPin_;
   sdSsPin = sdSsPin_;
-  localIP = localIP_;
+
   localPort = localPort_;
   remoteIP = remoteIP_;
   remotePort = remotePort_;

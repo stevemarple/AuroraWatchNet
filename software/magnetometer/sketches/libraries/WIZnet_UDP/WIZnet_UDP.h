@@ -19,9 +19,7 @@ class WIZnet_UDP : public CommsInterface
 {
 public:
   WIZnet_UDP(void);
-  bool begin(uint8_t *macAddress,
-	     IPAddress localIP, uint16_t localPort_,
-	     IPAddress remoteIP_, uint16_t remotePort_,
+  bool begin(uint16_t localPort_, IPAddress remoteIP_, uint16_t remotePort_,
 	     uint8_t ssPin, uint8_t sdSsPin = 255);
 
   inline const IPAddress& getRemoteIP(void) const;
@@ -50,7 +48,6 @@ private:
   EthernetUDP udp;
   uint16_t localPort;
   uint16_t remotePort;
-  IPAddress localIP;
   IPAddress remoteIP;
 };
 

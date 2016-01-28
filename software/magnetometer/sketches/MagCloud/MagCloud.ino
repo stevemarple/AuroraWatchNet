@@ -898,8 +898,7 @@ void begin_WIZnet_UDP(void)
 
 
   
-  wiz_udp.begin(macAddress, Ethernet.localIP(), localPort,
-		remoteIP, remotePort, 10, 4);
+  wiz_udp.begin(localPort, remoteIP, remotePort, 10, 4);
 }
 
 #ifdef FEATURE_GNSS
