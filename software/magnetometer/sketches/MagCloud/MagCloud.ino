@@ -1783,7 +1783,9 @@ void loop(void)
 			      AWPacket::tagMagDataX + i,
 			      flc100.getMagResGain(i),
 			      flc100.getMagData()[i]);
-	    if (allSamples)
+	    // Put all samples only if requested, and only when no
+	    // messages are waiting for retransmission.
+	    if (allSamples && commsHandler.isBufferEmpty())
 	      packet.putDataArray(buffer, sizeof(buffer),
 				  AWPacket::tagMagDataAllX + i, 4,
 				  numSamples, flc100.getMagDataSamples(i));
@@ -1866,11 +1868,11 @@ void loop(void)
       packet.putGnssStatus(buffer, sizeof(buffer),
 			   gnssFixTime, gnssFixValid, navSystem,
 			   numSat, hdop);
-      if (gnssFixValid) {
+      if (gnssFixValid && commsHandler.isBufferEmpty())
 	packet.putDataArray(buffer, sizeof(buffer),
 			    AWPacket::tagGnssLocation, 4,
 			    (altitudeValid ? 3 : 2), gnssLocation);
-      }
+      
 #endif
       
       // Add the signature
@@ -1897,7 +1899,6 @@ void loop(void)
  
       console << F(" -----------\n");
 
-      console.println(F("Run jobs here"));
       // Set RTC only if necessary. It will slightly upset the timing
       // as it stops the hardware clock briefly.
       struct RTCx::tm tm;
