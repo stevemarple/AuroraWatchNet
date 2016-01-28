@@ -1577,7 +1577,7 @@ void loop(void)
     --gnssFixTime;
     
 #endif
-    console << F("Sampling started\n");
+    console << F("----\nSampling started\n");
   }
 
 #ifdef FEATURE_FLC100
@@ -1673,7 +1673,7 @@ void loop(void)
 	console << '\n';
       }
     }
-    console << F(" -----------\n");
+
   }
 #endif
       
@@ -1897,8 +1897,6 @@ void loop(void)
 	digitalWrite(ledPin, useLed);
       }
  
-      console << F(" -----------\n");
-
       // Set RTC only if necessary. It will slightly upset the timing
       // as it stops the hardware clock briefly.
       struct RTCx::tm tm;
