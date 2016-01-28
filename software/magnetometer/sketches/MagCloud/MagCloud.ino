@@ -1216,6 +1216,7 @@ void setup(void)
       as3935.setNoiseFloor(0);
       as3935.setSpikeRejection(0);
     }
+    attachInterrupt(2, as3935InterruptHandler, RISING);
   }
   console.print(as3935Str);
   if (!as3935Present)
