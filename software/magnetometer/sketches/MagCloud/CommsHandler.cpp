@@ -18,17 +18,12 @@ extern "C" {
 extern Stream& console;
 extern uint8_t verbosity;
 extern uint16_t commsBlockSize;
-extern uint16_t maxMessagesNoAck;
 
 static const char* strNoError = "no error";
 static const char* strBufferTooSmall = "buffer too small";
 static const char* strResponseTimeout = "reponse timeout";
 
 
-static uint8_t messagesWithoutAck = 0;
-
-
-//static const char* strNotReady = "not ready";
 const char* CommsHandler::errorMessages[4] = {
   strNoError,
   strBufferTooSmall,
@@ -130,16 +125,6 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
       console.println(strResponseTimeout);
       errno = errorResponseTimeout;
 
-      ++ messagesWithoutAck;
-      if (maxMessagesNoAck && messagesWithoutAck >= maxMessagesNoAck) {
-	console.println(F("Reboot due to timeout")); // DEBUG
-	delay(1000);
-	xboot_reset();
-	//wdt_enable(WDTO_1S);
-	//while (1)
-	//  ;
-      }
-      
       // Put message back into queue if retries not exceeded
       AWPacket failedPacket(messageBuffer, messageLen);
       if (failedPacket.getRetries() < maxRetries) {

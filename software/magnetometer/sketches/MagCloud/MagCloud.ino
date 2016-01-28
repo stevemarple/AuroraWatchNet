@@ -126,8 +126,11 @@
 
 #ifdef FEATURE_MEM_USAGE
 #include <MemoryFree.h>
-bool freeMemShown = false; // Show once per sampling interval
 #endif 
+
+
+#define STRINGIFY(a) STRINGIFY2(a)
+#define STRINGIFY2(a) #a
 
 #define FIRMWARE_VERSION "MagCloud-0.26a"
 //                        1234567890123456
@@ -170,7 +173,7 @@ uint8_t verbosity = FEATURE_VERBOSITY;
 uint8_t verbosity = 0;
 #endif
 
-uint8_t maxMessagesNoAck = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_NO_ACK); 
+uint16_t maxTimeNoAck = eeprom_read_word((const uint16_t*)EEPROM_MAX_TIME_NO_ACK);
 
 #ifdef FEATURE_FLC100
 FLC100 flc100;
@@ -220,6 +223,8 @@ uint16_t commsBlockSize = 0;
 const uint16_t commsStackBufferLen = 8192;
 uint8_t commsStackBuffer[commsStackBufferLen];
 CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
+
+CounterRTC::Time lastAcknowledgement;
 
 const uint16_t responseBufferLen = 400;
 uint8_t responseBuffer[responseBufferLen];
@@ -287,10 +292,6 @@ File sdFile;
 
 volatile bool startSampling = true;
 volatile bool callbackWasLate = true;
-
-// Flag limiting calls Ethernet.maintain() to one per sampling
-// interval.
-bool maintainDhcpLease = false;
 
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
@@ -462,8 +463,9 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
   // Cancel previous request for EEPROM contents
   eepromContentsLength = 0;
   
-  // DEBUG: message received, turn off LED
+  // Message received, turn off LED
   digitalWrite(ledPin, LOW);
+  
   AWPacket::parsePacket(responseBuffer, responseBufferLen,
 			&console,
 			processResponseTags, AWPacket::printUnknownTag);
@@ -472,6 +474,11 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
     console << F("====\n");
   }
+
+  // Update the time of the last acknowledgement. Do this after
+  // processing the tags since the system clock may have been updated
+  // from the server.
+  cRTC.getTime(lastAcknowledgement);
 }
 
 
@@ -824,7 +831,7 @@ void begin_WIZnet_UDP(void)
     if (Ethernet.begin(macAddress) == 0) {
       console << F("DHCP failed, rebooting...\n");
       console.flush();
-      wdt_enable(WDTO_8S);
+      wdt_enable(WDTO_1S);
       while (1)
 	;
     }
@@ -864,20 +871,22 @@ void begin_WIZnet_UDP(void)
 
   if (uint32_t(remoteIP) == 0) {
     // Cannot resolve (or undefined) remote host and no fallback
-    // IP. Try broadcasting on local subnet in hope of finding the
+    // IP. Try broadcasting on local subnet in the hope of finding a
     // server.
     IPAddress broadcastIP(uint32_t(Ethernet.localIP()) |
 			  ~uint32_t(Ethernet.subnetMask()));  
     remoteIP = broadcastIP;
 
-    // Override the EEPROM setting of maxMessagesNoAck to
-    // force a reboot after a few failed communication tries. If the
-    // problem is due to a misconfiguration this approach may give
-    // some opportunity for remote recovery; if the failure is just
-    // due to DNS problems then it should recover when DNS returns.
-    maxMessagesNoAck = 5;
-    console << F("No remote host, making ") << maxMessagesNoAck
-	    << F(" attempts to communicate to ") << broadcastIP << endl;
+    // Override the value of maxTimeNoAck to force a reboot to occur
+    // soon. If the problem is due to a misconfiguration this approach
+    // may give some opportunity for remote recovery; if the failure
+    // is just due to DNS problems then it should recover when DNS
+    // returns.
+#define REMOTE_HOST_RECOVERY_PERIOD 120
+    maxTimeNoAck = REMOTE_HOST_RECOVERY_PERIOD;
+    console << F("No remote host, trying for "
+		 STRINGIFY(REMOTE_HOST_RECOVERY_PERIOD)
+		 "s to communicate to ") << broadcastIP << endl;
   }
 
   console << F("Active settings:\n");
@@ -889,8 +898,8 @@ void begin_WIZnet_UDP(void)
 
 
   
-  wiz_udp.begin(macAddress, localIP, localPort, remoteIP, remotePort,
-		 10, 4);
+  wiz_udp.begin(macAddress, Ethernet.localIP(), localPort,
+		remoteIP, remotePort, 10, 4);
 }
 
 #ifdef FEATURE_GNSS
@@ -918,6 +927,39 @@ void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
   // for timing errors by millis() as the system clock frequency may
   // not be accurate.
   ppsTimeout.start(1200, AsyncDelay::MILLIS);
+}
+#endif
+
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
+void maintainDhcpLease(void)
+{
+  if (radioType == EEPROM_COMMS_TYPE_XRF)
+    return;
+  uint8_t m = Ethernet.maintain();
+  console << F("DHCP lease ");
+  switch (m) {
+  case DHCP_CHECK_NONE:
+    console.println(F("ok"));
+    break;
+  case DHCP_CHECK_RENEW_FAIL:
+  case DHCP_CHECK_REBIND_FAIL:
+    console.println(F("failed, rebooting"));
+    console.flush();
+    // Reboot
+    wdt_enable(WDTO_1S);
+    while (1)
+      ;
+    break;
+  case DHCP_CHECK_RENEW_OK:
+    console.println(F("renewed"));
+    break;
+  case DHCP_CHECK_REBIND_OK:
+    console.println(F("rebind"));
+    break;
+  default:
+    console << F("maintain returned ") << _DEC(m) << endl;
+  }
+
 }
 #endif
 
@@ -1401,6 +1443,7 @@ void setup(void)
     CounterRTC::Time t;
     t.setSeconds(RTCx::mktime(tm));
     cRTC.setTime(t);
+    lastAcknowledgement = t;
     console << F("Set system clock from hardware RTC\n");
   }
   else
@@ -1536,13 +1579,6 @@ void loop(void)
     
 #endif
     console << F("Sampling started\n");
-
-    maintainDhcpLease = true; // Only do this once per sampling interval    
-
-#ifdef FEATURE_MEM_USAGE
-  freeMemShown = false; // Show once per sampling interval
-#endif
-
   }
 
 #ifdef FEATURE_FLC100
@@ -1847,11 +1883,11 @@ void loop(void)
 	sdCircularBuffer.write(buffer, AWPacket::getPacketLength(buffer));
 #endif
       
-      // Send by radio
+      // Send the message
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       ++messageCount;
       
-      // DEBUG: message queued, turn on LED
+      // Message queued, turn on LED
       if (useLed) {
 	uint8_t maxMessages
 	  = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
@@ -1861,6 +1897,43 @@ void loop(void)
       }
  
       console << F(" -----------\n");
+
+      console.println(F("Run jobs here"));
+      // Set RTC only if necessary. It will slightly upset the timing
+      // as it stops the hardware clock briefly.
+      struct RTCx::tm tm;
+      rtc.readClock(tm);
+      RTCx::time_t hwcTime = RTCx::mktime(tm);
+      CounterRTC::Time now;
+      cRTC.getTime(now);
+      if (labs(hwcTime-now.getSeconds()) > 2*maxTimeError.getSeconds()+1) {
+	RTCx::time_t t = now.getSeconds();
+	RTCx::gmtime_r(&t, &tm);
+	rtc.setClock(tm);
+	console.println(F("Set HW clock"));
+      }
+
+      // Check how long since last acknowledgement was received
+      int32_t ackAge = now.getSeconds() - lastAcknowledgement.getSeconds(); 
+      if (ackAge > maxTimeNoAck) {
+	console << F("Gone ") << maxTimeNoAck;
+	console.println(F("s without mesg ack, rebooting\n"));
+	console.flush();
+	wdt_enable(WDTO_8S);
+	while (1)
+	  ;
+      }
+      else if (ackAge < 0)
+	// Guard against large time jumps
+	lastAcknowledgement = now;
+
+      
+      maintainDhcpLease();
+
+#ifdef FEATURE_MEM_USAGE
+      console << F("Free mem: ") << freeMemory() << endl;
+#endif
+
     }
     
     if (startSampling == false &&
@@ -1893,7 +1966,7 @@ void loop(void)
 				upgradeFirmwareVersion,
 				upgradeFirmwareGetBlockNumber);
       
-       // Add the signature and send by radio
+      // Add the signature and send by radio
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
@@ -1909,62 +1982,10 @@ void loop(void)
       
     }
     
-    
     // Test if can go to sleep
-    // if (!radio.available() && radioResponseTimeout.isExpired() &&
-    // startSampling == false) {
     if (startSampling == false &&
 	commsHandler.isFinished() &&
 	commsHandler.getCommsInterface()->powerOff()) {
-      
-      struct RTCx::tm tm;
-      rtc.readClock(tm);
-      RTCx::time_t hwcTime = RTCx::mktime(tm);
-      CounterRTC::Time now;
-      cRTC.getTime(now);
-      // Setting the RTC is likely to slightly upset the timing as it
-      // stops the hardware clock briefly. Only set if necessary.
-      if (labs(hwcTime-now.getSeconds()) > 2*maxTimeError.getSeconds()+1) {
-      	RTCx::time_t t = now.getSeconds();
-      	RTCx::gmtime_r(&t, &tm);
-      	rtc.setClock(tm);
-	console << F("Set HW clock\n");
-      }
-
-      if (radioType == EEPROM_COMMS_TYPE_W5100_UDP && maintainDhcpLease) {
-	maintainDhcpLease = false;
-	uint8_t m = Ethernet.maintain();
-	console << F("DHCP: ");
-	switch (m) {
-	case DHCP_CHECK_NONE:
-	  console << F("lease ok\n");
-	  break;
-	case DHCP_CHECK_RENEW_FAIL:
-	case DHCP_CHECK_REBIND_FAIL:
-	  console << F("lease failed, rebooting\n");
-	  console.flush();
-	  // Reboot
-	  wdt_enable(WDTO_8S);
-	  while (1)
-	    ;
-	  break;
-	case DHCP_CHECK_RENEW_OK:
-	  console << F("lease renewed\n");
-	  break;
-	case DHCP_CHECK_REBIND_OK:
-	  console << F("lease rebind\n");
-	  break;
-	default:
-	  console << F("maintain returned ") << _DEC(m) << endl;
-	}
-      }
-
-#ifdef FEATURE_MEM_USAGE
-      if (!freeMemShown) {
-	console << F("Free mem: ") << freeMemory() << endl;
-	freeMemShown = true;
-      }
-#endif
       
       if (enableSleep && samplingInterval >= minSleepInterval) {
 	console << F("SLEEP!\n");
