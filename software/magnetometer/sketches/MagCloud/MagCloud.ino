@@ -472,20 +472,6 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
     AWPacket::printPacket(responseBuffer, responseBufferLen, console);
     console << F("====\n");
   }
-
-#ifdef FEATURE_FLC100
-  if (verbosity == 11 && flc100Present) {
-    for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
-      if (flc100.getAdcPresent(i)) {
-	console << char('X' + i) << ':';
-	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
-	  console << ' ' << flc100.getMagDataSamples(i, j);
-	console << '\n';
-      }
-    }
-    console << F(" -----------\n");
-  }
-#endif
 }
 
 
@@ -1643,6 +1629,17 @@ void loop(void)
 	  if (flc100.getAdcPresent(i)) 
 	    console << F("magData[") << i << F("]: ")
 		    << (flc100.getMagData()[i]) << endl;
+  if (verbosity == 11 && flc100Present) {
+    for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
+      if (flc100.getAdcPresent(i)) {
+	console << char('X' + i) << ':';
+	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
+	  console << ' ' << flc100.getMagDataSamples(i, j);
+	console << '\n';
+      }
+    }
+    console << F(" -----------\n");
+  }
 #endif
       
 #ifdef FEATURE_GNSS
