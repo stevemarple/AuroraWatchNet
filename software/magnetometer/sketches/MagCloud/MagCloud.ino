@@ -165,7 +165,9 @@ const uint8_t xrfOnPin = 23;
 const uint8_t xrfResetPin = 5;
 #endif
 
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
 WIZnet_UDP wiz_udp;
+#endif
 
 #ifdef FEATURE_VERBOSITY
 uint8_t verbosity = FEATURE_VERBOSITY;
@@ -731,6 +733,7 @@ void as3935TimestampCB(void)
 #endif
 
 
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
 bool dnsLookup(IPAddress dnsServer, const char *hostname,
 	       IPAddress &result)
 {
@@ -900,6 +903,8 @@ void begin_WIZnet_UDP(void)
   
   wiz_udp.begin(localPort, remoteIP, remotePort, 10, 4);
 }
+#endif
+
 
 #ifdef FEATURE_GNSS
 void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
@@ -1469,6 +1474,7 @@ void setup(void)
   console.flush();
 
   // Configure radio module or Ethernet adaptor.
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
     begin_WIZnet_UDP();
     
@@ -1476,8 +1482,9 @@ void setup(void)
     ledPin = 17; // JTAG TDO
     commsHandler.setCommsInterface(&wiz_udp);
     useLed = true;
-    
   }
+#endif
+  
 #ifdef COMMS_XRF
   if (radioType == EEPROM_COMMS_TYPE_XRF) {
     commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
@@ -1925,9 +1932,10 @@ void loop(void)
 	// Guard against large time jumps
 	lastAcknowledgement = now;
 
-      
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
       maintainDhcpLease();
-
+#endif
+      
 #ifdef FEATURE_MEM_USAGE
       console << F("Free mem: ") << freeMemory() << endl;
 #endif
