@@ -34,7 +34,6 @@ public:
   
   inline bool isFinished(void) const;
   inline bool isWaitingForMessages(void) const;
-  // inline bool isXrfPowered(void) const;
   inline error_t getError(void) const;
 
   inline uint16_t getBytesSent(void) const;
@@ -58,12 +57,6 @@ private:
   // static const int resetDelay_us = 250;
   static const int responseTimeout_ms = 2000;
   
-  uint8_t xrfSleepPin;
-  uint8_t xrfOnPin;
-  uint8_t xrfResetPin;
-  bool xrfPoweringUp;
-  bool xrfResetting;
-
   error_t errno;
   uint8_t messageBuffer[messageBufferLen];
   uint16_t messageLen;
@@ -82,8 +75,6 @@ private:
 
 
 CommsHandler::CommsHandler(void* stackBuffer, uint16_t stackBufferLen) :
-  xrfPoweringUp(false),
-  xrfResetting(false),
   messageLen(0),
   state(stateWaitingForMessages),
   commsPtr(NULL),
@@ -108,11 +99,6 @@ bool CommsHandler::isWaitingForMessages(void) const
 {
   return (stack.isEmpty() && state == stateWaitingForMessages);
 }
-
-// bool CommsHandler::isXrfPowered(void) const
-// {
-//   return xrfPoweringUp;
-// }
 
 CommsHandler::error_t CommsHandler::getError(void) const
 {

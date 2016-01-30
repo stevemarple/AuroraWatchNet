@@ -74,7 +74,6 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 
 	if (commsBlockSize) {
 	  // Append null characters to fill a complete block
-	  // const uint8_t xrfBlockSize = 12;
 	  uint8_t remainder = messageLen % commsBlockSize;
 	  if (remainder) {
 	    uint16_t newLen = messageLen + (commsBlockSize - remainder);
