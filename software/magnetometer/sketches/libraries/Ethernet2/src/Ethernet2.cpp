@@ -20,8 +20,9 @@ uint16_t EthernetClass::_server_port[MAX_SOCK_NUM] = { 0, };
 #if defined(WIZ550io_WITH_MACADDRESS)
 int EthernetClass::begin(void)
 {
+  static DhcpClass s_dhcp;
   byte mac_address[6] ={0,};
-  _dhcp = new DhcpClass();
+  _dhcp = &s_dhcp;
 
   // Initialise the basic info
   w5500.init();
@@ -78,7 +79,8 @@ void EthernetClass::begin(IPAddress local_ip, IPAddress dns_server, IPAddress ga
 #else
 int EthernetClass::begin(uint8_t *mac_address)
 {
-  _dhcp = new DhcpClass();
+  static DhcpClass s_dhcp;
+  _dhcp = &s_dhcp;
   // Initialise the basic info
   w5500.init();
   w5500.setMACAddress(mac_address);
