@@ -246,7 +246,6 @@ CounterRTC::Time samplingInterval(30, 0);
 CounterRTC::Time minSamplingInterval(5, 0);
 CounterRTC::Time maxSamplingInterval(600, 0);
 
-bool samplingIntervalChanged = true;
 bool enableSleep = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
   255, 255, 255, 255, 255, 255, 255, 255, 
@@ -455,13 +454,16 @@ void doSleep(uint8_t mode)
 
 void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 {
-  // Cancel any previous time adjustment. (If there was one the
-  // server is aware since we have received a response packet.)
+  // Cancel sending firmware version, boot flags etc
+  firstMessage = false;
+
+  // Cancel any previous time adjustment. If there was one the server
+  // is aware since we have received a response packet.
   timeAdjustment = CounterRTC::Time(0, 0);
 
   // Cancel sending firmware version
   sendFirmwareVersion = false;
-  
+
   // Cancel previous request for EEPROM contents
   eepromContentsLength = 0;
   
@@ -540,7 +542,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	samplingInterval = minSamplingInterval;
       else if (samplingInterval > maxSamplingInterval)
 	samplingInterval = maxSamplingInterval;
-      samplingIntervalChanged = true;
+      
       (*s) << F("SAMPLING INTERVAL CHANGED! ")
 	   << samplingInterval.getSeconds() << sep 
 	   << samplingInterval.getFraction() << endl;
@@ -710,8 +712,6 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
     break;
     
   } // end of switch
-
-  firstMessage = false;
 
   return false;
 }

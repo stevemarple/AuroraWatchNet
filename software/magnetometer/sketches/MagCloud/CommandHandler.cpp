@@ -17,7 +17,6 @@ extern uint8_t sdSelect;
 extern CounterRTC::Time samplingInterval;
 extern const CounterRTC::Time minSamplingInterval;
 extern const CounterRTC::Time maxSamplingInterval;
-extern bool samplingIntervalChanged;
 extern uint8_t verbosity;
 
 #if USE_SD_CARD
@@ -147,10 +146,9 @@ void CommandHandler::process(Stream &console)
 	      CounterRTC::Time((s & 0xFFF0) >> 4,
 			       (s & 0x000F) <<
 			       (CounterRTC::fractionsPerSecondLog2 - 4));
-	    if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval) {
+	    if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval) 
 	      samplingInterval = tmp;
-	      samplingIntervalChanged = true;
-	    }
+	    
 	  }
 	}
 	console << "samplingInterval_16th_s:"
