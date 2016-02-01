@@ -231,8 +231,11 @@ CounterRTC::Time lastAcknowledgement;
 const uint16_t responseBufferLen = 400;
 uint8_t responseBuffer[responseBufferLen];
 
-// Maximum allowable time error
-const CounterRTC::Time maxTimeError(1, 0);
+// Maximum allowable time error for the system clock (cRTC)
+const CounterRTC::Time maxSystemTimeError(1, 0);
+
+// Hardware clock can only be set to nearest second
+const RTCx::time_t maxHardwareClockTimeError = 2;
 
 // Most recent time adjustment. Sent on all outgoing packets until a
 // message acknowledgement is received, at which point it is set to
@@ -512,7 +515,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       CounterRTC::Time serverTime(secs, frac);
       
       CounterRTC::Time timeError = ourTime - serverTime;
-      if (abs_(timeError) > maxTimeError) {
+      if (abs_(timeError) > maxSystemTimeError) {
       	cRTC.setTime(serverTime);
       	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
@@ -1911,7 +1914,7 @@ void loop(void)
       RTCx::time_t hwcTime = RTCx::mktime(tm);
       CounterRTC::Time now;
       cRTC.getTime(now);
-      if (labs(hwcTime-now.getSeconds()) > 2*maxTimeError.getSeconds()+1) {
+      if (labs(hwcTime - now.getSeconds()) > maxHardwareClockTimeError) {
 	RTCx::time_t t = now.getSeconds();
 	RTCx::gmtime_r(&t, &tm);
 	rtc.setClock(tm);
