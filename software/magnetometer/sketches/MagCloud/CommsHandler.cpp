@@ -181,10 +181,12 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 	}
 	else {
 	  // Need another response
-	  console.println(F("######################"));
+	  __FlashStringHelper* hashes =
+	    (__FlashStringHelper*)PSTR("######################");
+	  console.println(hashes);
 	  console.println(F("Packet valid but incorrect response"));
 	  AWPacket::printPacket(responseBuffer, responseLen, console);
-	  console.println(F("######################"));
+	  console.println(hashes);
 	  
 	  responseLen = 0;
 	  responsePacketLen = 65535; // Use maximum value until we know
