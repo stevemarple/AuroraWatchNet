@@ -812,7 +812,8 @@ elif daemon_connection == 'ethernet':
     device_socket.bind((local_ip, local_port))
     device_socket.setblocking(False)
     control_socket = open_control_socket()
-
+    comms_block_size = 0
+    
     write_to_log_file(daemon_start_time, iso_timestamp(daemon_start_time) \
                           + ' D Daemon started\n')
 
@@ -1037,11 +1038,14 @@ while running:
                     
 
                     # Add padding to round up to a multiple of block size
-                    padding_length = (comms_block_size - 
-                                     ((awn.message.get_packet_length(response) +
-                                       awn.message.signature_block_length) %
-                                      comms_block_size))
-                    awn.message.put_padding(response, padding_length)
+                    if comms_block_size:
+                        padding_length = \
+                            (comms_block_size - 
+                             ((awn.message.get_packet_length(response) +
+                               awn.message.signature_block_length) %
+                              comms_block_size))
+                        awn.message.put_padding(response, padding_length)
+                    
                     awn.message.put_signature(response, hmac_key, 
                                              awn.message.get_retries(message), 
                                              awn.message.get_sequence_id(message))
