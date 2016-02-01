@@ -38,7 +38,7 @@ BUILD_DIR = /tmp/build-$(SKETCH_NAME).$(PPID)/$(SKETCH_NAME)-$(SPEED)-$(HW_IDENT
 SPEED = 8MHz_RC
 WARN_PERCENTAGE = 45
 FIRMWARE_DIR = $(SKETCH_DIR)/firmware/ATmega1284P/$(SPEED)/$(HW_IDENT)
-FIRMWARE_NAME = MagCloud-0.27a
+FIRMWARE_NAME := $(shell awk '(match($$0, /^\#define\s+FIRMWARE_VERSION\s+"(.*)"/,a)){print a[1]}' MagCloud.ino)
 COPY = cp
 MKDIR = mkdir
 
@@ -69,6 +69,8 @@ compile : dump-prefs
 	$(MKDIR) -p $(FIRMWARE_DIR)
 	$(COPY) $(BUILD_DIR)/$(SKETCH_NAME).ino.hex $(FIRMWARE_DIR)/$(FIRMWARE_NAME).hex
 	$(COPY) $(BUILD_DIR)/$(SKETCH_NAME).ino.with_bootloader.hex $(FIRMWARE_DIR)/$(FIRMWARE_NAME).with_bootloader.hex
+	$(COPY) $(BUILD_DIR)/$(SKETCH_NAME).ino.elf $(FIRMWARE_DIR)/$(FIRMWARE_NAME).elf
+	./mkfwimage.py -e $(FIRMWARE_DIR)/$(FIRMWARE_NAME).elf -f $(FIRMWARE_NAME)
 	-echo Firmware copied to $(FIRMWARE_DIR)
 
 all :
