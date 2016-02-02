@@ -9,6 +9,10 @@
 #include "Arduino.h"
 #include "utility/util.h"
 
+#ifdef ETHERNET2_USE_WDT
+#include <avr/wdt.h>
+#endif
+
 int DhcpClass::beginWithDHCP(uint8_t *mac, unsigned long timeout, unsigned long responseTimeout)
 {
     _dhcpLeaseTime=0;
@@ -269,6 +273,9 @@ uint8_t DhcpClass::parseDHCPResponse(unsigned long responseTimeout, uint32_t& tr
             
 			return 255;
         }
+#ifdef ETHERNET2_USE_WDT
+	wdt_reset();
+#endif
         delay(50);
     }
 	
