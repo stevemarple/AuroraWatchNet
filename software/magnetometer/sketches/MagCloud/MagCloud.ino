@@ -737,12 +737,22 @@ void as3935TimestampCB(void)
 
 
 #if defined(COMMS_W5100) || defined(COMMS_W5500)
-bool dnsLookup(IPAddress dnsServer, const char *hostname,
+int dnsLookup(IPAddress dnsServer, const char *hostname,
 	       IPAddress &result)
 {
   DNSClient dns;
+#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+    // Temporarily disable watchdog timer because slow DNS responses
+    // can force an endless reboot cycle.
+    wdt_disable();
+#endif
+
   dns.begin(dnsServer);
-  return dns.getHostByName(hostname, result);
+  int r = dns.getHostByName(hostname, result);
+#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+  wdt_enable(WDTO_8S);
+#endif
+  return r;
 }
 
 void printEthernetSettings(Stream &s,
@@ -834,6 +844,11 @@ void begin_WIZnet_UDP(void)
   else {
     // Use DHCP to obtain dynamic IP
     console << F("Requesting IP\n");
+#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+    // Temporarily disable watchdog timer because slow DHCP requests
+    // can force an endless reboot cycle.
+    wdt_disable();
+#endif
     if (Ethernet.begin(macAddress) == 0) {
       console << F("DHCP failed, rebooting...\n");
       console.flush();
@@ -841,6 +856,8 @@ void begin_WIZnet_UDP(void)
       while (1)
 	;
     }
+    wdt_enable(WDTO_8S);
+    
     dns[0] = Ethernet.dnsServerIP(); // Primary IP from DHCP
     // Disable sleeping. It prevents millis() from working correctly
     // which breaks the DHCP lease maintenance.
@@ -855,9 +872,8 @@ void begin_WIZnet_UDP(void)
     for (uint8_t t = 0; t < 3; ++t) 
       for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n) {
 	wdt_reset();
-	// Attempt lookup only if DNS server IP non-zero. Ethernet
-	// library can claim to have resolved host (retunrs 1) when it
-	// hasn't. Check the IP address is non-zero.
+	// Attempt lookup only if DNS server IP non-zero. Check also
+	// the IP address is non-zero.
 	if (uint32_t(dns[n]) &&
 	    (dnsLookup(dns[n], remoteHostname, ip) == 1 && ip)) {
 	  found = true;
@@ -1063,6 +1079,9 @@ void setup(void)
 #endif
 #ifdef COMMS_W5500
 	       " W5500"
+#ifdef ETHERNET2_USE_WDT
+	       "(wdt_reset)"
+#endif
 #endif
 	       "\n"
 	       "Features:"
