@@ -11,6 +11,9 @@
 //#include <stdlib.h>
 #include "Arduino.h"
 
+#ifdef ETHERNET2_USE_WDT
+#include <avr/wdt.h>
+#endif
 
 #define SOCKET_NONE	255
 // Various flags and header field values for a DNS message
@@ -259,6 +262,10 @@ uint16_t DNSClient::ProcessResponse(uint16_t aTimeout, IPAddress& aAddress)
     // Wait for a response packet
     while(iUdp.parsePacket() <= 0)
     {
+#ifdef ETHERNET2_USE_WDT
+      wdt_reset();
+#endif
+
         if((millis() - startTime) > aTimeout)
             return TIMED_OUT;
         delay(50);
