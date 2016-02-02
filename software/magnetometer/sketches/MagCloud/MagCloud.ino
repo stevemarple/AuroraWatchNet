@@ -1319,7 +1319,6 @@ void setup(void)
   if (radioType == 0xFF) {
     // Not set so default to XRF as used in original version
     radioType = EEPROM_COMMS_TYPE_XRF;
-    xrfSerial.begin(9600);
   }
 #endif
 
@@ -1509,6 +1508,8 @@ void setup(void)
   
 #ifdef COMMS_XRF
   if (radioType == EEPROM_COMMS_TYPE_XRF) {
+    console.println("Initialising XRF");
+    xrfSerial.begin(9600);
     commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
     xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
     commsHandler.setCommsInterface(&xrf);
@@ -1664,11 +1665,12 @@ void loop(void)
       
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
 	      << sep << sampleStartTime.getFraction()
-	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature()
+	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
 #ifdef FEATURE_FLC100
-	      << F("\nFLC100 temp.: ") << flc100.getSensorTemperature()
+      if (flc100Present)
+	console << F("\nFLC100 temp.: ") << flc100.getSensorTemperature();
 #endif
-	      << endl;
+      console.println();
       if (houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
 
