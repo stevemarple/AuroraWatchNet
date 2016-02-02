@@ -1,8 +1,11 @@
 #ifndef CUSTOM_INCLUDE_H
 #define CUSTOM_INCLUDE_H
 
-// This file is used when compiling from the IDE to define
-// communication hardware support. It is not used by the Makefile.
+// This example file is used when compiling from the IDE to define
+// which communication and other hardware to support. It is not used
+// by the Makefile.
+
+// Select the communication hardware (one or more)
 //#define COMMS_XRF
 //#define COMMS_W5100
 #define COMMS_W5500
