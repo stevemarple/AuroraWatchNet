@@ -7,6 +7,8 @@
 #include <FLC100_shield.h>
 
 
+#define BATTERY_ADC 7
+
 // List of possible addresses for the ADC; 0x68 and 0x6F omitted since
 // they clash with the address used by the DS1307 and similar
 // real-time clocks and the MCP7941x.
@@ -87,8 +89,13 @@ void loop(void)
     char c = Serial.read();
     if ((c == '\r' || c == '\n')) {
       buffer[bufPos] = '\0';
-      if (bufPos <= bufLen) {
-	if (strcmp_P(buffer, PSTR("adcpower")) == 0) { 
+      if (bufPos <= bufLen && strlen(buffer) > 0) {
+	if (buffer[0] == '#') {
+	  // Send to XRF
+	  Serial1.print(&buffer[1]);
+	  Serial1.print("\r");
+	}
+	else if (strcmp_P(buffer, PSTR("adcpower")) == 0) { 
 	  adcPowerState = !adcPowerState;
 	  digitalWrite(FLC100_POWER, adcPowerState);
 	}
@@ -115,7 +122,7 @@ void loop(void)
 	else if (strcmp_P(buffer, PSTR("+++")) == 0) {
 	  Serial1.print("+++");
 	}
-	else if (strncmp_P(buffer, PSTR("AT"), 2) == 0) {
+	else if (strncasecmp_P(buffer, PSTR("AT"), 2) == 0) {
 	  Serial1.print(buffer);
 	  Serial1.print("\r");
 	}
