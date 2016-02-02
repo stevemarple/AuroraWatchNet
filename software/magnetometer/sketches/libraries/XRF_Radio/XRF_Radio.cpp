@@ -113,7 +113,7 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
 	break;
       if (timeout.isExpired()) {
 	found = false;
-	console.println("Timeout waiting for XRF to reset");
+	console.println(F("Timeout waiting for XRF to reset"));
 	break;
       }
     }
@@ -130,7 +130,7 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
 	break;
       if (timeout.isExpired()) {
 	found = false;
-	console.println("Timeout waiting for XRF to power on\n");
+	console.println(F("Timeout waiting for XRF to power on"));
 	break;
       }
     }
@@ -143,19 +143,19 @@ bool XRF_Radio::begin(uint8_t xrfSleepPin, uint8_t xrfOnPin, uint8_t xrfResetPin
     stream.read();
   
   delay(1050);
-  stream.print("+++");
+  stream.print(F("+++"));
   //stream.flush();
   delay(1050);
-  stream << "ATRE\r";
-  stream << "ATSM 2\r"; // Sleep mode
+  stream << F("ATRE\r"
+	      "ATSM 2\r"); // Sleep mode
   uint8_t channelNum
     = eeprom_read_byte((const uint8_t*)EEPROM_RADIO_XRF_CHANNEL);
   if (channelNum != 0xFF) {
-    stream << "ATCN " << int(channelNum) << '\r';
-    console << "Channel number: " << channelNum << endl;
+    stream << F("ATCN ") << int(channelNum) << '\r';
+    console << F("Channel number: ") << channelNum << endl;
   }
-  stream << "ATAC\r"    // Apply changes
-	<< "ATDN\r";   // Done
+  stream << F("ATAC\r"    // Apply changes
+	      "ATDN\r");   // Done
   delay(300);
   while (stream.available()) {
     stream.read();
