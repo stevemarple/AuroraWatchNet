@@ -132,7 +132,7 @@
 #define STRINGIFY(a) STRINGIFY2(a)
 #define STRINGIFY2(a) #a
 
-#define FIRMWARE_VERSION "MagCloud-0.28a"
+#define FIRMWARE_VERSION "MagCloud-0.28a1"
 //                        1234567890123456
 // Firmware version limited to 16 characters
 
@@ -517,8 +517,15 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       CounterRTC::Time serverTime(secs, frac);
       
       CounterRTC::Time timeError = ourTime - serverTime;
-      if (abs_(timeError) > maxSystemTimeError) {
+      CounterRTC::Time absTimeError = abs_(timeError);
+      
+      if (absTimeError > maxSystemTimeError) {
       	cRTC.setTime(serverTime);
+	if (absTimeError > samplingInterval)
+	  // Update alarm since it might be a long time in the future
+	  cRTC.setAlarm(0, serverTime + samplingInterval,
+			startSamplingCallback);
+	
       	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
       }
@@ -1548,10 +1555,16 @@ void loop(void)
       cRTC.getTime(ourTime);
       CounterRTC::Time gnssTime(gnss_t, 0);
       CounterRTC::Time timeError = ourTime - gnssTime;
-
-      if (abs_(timeError) > maxGnssTimeError) {
+      CounterRTC::Time absTimeError = abs_(timeError);
+      
+      if (absTimeError > maxGnssTimeError) {
 	// Update clock
 	cRTC.setTime(gnssTime);
+	if (absTimeError > samplingInterval)
+	  // Update alarm since it might be a long time in the future
+	  cRTC.setAlarm(0, gnssTime + samplingInterval,
+			startSamplingCallback);
+	
 	console << F("Time set from GNSS\n");
 	timeAdjustment = -timeError;
       }
