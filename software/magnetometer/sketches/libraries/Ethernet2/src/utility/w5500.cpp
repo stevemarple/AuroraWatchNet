@@ -45,6 +45,12 @@ void W5500Class::init(void)
   SPI.setClockDivider(SPI_CS, 2); // 42 Mhz, ok 
   SPI.setDataMode(SPI_CS, SPI_MODE0);
 #endif
+    // Perform software reset. Do not rely on hardware reset since
+    // watchdog or brownout may have caused a software reset of the
+    // MCU.
+    writeMR(0x80);
+    delay(10);
+  
     for (int i=0; i<MAX_SOCK_NUM; i++) {
         uint8_t cntl_byte = (0x0C + (i<<5));
         write( 0x1E, cntl_byte, 2); //0x1E - Sn_RXBUF_SIZE
