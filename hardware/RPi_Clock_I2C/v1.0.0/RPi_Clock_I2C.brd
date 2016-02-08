@@ -161,7 +161,7 @@ MAGS</text>
 <text x="20.32" y="29.21" size="1.016" layer="28" ratio="10" rot="MR0">3V3</text>
 <text x="28.575" y="25.4" size="1.27" layer="25" ratio="10" align="center-right">RTC:</text>
 <rectangle x1="24.13" y1="21.336" x2="35.56" y2="24.384" layer="121"/>
-<text x="34.29" y="36.83" size="1.27" layer="25" ratio="10">v1.0</text>
+<text x="33.02" y="36.83" size="1.27" layer="25" ratio="10">v1.0.0</text>
 <rectangle x1="1.27" y1="1.27" x2="8.128" y2="30.48" layer="121"/>
 <text x="7.62" y="13.97" size="1.016" layer="122" ratio="10" rot="MR270">Steve Marple
 AuroraWatch UK</text>

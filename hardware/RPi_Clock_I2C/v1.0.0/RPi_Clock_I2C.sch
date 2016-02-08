@@ -2471,7 +2471,7 @@ Basic 0.1" spaced jumper. Use with breakaway headers.</description>
 <text x="55.88" y="-53.34" size="2.54" layer="91">Real time clock</text>
 <text x="-137.16" y="-60.96" size="2.54" layer="91">3V3 regulator</text>
 <text x="158.242" y="-71.882" size="2.54" layer="94">Steve Marple</text>
-<text x="155.702" y="-61.722" size="2.54" layer="94">2.1a</text>
+<text x="155.702" y="-61.722" size="2.54" layer="94">1.0</text>
 <text x="101.6" y="43.18" size="1.778" layer="91">SHUTDOWN held low
 permanently for 
 always-on operation</text>
