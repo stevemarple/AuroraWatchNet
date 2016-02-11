@@ -162,3 +162,11 @@ def drop_root_privileges(username='nobody', group=None):
     # Set umask
     old_umask = os.umask(0o22)
 
+
+def safe_eval(s):
+    '''Like eval but prevent access to builtins and locals.
+
+    Certain safe builtins are permitted, including True and False.
+    This function cannot be guaranteed safe with untrusted input.'''
+    return eval(s, {'__builtins__': {'True': True,
+                                     'False': False}}, {})

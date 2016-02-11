@@ -120,7 +120,7 @@ for k in eeprom:
             data = s
         else:
             # Convert into numeric data
-            data = awn.eeprom.safe_eval(s)
+            data = awn.safe_eval(s)
 
         if pfmt[1] > 1 and pfmt[2] != 's':
             # Multiple values required
@@ -138,7 +138,7 @@ fh.close()
 print('Wrote ' + str(eeprom_size) + ' bytes to ' + eeprom_image_filename)
 
 # Print out and save key details
-hmac_key = awn.eeprom.safe_eval(args.hmac_key)
+hmac_key = awn.safe_eval(args.hmac_key)
 hex02x = lambda n : '%02x' % n
 hex0x02x = lambda n : '0x%02x' % n
 op_dict = {'key_pretty': ','.join(map(hex0x02x, hmac_key)),

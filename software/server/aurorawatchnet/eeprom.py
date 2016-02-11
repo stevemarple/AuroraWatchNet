@@ -21,17 +21,8 @@ def parse_unpack_format(fmt):
         m[2] = int(m[2])
     return m[1:4]
     
-
-def safe_eval(s):
-    '''Like eval but prevent access to builtins and locals.
-
-    Certain safe builtins are permitted, including True and False.'''
-    return eval(s, {'__builtins__': {'True': True,
-                                     'False': False}}, {})
-
-
 def safe_eval_mull_100(s):
-    return 100 * safe_eval(s)
+    return 100 * awn.safe_eval(s)
 
 
 def convert_ip_address(s):
@@ -109,7 +100,7 @@ eeprom = {
     'use_sd': {
         'address': 0x39,
         'format': '?',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'default': '0',
         'help': 'Log to (micro)SD card'
@@ -117,7 +108,7 @@ eeprom = {
     'comms_type': {
         'address': 0x3A,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1, 2, 255],
         'default': 0,
         'help': 'Comms type; 0=XRF, 1=RFM12B, 2=W5100 UDP'
@@ -173,7 +164,7 @@ eeprom = {
     'aggregate': {
         'address': 0x45,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'default': 1,
         'choices': [0, 1, 2],
         'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
@@ -181,7 +172,7 @@ eeprom = {
     'all_samples': {
         'address': 0x46,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'help': 'Send all data samples (not just aggregate)',
         },
@@ -268,7 +259,7 @@ eeprom = {
     'flc100_present': {
         'address': 0x5c,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'default': True,
         'help': 'Flag indicating if FLC100 sensor(s) fitted',
@@ -276,7 +267,7 @@ eeprom = {
     'mlx90614_present': {
         'address': 0x5d,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'default': False,
         'help': 'Flag indicating if MLX90614 IR temperature sensor fitted',
@@ -284,7 +275,7 @@ eeprom = {
     'hih61xx_present': {
         'address': 0x5e,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'default': False,
         'help': 'Flag indicating if HIH61xx humidity sensor fitted',
@@ -292,7 +283,7 @@ eeprom = {
     'as3935_present': {
         'address': 0x5f,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'choices': [0, 1],
         'default': False,
         'help': 'Flag indicating if AS3935 lightning sensor fitted',
@@ -314,21 +305,21 @@ eeprom = {
     'fan_pin': {
         'address': 0x64,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'default': 8,
         'help': 'Fan control pin',
     },
     'adc_ref_type': {
         'address': 0x65,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'default': 1,
         'help': 'ADC reference type; 0=Aref, 1=AVcc (default), 2=1V1, 3=2V56',
     },
     'adc_ref_voltage_mv': {
         'address': 0x66,
         'format': '<H',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'default': 3300,
         'help': 'ADC reference voltage (mV)',
     },
@@ -338,7 +329,7 @@ eeprom = {
     'heater_pin': {
         'address': 0x6f,
         'format': 'B',
-        'type': safe_eval,
+        'type': awn.safe_eval,
         'default': 18,
         'help': 'Heater control pin',
     },

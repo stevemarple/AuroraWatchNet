@@ -125,7 +125,7 @@ for k in aw_cmds:
             data = s
         else:
             # Convert into numeric data
-            data = eeprom.safe_eval(s)
+            data = awn.safe_eval(s)
 
         # Pack data into suitable bytearrays matching the EEPROM layout
         if pfmt[1] > 1 and pfmt[2] not in ('s', 'p'):
