@@ -35,13 +35,15 @@ import MCP342x
 
 logger = logging.getLogger(__name__)
 
+reload_config = False
+
 
 class RasPiMagD():
     def __init__(self, progname, device=None, filename=None,
                  pidfile_path=None, pidfile_timeout=None, 
-                 username='pi', group='pi', foreground=False):
+                 user='pi', group='pi', foreground=False):
         self.progname = progname
-        self.username = username
+        self.user = user
         self.group = group
         self.sampler = None
 
@@ -61,6 +63,8 @@ class RasPiMagD():
         
            
     def run(self, action, daemon_mode=True):
+        global reload_config
+        global config
         if (daemon_mode):
             logger.info('Daemon starting')
             # Set up signal handling
@@ -70,28 +74,48 @@ class RasPiMagD():
         signal.signal(signal.SIGUSR1, reload_config_handler)
         data_file = None
 
-        print('test')
-        if True:
-            try:
-                print('Starting sampling thread')
-                sampling_interval = 5
-                self.sampler = Sampler(action)
-                do_every(sampling_interval, self.sampler.sample)
-                while take_samples:
-                    time.sleep(3)
+        try:
+            print('Starting sampling thread')
+            self.sampler = Sampler(action)
 
-                # Wait until all other threads have (or should have)
-                # completed
-                for n in range(sampling_interval + 1):
-                    if threading.activeCount() == 1:
-                        break
-                    time.sleep(1)
-              
+            do_every(config.getfloat('daemon', 'sampling_interval'), 
+                     self.sampler.sample)
+            while take_samples:
+                if reload_config:
+                    logger.debug('Reading config file...')
+                    self.sampler.pause()
+                    cancel_sampling_threads()
+                    logger.debug('stopped all sampling threads')
+                    try:
+                        new_config = awn.read_config_file(args.config_file)
+                        config = new_config
+                        logger.info('Read ' + args.config_file)
+                    except Exception as e:
+                        logger.error('Could not reload config file ' +
+                                     args.config_file + ': ' +
+                                     str(e))
+                    finally:
+                        reload_config = False
+                        self.sampler.resume()
+                    logger.debug('restarting sampling threads')
+                    do_every(config.getfloat('daemon', 'sampling_interval'), 
+                             self.sampler.sample)
 
-            except Exception as e:
-                print(e)
-                logger.error(traceback.format_exc())
-                time.sleep(5)
+                time.sleep(2)
+
+            # Wait until all other threads have (or should have)
+            # completed
+            for n in range(int(round(config.getfloat('daemon', 'sampling_interval')))
+                           + 1):
+                if threading.activeCount() == 1:
+                    break
+                time.sleep(1)
+
+
+        except Exception as e:
+            print(e)
+            logger.error(traceback.format_exc())
+            time.sleep(5)
 
        
 def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
@@ -115,11 +139,7 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
     return result
 
 
-take_samples = True
-def stop_handler(signal, frame):
-    global take_samples
-    print ('Stopping...')
-    take_samples = False
+def cancel_sampling_threads():
     threads = threading.enumerate()
     for t in threads[1:]:
         t.cancel()        
@@ -131,15 +151,18 @@ def stop_handler(signal, frame):
         time.sleep(0.1)
     #sys.exit()
 
-magd = None
+
+take_samples = True
+def stop_handler(signal, frame):
+    global take_samples
+    logger.info('Stopping sampling threads...')
+    take_samples = False
+    cancel_sampling_threads()
+
 def reload_config_handler(signal, frame):
-    if magd and magd.sampler:
-        logger.debug('Reloading config file...')
-        magd.sampler.pause()
-        logger.debug('TODO: Re-read config file')
-        time.sleep(8)
-        logger.debug('Config file reloaded')
-        magd.sampler.resume()
+    global reload_config
+    logger.debug('Setting flag to instruct reload of config file')
+    reload_config = True
 
 def do_every (interval, worker_func, iterations = 0):
     if iterations != 1:
@@ -152,31 +175,31 @@ def do_every (interval, worker_func, iterations = 0):
         t.start()
     worker_func()
 
-def read_config_file(filename):
-    """Read config file."""
-    logger.info('Reading config file ' + filename)
+# def read_config_file(filename):
+#     """Read config file."""
+#     logger.info('Reading config file ' + filename)
 
-    config = SafeConfigParser()
-    config.add_section('daemon')
-    config.set('daemon', 'username', 'pi')
-    config.set('daemon', 'group', 'pi')
+#     config = SafeConfigParser()
+#     config.add_section('daemon')
+#     config.set('daemon', 'user', 'pi')
+#     config.set('daemon', 'group', 'pi')
 
-    if filename:
-        config_files_read = config.read(filename)
-        if filename not in config_files_read:
-            raise UserWarning('Could not read ' + filename)
-        logger.debug('Successfully read ' + ', '.join(config_files_read))
+#     if filename:
+#         config_files_read = config.read(filename)
+#         if filename not in config_files_read:
+#             raise UserWarning('Could not read ' + filename)
+#         logger.debug('Successfully read ' + ', '.join(config_files_read))
 
-    return config
+#     return config
 
 
-def drop_root_privileges(username='nobody', group=None):
+def drop_root_privileges(user='nobody', group=None):
     if os.getuid() != 0:
         # Not root
         return
 
     # Get the UID and GID
-    pwnam = pwd.getpwnam(username)
+    pwnam = pwd.getpwnam(user)
 
     # Remove group privileges
     os.setgroups([])
@@ -327,7 +350,7 @@ if __name__ == '__main__':
         # Fix sys.argv for the daemon to parse
         sys.argv = [sys.argv[0], args.action]
 
-    config = read_config_file(args.config_file)
+    config = awn.read_config_file(args.config_file)
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
                         format=args.log_format)
 
@@ -341,7 +364,7 @@ if __name__ == '__main__':
         log_filehandle = None
 
     # Is this the best place to drop privileges?
-    drop_root_privileges(username=config.get('daemon', 'username'),
+    drop_root_privileges(user=config.get('daemon', 'user'),
                          group=config.get('daemon', 'group'))
 
     if config.has_option('daemon', 'pidfile'):
@@ -360,7 +383,7 @@ if __name__ == '__main__':
 
     magd = RasPiMagD(progname, 
                      pidfile_path=pidfile_path, 
-                     username=config.get('daemon', 'username'),
+                     user=config.get('daemon', 'user'),
                      foreground=args.foreground)
 
     if args.foreground:
