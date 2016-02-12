@@ -143,7 +143,8 @@ def reload_config_handler(signal, frame):
 
 def do_every (interval, worker_func, iterations = 0):
     if iterations != 1:
-        t = threading.Timer(interval,
+        adj = time.time() % 1
+        t = threading.Timer(interval - adj,
                             do_every, 
                             [interval, worker_func, 
                              0 if iterations == 0 else iterations-1])
@@ -282,7 +283,8 @@ def get_sample():
     temp = temp_ADC.convert_and_read(scale_factor= 244.85798237022533) - 50
     t2 = time.time()
 
-    r = ((t1+t2)/2., 1., 3., 4., 5., temp)
+    # r = ((t1+t2)/2., 1., 3., 4., 5., temp)
+    r = (t1, 1., 3., 4., 5., temp)
     print(n + repr(r))
     print(n + 'end get_sample()')
     return r
