@@ -37,6 +37,7 @@ class Sampler(object):
     def resume(self):
         if self.paused:
             self.lock.release()
+            self.paused = False
             logger.debug('Resumed')
         else:
             logger.debug('Not paused')
