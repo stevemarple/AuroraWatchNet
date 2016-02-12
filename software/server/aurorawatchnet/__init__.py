@@ -24,10 +24,11 @@ def read_config_file(filename):
     config = SafeConfigParser()
     
     config.add_section('daemon')
-    config.set('daemon', 'user', 'nobody')
-    config.set('daemon', 'group', 'nogroup')
+    config.set('daemon', 'user', 'pi')
+    config.set('daemon', 'group', 'pi')
     config.set('daemon', 'connection', 'serial')
     config.set('daemon', 'close_after_write', 'false')
+    config.set('daemon', 'sampling_interval', '5')
 
     config.add_section('controlsocket')
     # ord('A') = 65, ord('W') = 87 
