@@ -54,8 +54,6 @@ def read_config_file(filename):
     # Monitor for the existence of a file to indicate possible adverse
     # data quality
     config.add_section('dataqualitymonitor')
-    config.set('dataqualitymonitor', 'filename', 
-               '/var/aurorawatchnet/data_quality_warning')
     config.set('dataqualitymonitor', 'extension', '.bad')
     config.set('dataqualitymonitor', 'username', 'pi')
     config.set('dataqualitymonitor', 'group', 'dialout')

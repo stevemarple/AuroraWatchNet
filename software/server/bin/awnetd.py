@@ -966,8 +966,9 @@ while running:
 
             if message is not None:
                 message_received = time.time()
-                if os.path.isfile(config.get('dataqualitymonitor', 
-                                             'filename')):
+                if (config.has_option('dataqualitymonitor', 'filename') and
+                    os.path.isfile(config.get('dataqualitymonitor', 
+                                              'filename'))):
                     if data_quality_extension is None:
                         write_to_log_file( \
                             message_received, 
@@ -976,12 +977,11 @@ while running:
                         
                     data_quality_extension = \
                         config.get('dataqualitymonitor', 'extension')
-                else:
-                    if data_quality_extension is not None:
-                        write_to_log_file( \
-                            message_received, 
-                            iso_timestamp(message_received) +
-                            ' D Data quality warning removed\n')
+                elif data_quality_extension is not None:
+                    write_to_log_file( \
+                        message_received, 
+                        iso_timestamp(message_received) +
+                        ' D Data quality warning removed\n')
                     data_quality_extension = None
                 
                 if (device and device.isatty()) or device_socket:
