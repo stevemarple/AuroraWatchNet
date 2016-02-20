@@ -222,10 +222,7 @@ def get_smbus(bus_number=None):
     candidates = []
     prefix = '/dev/i2c-'
     if bus_number is not None:
-        if os.path.exists(bus_number):
-            return smbus.SMBus(bus_number )
-        else:
-            return smbus.SMBus(prefix + str(bus_number))
+        return smbus.SMBus(bus_number)
 
     for bus in glob.glob(prefix + '*'):
         try:
