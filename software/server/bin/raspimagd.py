@@ -10,10 +10,12 @@
 ### END INIT INFO
 
 import argparse
+import copy
 import daemon
 import daemon.runner
 import glob
 import logging
+import numpy as np
 import os
 import signal
 import smbus
@@ -31,12 +33,9 @@ else:
 
 import aurorawatchnet as awn
 from aurorawatchnet.sampler import Sampler
-import MCP342x
+from MCP342x import MCP342x
 
 logger = logging.getLogger(__name__)
-
-reload_config = False
-
 
 class RasPiMagD():
     def __init__(self, progname, device=None, filename=None,
@@ -63,44 +62,21 @@ class RasPiMagD():
         
            
     def run(self, action, daemon_mode=True):
-        global reload_config
-        global config
         if (daemon_mode):
             logger.info('Daemon starting')
             # Set up signal handling
 
         signal.signal(signal.SIGTERM, stop_handler)
         signal.signal(signal.SIGINT, stop_handler)
-        signal.signal(signal.SIGUSR1, reload_config_handler)
         data_file = None
 
         try:
-            print('Starting sampling thread')
+            logger.info('Starting sampling thread')
             self.sampler = Sampler(action)
 
             do_every(config.getfloat('daemon', 'sampling_interval'), 
                      self.sampler.sample)
             while take_samples:
-                if reload_config:
-                    logger.debug('Reading config file...')
-                    self.sampler.pause()
-                    cancel_sampling_threads()
-                    logger.debug('stopped all sampling threads')
-                    try:
-                        new_config = awn.read_config_file(args.config_file)
-                        config = new_config
-                        logger.info('Read ' + args.config_file)
-                    except Exception as e:
-                        logger.error('Could not reload config file ' +
-                                     args.config_file + ': ' +
-                                     str(e))
-                    finally:
-                        reload_config = False
-                        self.sampler.resume()
-                    logger.debug('restarting sampling threads')
-                    do_every(config.getfloat('daemon', 'sampling_interval'), 
-                             self.sampler.sample)
-
                 time.sleep(2)
 
             # Wait until all other threads have (or should have)
@@ -159,11 +135,6 @@ def stop_handler(signal, frame):
     take_samples = False
     cancel_sampling_threads()
 
-def reload_config_handler(signal, frame):
-    global reload_config
-    logger.debug('Setting flag to instruct reload of config file')
-    reload_config = True
-
 def do_every (interval, worker_func, iterations = 0):
     if iterations != 1:
         adj = time.time() % 1
@@ -174,23 +145,6 @@ def do_every (interval, worker_func, iterations = 0):
         t.daemon = True
         t.start()
     worker_func()
-
-# def read_config_file(filename):
-#     """Read config file."""
-#     logger.info('Reading config file ' + filename)
-
-#     config = SafeConfigParser()
-#     config.add_section('daemon')
-#     config.set('daemon', 'user', 'pi')
-#     config.set('daemon', 'group', 'pi')
-
-#     if filename:
-#         config_files_read = config.read(filename)
-#         if filename not in config_files_read:
-#             raise UserWarning('Could not read ' + filename)
-#         logger.debug('Successfully read ' + ', '.join(config_files_read))
-
-#     return config
 
 
 def drop_root_privileges(user='nobody', group=None):
@@ -238,6 +192,80 @@ def get_smbus(bus_number=None):
     else:
         raise Exception("Multiple I2C busses found")
 
+
+def get_adc_devices(config, bus):
+    '''Return MCP342x devices based on config settings'''
+
+    r = {}
+    sec = 'daemon'
+    for comp in ('x', 'y', 'z', 'sensor_temperature'):
+        if config.has_option(sec, comp + '_address'):
+            if not config.has_option(sec, comp + '_channel'):
+                raise Exception('Option ' + comp + 
+                                '_channel is required in section ' + sec)
+
+            address = awn.safe_eval(config.get(sec, comp + '_address'))
+            channel = awn.safe_eval(config.get(sec, comp + '_channel'))
+
+            # Some devices were constructed with single-ended ADC
+            # boards. Enable a pseudo double-ended mode where IN+ and
+            # IN- are measured by independed single-ended ADC
+            # channels.
+            pseudo_de = False
+            if hasattr(address, '__iter__') or hasattr(channel, '__iter__'):
+                if (not hasattr(address, '__iter__') or 
+                    not hasattr(channel, '__iter__') or 
+                    len(address) != 2 or 
+                    len(channel) != 2):
+                    raise Exception('Pseudo double-ended configuration '
+                                    + 'requires two values for both '
+                                    + 'address and channe')
+                if comp == 'sensor_temperature':
+                    raise Exception('Pseudo double-ended configuration '
+                                    + ' for sensor temperature is '
+                                    + 'not supported')
+                pseudo_de = True
+                    
+            adc = MCP342x(bus, 
+                          address=0,
+                          channel=0,
+                          resolution=18,
+                          gain=1)
+            for opt in ('resolution', 'gain', 'scale_factor', 'offset'):
+                if config.has_option(sec, comp + '_' + opt):
+                    v = awn.safe_eval(config.get(sec, comp + '_' + opt))
+                    getattr(adc, 'set_' + opt)(v)
+            
+            if pseudo_de:
+                adc.set_address(address[0])
+                adc.set_channel(channel[0])
+                adc2 = copy.copy(adc)
+                adc2.set_address(address[1])
+                adc2.set_channel(channel[1])
+                # Offset must be zero otherwise it will be removed later
+                adc2.set_offset(0)
+                r[comp + '_ref'] = adc2
+            else:
+                adc.set_address(address)
+                adc.set_channel(channel)
+
+            r[comp] = adc
+    return r
+
+
+def get_aggregate_function(config, section, option):
+    to_func = {'mean': np.mean,
+               'median': np.median}
+    
+    if config.has_option(section, option):
+        s = config.get(section, option)
+        if s in to_func:
+            return to_func[s]
+        else:
+            raise Exception('Unknown aggregate function: ' + s)
+    else:
+        return to_func['mean']
+    
 def voltage_to_deg_C(voltage, offset, scale):
     return (voltage - offset) / scale
 
@@ -295,19 +323,49 @@ def write_data(fh, t, h, d, z, f, temp):
 sample_num = 0
 def get_sample():
     global sample_num
-    n = str(sample_num) + ' '
+    sampnum = str(sample_num) + ' '
     sample_num += 1
-    print(n + ' get_sample()')
-    t1 = time.time()
-    #time.sleep(4)
-    temp = temp_ADC.convert_and_read(scale_factor= 244.85798237022533) - 50
-    t2 = time.time()
+    print(sampnum + ' get_sample()')
+    t = time.time()
+    adc_list = []
+    for comp in ('x', 'y', 'z'):
+        if comp in adc_devices:
+            adc_list.append(adc_devices[comp])
+        if comp + '_ref' in adc_devices:
+            adc_list.append(adc_devices[comp + '_ref'])
 
-    # r = ((t1+t2)/2., 1., 3., 4., 5., temp)
-    r = (t1, 1., 3., 4., 5., temp)
-    print(n + repr(r))
-    print(n + 'end get_sample()')
-    return r
+    mag_agg = get_aggregate_function(config, 'daemon', 'aggregate')
+    md = MCP342x.convert_and_read_many(adc_list, 
+                                       samples=config.getint('daemon', 
+                                                             'oversampling'),
+                                       aggregate=mag_agg)
+    if 'sensor_temperature' in adc_devices:
+        temp_adc = adc_devices['sensor_temperature']
+        temp_oversampling = config.getint('daemon', 
+                                          'sensor_temperature_oversampling')
+        temp_agg = get_aggregate_function(config, 'daemon', 
+                                          'sensor_temperature_aggregate')
+        temp_data = temp_adc.convert_and_read(samples=temp_oversampling,
+                                              aggregate=temp_agg)
+    else:
+        temp_data = np.NaN
+
+    mag_data = {}
+    n = 0
+    for comp in ('x', 'y', 'z'):
+        if comp in adc_devices:
+            mag_data[comp] = md[n]
+            n += 1
+            if comp + '_ref' in adc_devices:
+                mag_data[comp] -= md[n]
+                n += 1
+        else:
+            mag_data[comp] = np.NaN
+
+    r = (t, mag_data['x'], mag_data['y'], mag_data['z'], temp_data)
+    print(sampnum + repr(r))
+    print(sampnum + 'end get_sample()')
+
 
 if __name__ == '__main__':
 
@@ -360,9 +418,6 @@ if __name__ == '__main__':
     else:
         log_filehandle = None
 
-    # Is this the best place to drop privileges?
-    drop_root_privileges(user=config.get('daemon', 'user'),
-                         group=config.get('daemon', 'group'))
 
     if config.has_option('daemon', 'pidfile'):
         pidfile_path = config.get('daemon', 'pidfile')
@@ -373,18 +428,21 @@ if __name__ == '__main__':
         bus = get_smbus(config.get('daemon', 'i2c'))
     else:
         bus = get_smbus()
-    
-    temp_ADC = MCP342x.MCP342x(bus, 0x68)
-    temp_ADC.set_channel(3)
-    temp_ADC.set_resolution(18)
 
+    # Is this the best place to drop privileges?
+    drop_root_privileges(user=config.get('daemon', 'user'),
+                         group=config.get('daemon', 'group'))
+    
+    # This should be called after dropping root privileges because it
+    # uses safe_eval to convert strings to numbers or lists. Whilst
+    # safe_eval ought to be safe it doesn't need root privileges.
+    adc_devices = get_adc_devices(config, bus)
     magd = RasPiMagD(progname, 
                      pidfile_path=pidfile_path, 
                      user=config.get('daemon', 'user'),
                      foreground=args.foreground)
 
     if args.foreground:
-        print('Running in foreground')
         logger.info('running in foreground')
         magd.run(get_sample, daemon_mode=False)
     else:
