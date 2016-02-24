@@ -19,6 +19,7 @@ import numpy as np
 import os
 import signal
 import smbus
+import struct
 import sys
 import threading
 import time
@@ -32,6 +33,7 @@ else:
     from ConfigParser import SafeConfigParser
 
 import aurorawatchnet as awn
+import aurorawatchnet.message
 from aurorawatchnet.sampler import Sampler
 from MCP342x import MCP342x
 
@@ -72,10 +74,11 @@ class RasPiMagD():
 
         try:
             logger.info('Starting sampling thread')
-            self.sampler = Sampler(action)
-
+            # self.sampler = Sampler(action)
+            
             do_every(config.getfloat('daemon', 'sampling_interval'), 
-                     self.sampler.sample)
+                     action)
+#                     self.sampler.sample)
             while take_samples:
                 time.sleep(2)
 
@@ -326,6 +329,7 @@ def get_sample():
     sampnum = str(sample_num) + ' '
     sample_num += 1
     print(sampnum + ' get_sample()')
+
     t = time.time()
     adc_list = []
     for comp in ('x', 'y', 'z'):
@@ -337,34 +341,100 @@ def get_sample():
     mag_agg = get_aggregate_function(config, 'daemon', 'aggregate')
     md = MCP342x.convert_and_read_many(adc_list, 
                                        samples=config.getint('daemon', 
-                                                             'oversampling'),
-                                       aggregate=mag_agg)
+                                                             'oversampling'))
+                                       #aggregate=mag_agg)
+
+    r = {'sampletime': t}
+
     if 'sensor_temperature' in adc_devices:
         temp_adc = adc_devices['sensor_temperature']
         temp_oversampling = config.getint('daemon', 
                                           'sensor_temperature_oversampling')
         temp_agg = get_aggregate_function(config, 'daemon', 
                                           'sensor_temperature_aggregate')
-        temp_data = temp_adc.convert_and_read(samples=temp_oversampling,
-                                              aggregate=temp_agg)
-    else:
-        temp_data = np.NaN
-
-    mag_data = {}
+    
+        r['sensor_temperature'] = \
+            temp_data = temp_adc.convert_and_read(samples=temp_oversampling,
+                                                  aggregate=temp_agg)
+    
     n = 0
     for comp in ('x', 'y', 'z'):
         if comp in adc_devices:
-            mag_data[comp] = md[n]
+            r[comp + '_all_samples'] = md[n]
+            r[comp] = mag_agg(md[n])
             n += 1
             if comp + '_ref' in adc_devices:
-                mag_data[comp] -= md[n]
+                for m in range(len(md[n])):
+                    r[comp + '_all_samples'][m] -= md[n][m]
+                r[comp] -= mag_agg(md[n])
                 n += 1
         else:
-            mag_data[comp] = np.NaN
+            r[comp] = np.NaN
 
-    r = (t, mag_data['x'], mag_data['y'], mag_data['z'], temp_data)
     print(sampnum + repr(r))
     print(sampnum + 'end get_sample()')
+    return r
+
+
+def record_sample():
+    data = None
+
+    # Ensure that only one thread attempts to access the I2C bus at
+    # any time. It doesn't matter if the writing of data, or sending
+    # it over the network, overlaps with the taking of the next
+    # sample.
+    logger.debug('Acquiring lock')
+    if record_sample.lock.acquire(False):
+        try:
+            logger.debug('Acquired lock')
+            data = get_sample()
+        finally:
+            logging.debug('Released lock')
+            record_sample.lock.release()
+    else:
+        logger.debug('Could not acquire lock')
+
+    if data is None:
+        return
+
+    create_awn_message(data)
+    logger.debug('******* END: record_sample()')
+
+record_sample.lock = threading.Lock()
+
+
+def create_awn_message(data):
+    site_id = config.getint('magnetometer', 'siteid')
+    message = bytearray(1024)
+    timestamp = [int(data['sampletime']),
+                 int((data['sampletime'] % 1) * 32768)]
+    awn.message.put_header(message, site_id, timestamp)
+    mag_agg = get_aggregate_function(config, 'daemon', 'aggregate')
+    for comp in ('x', 'y', 'z'):
+        if comp in data:
+            # Resolution and gain are lower nibble of config
+            res_gain = adc_devices[comp].get_config() & 0x0f
+            tag_id = awn.message.tag_data['mag_data_' + comp]['id']
+
+            ba = struct.pack(awn.message.tag_data['mag_data_'+comp]['format'],
+                             res_gain, data[comp])
+            awn.message.put_data(message, tag_id, ba)
+            
+            key = 'mag_data_all_' + comp
+            # if key in data and len(data[key]) > 1:
+            #     tag_id = awn.message.tag_data['mag_data_all_' + comp]['id']
+            #     data_len = 
+
+    if 'sensor_temperature' in data:
+        tag_id = awn.message.tag_data['magnetometer_temperature']['id']
+        ba = struct.pack(awn.message.tag_data[\
+                'magnetometer_temperature']['format'],
+                         int(round(data['sensor_temperature'] * 100)))
+        awn.message.put_data(message, tag_id, ba)
+        
+
+    awn.message.put_signature(message, hmac_key, 0, 0)              
+    awn.message.print_packet(message)
 
 
 if __name__ == '__main__':
@@ -433,6 +503,8 @@ if __name__ == '__main__':
     drop_root_privileges(user=config.get('daemon', 'user'),
                          group=config.get('daemon', 'group'))
     
+    hmac_key = config.get('magnetometer', 'key').decode('hex')
+
     # This should be called after dropping root privileges because it
     # uses safe_eval to convert strings to numbers or lists. Whilst
     # safe_eval ought to be safe it doesn't need root privileges.
@@ -444,7 +516,7 @@ if __name__ == '__main__':
 
     if args.foreground:
         logger.info('running in foreground')
-        magd.run(get_sample, daemon_mode=False)
+        magd.run(record_sample, daemon_mode=False)
     else:
         
         daemon_runner = daemon.runner.DaemonRunner(magd)
