@@ -6,6 +6,7 @@ import pwd
 import re
 import socket
 import sys
+import time
 
 if sys.version_info[0] >= 3:
     import configparser
@@ -171,3 +172,34 @@ def safe_eval(s):
     This function cannot be guaranteed safe with untrusted input.'''
     return eval(s, {'__builtins__': {'True': True,
                                      'False': False}}, {})
+
+
+def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
+                      extension=None, header=None):
+    '''
+    t: seconds since unix epoch
+    '''
+    tmp_name = time.strftime(fstr, time.gmtime(t))
+    if extension is not None:
+        tmp_name += extension
+
+    if file_obj is not None:
+        if file_obj.closed:
+            file_obj = None
+        elif file_obj.name != tmp_name:
+            # Filename has changed
+            file_obj.close()
+            file_obj = None
+        
+    if file_obj is None:
+        # File wasn't open or filename changed
+        p = os.path.dirname(tmp_name)
+        if not os.path.isdir(p):
+            os.makedirs(p)
+
+        file_obj = open(tmp_name, mode, buffering)
+        if header is not None and os.fstat(file_obj.fileno()).st_size == 0:
+            # file_obj.tell() == 0:
+            file_obj.write(header)
+
+    return file_obj
