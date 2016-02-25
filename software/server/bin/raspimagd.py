@@ -34,7 +34,6 @@ else:
 
 import aurorawatchnet as awn
 import aurorawatchnet.message
-from aurorawatchnet.sampler import Sampler
 from MCP342x import MCP342x
 
 logger = logging.getLogger(__name__)
@@ -46,7 +45,6 @@ class RasPiMagD():
         self.progname = progname
         self.user = user
         self.group = group
-        self.sampler = None
 
         if foreground:
             self.stdin_path = '/dev/tty'
@@ -74,11 +72,9 @@ class RasPiMagD():
 
         try:
             logger.info('Starting sampling thread')
-            # self.sampler = Sampler(action)
             
             do_every(config.getfloat('daemon', 'sampling_interval'), 
                      action)
-#                     self.sampler.sample)
             while take_samples:
                 time.sleep(2)
 
@@ -275,40 +271,6 @@ def voltage_to_deg_C(voltage, offset, scale):
 def voltage_to_tesla(voltage, sensitivity=20000):
     # sensitivity in V/T
     return voltage / float(sensitivity)
-
-def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
-                      extension=None):
-    '''
-    Get a file object to save data, with the name defined by the time
-    and format string
-
-    t -- seconds since unix epoch
-    file_obj --  existing file object (or None)
-    fstr -- strftime format string
-    buffering buffering value passed to file open
-    extension -- any extension appended to the file name
-    '''
-    tmp_name = time.strftime(fstr, time.gmtime(t))
-    if extension is not None:
-        tmp_name += extension
-
-    if file_obj is not None:
-        if file_obj.closed:
-            file_obj = None
-        elif file_obj.name != tmp_name:
-            # Filename has changed
-            file_obj.close()
-            file_obj = None
-        
-    if file_obj is None:
-        # File wasn't open or filename changed
-        p = os.path.dirname(tmp_name)
-        if not os.path.isdir(p):
-            os.makedirs(p)
-
-        file_obj = open(tmp_name, mode, buffering)
-    
-    return file_obj
                
 
 def write_data(fh, t, h, d, z, f, temp):
@@ -344,7 +306,7 @@ def get_sample():
                                                              'oversampling'))
                                        #aggregate=mag_agg)
 
-    r = {'sampletime': t}
+    r = {'sample_time': t}
 
     if 'sensor_temperature' in adc_devices:
         temp_adc = adc_devices['sensor_temperature']
@@ -376,9 +338,11 @@ def get_sample():
     return r
 
 
+data_file = None
 def record_sample():
-    data = None
+    global data_file
 
+    data = None
     # Ensure that only one thread attempts to access the I2C bus at
     # any time. It doesn't matter if the writing of data, or sending
     # it over the network, overlaps with the taking of the next
@@ -397,7 +361,26 @@ def record_sample():
     if data is None:
         return
 
-    create_awn_message(data)
+    comment_char = '#'
+    separator = ','
+    header = comment_char + 'sample_time'
+    fstr = '{sample_time:.3f}'
+    for c in ('x', 'y', 'z', 'sensor_temperature'):
+        if c in data:
+            header += separator + c
+            fstr += '{separator}{' + c + ':.3f}'
+    header += '\n'
+    fstr += '\n'
+    data['separator'] = separator
+    data_file = awn.get_file_for_time(data['sample_time'], 
+                                      data_file,
+                                      config.get('raspitextdata', 'filename'),
+                                      header=header)
+    data_file.write(fstr.format(**data))
+
+    mesg = create_awn_message(data)
+    awn.message.print_packet(mesg)
+
     logger.debug('******* END: record_sample()')
 
 record_sample.lock = threading.Lock()
@@ -405,10 +388,10 @@ record_sample.lock = threading.Lock()
 
 def create_awn_message(data):
     site_id = config.getint('magnetometer', 'siteid')
-    message = bytearray(1024)
-    timestamp = [int(data['sampletime']),
-                 int((data['sampletime'] % 1) * 32768)]
-    awn.message.put_header(message, site_id, timestamp)
+    mesg = bytearray(1024)
+    timestamp = [int(data['sample_time']),
+                 int((data['sample_time'] % 1) * 32768)]
+    awn.message.put_header(mesg, site_id, timestamp)
     mag_agg = get_aggregate_function(config, 'daemon', 'aggregate')
     for comp in ('x', 'y', 'z'):
         if comp in data:
@@ -418,7 +401,7 @@ def create_awn_message(data):
 
             ba = struct.pack(awn.message.tag_data['mag_data_'+comp]['format'],
                              res_gain, data[comp])
-            awn.message.put_data(message, tag_id, ba)
+            awn.message.put_data(mesg, tag_id, ba)
             
             key = 'mag_data_all_' + comp
             # if key in data and len(data[key]) > 1:
@@ -430,11 +413,11 @@ def create_awn_message(data):
         ba = struct.pack(awn.message.tag_data[\
                 'magnetometer_temperature']['format'],
                          int(round(data['sensor_temperature'] * 100)))
-        awn.message.put_data(message, tag_id, ba)
+        awn.message.put_data(mesg, tag_id, ba)
         
 
-    awn.message.put_signature(message, hmac_key, 0, 0)              
-    awn.message.print_packet(message)
+    awn.message.put_signature(mesg, hmac_key, 0, 0)
+    return mesg[:awn.message.get_packet_length(mesg)]
 
 
 if __name__ == '__main__':
