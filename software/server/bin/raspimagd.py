@@ -68,7 +68,6 @@ class RasPiMagD():
 
         signal.signal(signal.SIGTERM, stop_handler)
         signal.signal(signal.SIGINT, stop_handler)
-        data_file = None
 
         try:
             logger.info('Starting sampling thread')
@@ -272,19 +271,7 @@ def voltage_to_tesla(voltage, sensitivity=20000):
     # sensitivity in V/T
     return voltage / float(sensitivity)
                
-
-def write_data(fh, t, h, d, z, f, temp):
-    # Round time to nearest millisecond, calculate milliseconds and
-    # print separately since strftime does not support it
-    t_ms = round(t * 1e3)
-    t2 = t_ms / 1e3
-    ms = int(t_ms % 1000)
-    tm = time.gmtime(t2)
-    fh.write('%s.%03d %+09.02f %+09.02f %+09.02f %09.02f %+06.02f\n' % 
-             (time.strftime('%Y %m %d %H %M %S', tm), 
-              ms, h, d, z, f, temp))
-
-                
+              
 def get_sample():
     t = time.time()
     adc_list = []
@@ -329,29 +316,43 @@ def get_sample():
     return r
 
 
-data_file = None
+# Each sampling action is made by a new thread. This function uses a
+# lock to avoid contention for the I2C bus. If the lock cannot be
+# acquired the attempt is abandoned. The lock is released after the
+# sample has been taken. This means two instances of record_sample()
+# can occur at the same time, whilst the earlier one writes data and
+# possibly sends a real-time data packet over the network. A second
+# lock (write_to_csv_file.lock) is used to avoid contention on writing
+# results to a file.
 def record_sample():
-    global data_file
-
     data = None
-    # Ensure that only one thread attempts to access the I2C bus at
-    # any time. It doesn't matter if the writing of data, or sending
-    # it over the network, overlaps with the taking of the next
-    # sample.
-    logger.debug('Acquiring lock')
+    logger.debug('record_sample(): acquiring lock')
     if record_sample.lock.acquire(False):
         try:
-            logger.debug('Acquired lock')
+            logger.debug('record_sample(): acquired lock')
             data = get_sample()
         finally:
-            logging.debug('Released lock')
+            logging.debug('record_sample(): released lock')
             record_sample.lock.release()
     else:
-        logger.debug('Could not acquire lock')
+        logger.debug('record_sample(): could not acquire lock')
 
     if data is None:
         return
 
+    write_to_csv_file (data)
+    mesg = create_awn_message(data)
+    awn.message.print_packet(mesg)
+
+
+record_sample.lock = threading.Lock()
+
+
+def write_to_csv_file(data):
+    # Acquire lock, wait if necessary
+    logger.debug('write_to_csv_file(): acquiring lock')
+    write_to_csv_file.lock.acquire(True)
+    logger.debug('write_to_csv_file(): acquired lock')
     comment_char = '#'
     separator = ','
     header = comment_char + 'sample_time'
@@ -363,17 +364,16 @@ def record_sample():
     header += '\n'
     fstr += '\n'
     data['separator'] = separator
-    data_file = awn.get_file_for_time(data['sample_time'], 
-                                      data_file,
-                                      config.get('raspitextdata', 'filename'),
-                                      header=header)
-    data_file.write(fstr.format(**data))
+    write_to_csv_file.data_file = \
+        awn.get_file_for_time(data['sample_time'], 
+                              write_to_csv_file.data_file,
+                              config.get('raspitextdata', 'filename'),
+                              header=header)
+    write_to_csv_file.data_file.write(fstr.format(**data))
+    write_to_csv_file.lock.release()
 
-    mesg = create_awn_message(data)
-    awn.message.print_packet(mesg)
-
-
-record_sample.lock = threading.Lock()
+write_to_csv_file.lock = threading.Lock()
+write_to_csv_file.data_file = None
 
 
 def create_awn_message(data):
