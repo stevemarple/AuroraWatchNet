@@ -285,13 +285,7 @@ def write_data(fh, t, h, d, z, f, temp):
               ms, h, d, z, f, temp))
 
                 
-sample_num = 0
 def get_sample():
-    global sample_num
-    sampnum = str(sample_num) + ' '
-    sample_num += 1
-    print(sampnum + ' get_sample()')
-
     t = time.time()
     adc_list = []
     for comp in ('x', 'y', 'z'):
@@ -332,9 +326,6 @@ def get_sample():
                 n += 1
         else:
             r[comp] = np.NaN
-
-    print(sampnum + repr(r))
-    print(sampnum + 'end get_sample()')
     return r
 
 
@@ -381,7 +372,6 @@ def record_sample():
     mesg = create_awn_message(data)
     awn.message.print_packet(mesg)
 
-    logger.debug('******* END: record_sample()')
 
 record_sample.lock = threading.Lock()
 
