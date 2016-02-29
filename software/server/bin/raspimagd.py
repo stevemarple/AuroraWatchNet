@@ -38,6 +38,8 @@ from MCP342x import MCP342x
 
 logger = logging.getLogger(__name__)
 
+bus = None
+adc_devices = None
 class RasPiMagD():
     def __init__(self, progname, device=None, filename=None,
                  pidfile_path=None, pidfile_timeout=None, 
@@ -54,6 +56,7 @@ class RasPiMagD():
             self.stdout_path = '/dev/null'
 
         self.stderr_path = '/dev/null'
+        self.stderr_path = '/dev/tty'
         self.pidfile_path = pidfile_path
         if self.pidfile_path is None:
             self.pidfile_path = '/var/run/' + progname + '.pid'
@@ -61,10 +64,24 @@ class RasPiMagD():
         self.pidfile_timeout = pidfile_timeout
         
            
-    def run(self, action, daemon_mode=True):
+    def run(self, daemon_mode=True):
         if (daemon_mode):
             logger.info('Daemon starting')
             # Set up signal handling
+
+        global bus
+        global adc_devices
+
+        if config.has_option('daemon', 'i2c'):
+            bus = get_smbus(config.get('daemon', 'i2c'))
+        else:
+            bus = get_smbus()
+        print('bus: ' + repr(bus))
+
+        # This should be called after dropping root privileges because
+        # it uses safe_eval to convert strings to numbers or
+        # lists (not guaranteed safe!)
+        adc_devices = get_adc_devices(config, bus)
 
         signal.signal(signal.SIGTERM, stop_handler)
         signal.signal(signal.SIGINT, stop_handler)
@@ -73,13 +90,14 @@ class RasPiMagD():
             logger.info('Starting sampling thread')
             
             do_every(config.getfloat('daemon', 'sampling_interval'), 
-                     action)
+                     record_sample)
             while take_samples:
                 time.sleep(2)
 
             # Wait until all other threads have (or should have)
             # completed
-            for n in range(int(round(config.getfloat('daemon', 'sampling_interval')))
+            for n in range(int(round(config.getfloat('daemon', 
+                                                     'sampling_interval')))
                            + 1):
                 if threading.activeCount() == 1:
                     break
@@ -144,31 +162,6 @@ def do_every (interval, worker_func, iterations = 0):
         t.start()
     worker_func()
 
-
-def drop_root_privileges(user='nobody', group=None):
-    if os.getuid() != 0:
-        # Not root
-        return
-
-    # Get the UID and GID
-    pwnam = pwd.getpwnam(user)
-
-    # Remove group privileges
-    os.setgroups([])
-
-    # Set to new GID (whilst still have root privileges)
-    if group is None:
-        # No group specified, use user's default group
-        os.setgid(pwnam.pw_gid)
-    else:
-        grnam = grp.getgrnam(group)
-        os.setgid(grnam.gr_gid)
-
-    # Change to new UID
-    os.setuid(pwnam.pw_uid)
-
-    # Set umask
-    old_umask = os.umask(0o22)
 
 def get_smbus(bus_number=None):
     candidates = []
@@ -406,6 +399,7 @@ def create_awn_message(data):
         awn.message.put_data(mesg, tag_id, ba)
         
 
+    hmac_key = config.get('magnetometer', 'key').decode('hex')
     awn.message.put_signature(mesg, hmac_key, 0, 0)
     return mesg[:awn.message.get_packet_length(mesg)]
 
@@ -467,21 +461,7 @@ if __name__ == '__main__':
     else:
         pidfile_path = None
 
-    if config.has_option('daemon', 'i2c'):
-        bus = get_smbus(config.get('daemon', 'i2c'))
-    else:
-        bus = get_smbus()
-
-    # Is this the best place to drop privileges?
-    drop_root_privileges(user=config.get('daemon', 'user'),
-                         group=config.get('daemon', 'group'))
-    
-    hmac_key = config.get('magnetometer', 'key').decode('hex')
-
-    # This should be called after dropping root privileges because it
-    # uses safe_eval to convert strings to numbers or lists. Whilst
-    # safe_eval ought to be safe it doesn't need root privileges.
-    adc_devices = get_adc_devices(config, bus)
+   
     magd = RasPiMagD(progname, 
                      pidfile_path=pidfile_path, 
                      user=config.get('daemon', 'user'),
@@ -489,9 +469,9 @@ if __name__ == '__main__':
 
     if args.foreground:
         logger.info('running in foreground')
-        magd.run(record_sample, daemon_mode=False)
+        magd.run(daemon_mode=False)
     else:
-        
+
         daemon_runner = daemon.runner.DaemonRunner(magd)
         if log_filehandle:
             daemon_runner.daemon_context.files_preserve=[log_filehandle.stream]
