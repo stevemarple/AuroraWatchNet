@@ -153,8 +153,16 @@ def stop_handler(signal, frame):
 
 def do_every (interval, worker_func, iterations = 0):
     if iterations != 1:
-        adj = time.time() % 1
-        t = threading.Timer(interval - adj,
+        # Schedule the next worker thread. Aim to start at the next
+        # multiple of sampling interval. Take current time, add 1.25
+        # of the interval and then find the nearest
+        # multiple. Calculate delay required.
+        now = time.time()
+        delay = round_to(now + (1.25 * interval), interval) - now
+        # Avoid lockups by many threads piling up. Impose a minimum delay
+        if delay < 0.1:
+            delay = 0.1
+        t = threading.Timer(delay,
                             do_every, 
                             [interval, worker_func, 
                              0 if iterations == 0 else iterations-1])
@@ -162,6 +170,8 @@ def do_every (interval, worker_func, iterations = 0):
         t.start()
     worker_func()
 
+def round_to(n, nearest):
+    return round(n / float(nearest)) * nearest
 
 def get_smbus(bus_number=None):
     candidates = []
@@ -328,7 +338,7 @@ def record_sample():
             logging.debug('record_sample(): released lock')
             record_sample.lock.release()
     else:
-        logger.debug('record_sample(): could not acquire lock')
+        logger.error('record_sample(): could not acquire lock')
 
     if data is None:
         return
