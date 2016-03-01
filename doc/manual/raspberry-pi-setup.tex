@@ -10,6 +10,8 @@ the \href{http://www.raspberrypi.org/downloads}{instructions} on the
 Raspberry Pi web site. \textbf{Copying the compressed image to a \fat\
   partition on the \sd\ card will not work}.
 
+These instructions assume Debian 8 (``Jessie'') is used.
+
 \section{Configuring Raspbian}
 \label{sec:configuring-raspbian}
 \helpbox{In the command window you can press the \keypress{Tab} key
@@ -67,6 +69,9 @@ connected directly to the Pi then you can choose to disable the \ssh\
 server.
 Select \code{Advanced Options} and then \code{SSH}. Choose the
 appropriate option.
+
+\subsubsection{I2C}
+Enable the ARM \itwoc\ interface and kernel module.
 
 \subsubsection{Expand Filesystem}
 The filesystem should be expanded to use all of the (micro)\sd\
@@ -158,6 +163,12 @@ logout
 \end{Cmd}
 and then log back in.
 
+\subsection{Update list of available packages}
+As user \rootUser
+\begin{Cmd}
+apt-get update  
+\end{Cmd}
+
 \subsection{Remove swap file}
 To prolong the life of the \sd\ card a swap file is not used. As user
 \rootUser
@@ -169,13 +180,7 @@ apt-get remove dphys-swapfile
 Wolfram Engine uses over \MB{450} and is not needed. Remove to save
 valuable space on the \sd\ card. As user \rootUser
 \begin{Cmd}
-apt-get remove wolfram-engine
-\end{Cmd}
-
-Remove the Wolfram repository from the package source list. As user
-\rootUser
-\begin{Cmd}
-rm /etc/apt/sources.list.d/wolfram.list 
+apt-get purge wolfram-engine
 \end{Cmd}
 
 \subsection{Install missing software packages}
@@ -183,18 +188,7 @@ As user \rootUser
 \begin{Cmd}
 apt-get install screen lsof python-pip ipython python-matplotlib \textbackslash
     python-scipy python-serial python-daemon python-lockfile \textbackslash
-    avahi-daemon dnsutils
-\end{Cmd}
-
-\subsection{Install python numpy library}
-
-A newer version of the \code{numpy} library is required for
-\code{auroraplot}. As user \rootUser
-
-\todo[Have numpy .deb file stored somewhere with instructions for
-download.]
-\begin{Cmd}
-dpkg -i /home/pi/python-numpy_1.7.1-3_armhf.deb
+    avahi-daemon dnsutils i2c-tools python-smbus python3-smbus
 \end{Cmd}
 
 \subsection{Configure file system mount options}
@@ -251,6 +245,7 @@ git clone --recursive https://github.com/stevemarple/auroraplot.git
 git clone --recursive https://github.com/stevemarple/Calunium.git
 git clone --recursive https://github.com/stevemarple/xboot.git
 mkdir \mytilde/bin
+. \mytilde/.bashrc
 cd \mytilde/bin
 ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
 ln -s ../AuroraWatchNet/software/server/bin/send_cmd.py
@@ -272,19 +267,6 @@ nano /etc/awnet.ini
 the repository]
 
 
-\subsection{Configure python}
-
-Create the python local site directory and create appropriate symbolic
-links. As user \piUser
-\begin{Cmd}
-\mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
-\end{Cmd}
-
-The first time the command runs there will be some errors printed as
-symbolic links are other configuration details are missing. Run the
-same command a second time to confirm that the errors have been
-corrected.
-
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
 As user \piUser
@@ -292,11 +274,8 @@ As user \piUser
 crontab -e
 \end{Cmd}
 
-In the \filename{nano} editor add the following two lines to
-periodically report that the Raspberry Pi is operating, make sure you
-terminate the last line by pressing the \myreturn\ key. This helps
-the AuroraWatch administrators monitor which stations are active. This
-reporting step can be omitted if you prefer.
+In the \filename{nano} editor add the following text. 
+
 \begin{Cmd}[fontsize=\small]
 # Log IP address (useful for debugging)
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
@@ -313,6 +292,13 @@ reporting step can be omitted if you prefer.
 */15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
 \end{Cmd}
 
+\helpbox{Make sure you terminate the last line by pressing the
+  \myreturn\ key.}
+
+The \code{log_ip} lines periodically report that the Raspberry Pi is
+operating. This helps the AuroraWatch administrators monitor which
+stations are active. These reporting commands can be omitted if you
+prefer.
 
 Save the file, \keystroke{CTRL}-\keystroke{x}, \keystroke{y},
 \myreturn.
@@ -343,6 +329,19 @@ update-rc.d awnetd defaults
 % update-rc.d awnetd_monitor defaults
 % \end{Cmd}
 
+\subsection{Configure python}
+
+Create the python local site directory and create appropriate symbolic
+links. As user \piUser
+\begin{Cmd}
+\mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
+\end{Cmd}
+
+The first time the command runs there will be some errors printed as
+symbolic links are other configuration details are missing. Run the
+same command a second time to confirm that the errors have been
+corrected.
+
 
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing
@@ -353,22 +352,13 @@ This will output the current date and time in \utc. If you aren't
 certain what the current time in \utc\ is then you can check at this
 web page, \url{https://www.google.co.uk/#q=utc+time}.
 
-If the time is incorrect you will need to configure the \ntp\
-server. As user \rootUser\ edit \filename{/etc/ntp.conf}:
+Check that the \ntp\ service is running correctly:
 \begin{Cmd}
-nano /etc/ntp.conf
+\mytilde{}pi/bin/check_ntp_status --log-level=info
 \end{Cmd}
-
-Find the line(s) which start \filename{server} and a insert
-\filename{#} at the beginning of the line(s) to comment it(them)
-out. Insert a similar line which begins with the word
-\filename{server} but is followed by your own \ntp\ server
-hostname. Your network adminstrator should be able to provide this
-information. Finally restart \ntp; as user \rootUser
-\begin{Cmd}
-/etc/init/ntp restart
-\end{Cmd}
-
+The last line should indicate ``NTP synchronized''. If it indicates
+that NTP is not synchronized consult your network manager for the
+correct \ntp\ settings on your network.
 
 
 
