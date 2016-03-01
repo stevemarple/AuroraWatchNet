@@ -59,20 +59,18 @@ if __name__ == '__main__':
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
                         format=args.log_format)
 
-
+status_file = None
 try:
     config = awn.read_config_file(args.config_file)
+    if config.has_option('ntp_status', 'filename'):
+        status_file = config.get('ntp_status', 'filename')
+    else:
+        logger.error('Config file does not specify NTP status filename')
+
 except Exception as e:
     logger.error('Could not read config file ' + args.config_file)
-    exit(1)
 
-if not config.has_option('ntp_status', 'filename'):
-    logger.error('Config file does not specify NTP status filename')
-    exit(2)
-
-status_file = config.get('ntp_status', 'filename')
-
-if args.delete and os.path.exists(status_file):
+if status_file and args.delete and os.path.exists(status_file):
     os.remove(status_file)
     logger.info('Removed existing status file')
 
@@ -97,12 +95,13 @@ for n in range(args.tries):
 
     if sync:
         logger.info('NTP synchronized')
-        with open(status_file, 'w+') as f:
-            logger.debug('Created ' + status_file)
+        if status_file:
+            with open(status_file, 'w+') as f:
+                logger.debug('Created ' + status_file)
         break
     else:
         logger.info('NTP not synchronized')
-        if os.path.exists(status_file):
+        if status_file and os.path.exists(status_file):
             os.remove(status_file)
             logger.debug('Removed ' + status_file)
 
