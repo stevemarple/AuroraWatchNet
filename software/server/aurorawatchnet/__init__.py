@@ -25,6 +25,14 @@ def read_config_file(filename):
     config = SafeConfigParser()
     
     config.add_section('daemon')
+    # The configuration file is the same for the original
+    # AuroraWatchNet magnetometer system (Calunium microcontroller,
+    # Raspberry Pi or other data logger) or the Raspberry Pi
+    # magnetometer system (sensors connected directly to Raspberry
+    # Pi). These systems are supported by two different daemons,
+    # awnetd and raspmagd.
+    config.set('daemon', 'name', 'awnetd')
+
     config.set('daemon', 'user', 'pi')
     config.set('daemon', 'group', 'pi')
     config.set('daemon', 'connection', 'serial')

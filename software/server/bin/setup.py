@@ -212,6 +212,9 @@ bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository,
                                               'bin',  'check_ntp_status'),
              'log_ip': os.path.join(args.aurorawatchnet_repository, 
                                     'software', 'server', 'bin', 'log_ip'),
+             'raspimagd.py': os.path.join(args.aurorawatchnet_repository, 
+                                          'software', 'server', 
+                                          'bin',  'raspimagd.py'),
              'send_cmd.py': os.path.join(args.aurorawatchnet_repository, 
                                          'software', 'server', 'bin', 
                                          'send_cmd.py'),
@@ -222,12 +225,22 @@ bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository,
 
 fix_symlinks(bin_dir, bin_links)
 
-
-# Check /etc/init.d/awnetd
-symlink = '/etc/init.d/awnetd'
-target = os.path.join(args.aurorawatchnet_repository, 
+daemon_name = config.get('daemon', 'name')
+if daemon_name == 'awnetd':
+    # Check /etc/init.d/awnetd
+    symlink = '/etc/init.d/awnetd'
+    target = os.path.join(args.aurorawatchnet_repository, 
                       'software', 'server', 'bin',  'awnetd.sh')
+elif daemon_name == 'raspimagd':
+    # Check /etc/init.d/raspimagd
+    symlink = '/etc/init.d/raspimagd'
+    target = os.path.join(args.aurorawatchnet_repository, 
+                          'software', 'server', 'bin',  'raspimagd.sh')
+else:
+    logger.warning('Meaning of daemon name = ' + daemon_name +
+                   ' is not understood')
 
+logger.info('Checking symlink ' + symlink + ' -> ' + target)
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
     logger.error('Service startup link ' + symlink + ' missing or incorrect')
     query_sudo_cmd(['sudo', 'ln', '-s', '-f', target, symlink])
