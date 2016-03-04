@@ -198,9 +198,12 @@ except Exception as e:
     config.error('Cannot read config file ' + args.config_file 
                  + ', ' + str(e))
 
+bin_dir = os.path.join(os.path.expanduser('~' + user), 'bin')
+
+if not os.path.exists(bin_dir):
+    os.mkdir(bin_dir)
 
 # Check contents of ~/bin has the correct symlinks
-bin_dir = os.path.join(os.path.expanduser('~' + user), 'bin')
 bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository, 
                                        'software', 'server', 
                                        'bin',  'awnetd.py'),
@@ -212,6 +215,9 @@ bin_links = {'awnetd.py': os.path.join(args.aurorawatchnet_repository,
                                               'bin',  'check_ntp_status'),
              'log_ip': os.path.join(args.aurorawatchnet_repository, 
                                     'software', 'server', 'bin', 'log_ip'),
+             'network_watchdog': os.path.join(args.aurorawatchnet_repository, 
+                                              'software', 'server', 'bin', 
+                                              'network_watchdog'),
              'raspimagd.py': os.path.join(args.aurorawatchnet_repository, 
                                           'software', 'server', 
                                           'bin',  'raspimagd.py'),

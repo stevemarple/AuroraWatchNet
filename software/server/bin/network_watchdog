@@ -1,0 +1,52 @@
+#!/bin/sh
+
+PROG_NAME=`basename $0`
+
+usage() {
+    echo "Usage: $PROG_NAME [options]"
+    echo ""
+    echo "Options are:"
+    echo ""
+    echo "    -h           Print this help"
+    echo "    -i iface     Interface to restart"
+    echo "    -t IP        Test IP address"
+    echo "    -v           Verbose. Print confirmation when interface is ok"
+}
+
+INTERFACE=""
+TARGET=`ip route | grep default | awk '{print $3}'`
+VERBOSE="0"
+while getopts "hi:t:v" option; do
+    case $option in 
+	h)
+	    usage
+	    exit 0
+	    ;;
+	i)
+	    INTERFACE="$OPTARG"
+	    ;;
+	t)
+	    TARGET="$OPTARG"
+	    ;;
+	v)
+	    VERBOSE="1"
+	    ;;
+    esac
+done
+
+if [ -z "$INTERFACE" ]; then
+    echo "Interface not specified"
+    exit 1
+fi
+
+ping -c4 ${TARGET} > /dev/null
+RESULT="$?"
+
+if [ "$RESULT" != 0 ]; then
+    echo "${INTERFACE} appears to be offline, restarting"
+    ifdown --force $INTERFACE
+    ifup $INTERFACE
+elif [ "$VERBOSE" != "0" ]; then
+    echo "${INTERFACE} is good"
+fi                                                                   
+
