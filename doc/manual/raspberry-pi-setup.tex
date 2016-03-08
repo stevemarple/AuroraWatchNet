@@ -276,20 +276,24 @@ crontab -e
 
 In the \filename{nano} editor add the following text. 
 
-\begin{Cmd}[fontsize=\small]
+\begin{Cmd}[fontsize=\smaller]
 # Log IP address (useful for debugging)
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
-
+ 
 # Start the process which monitors the FTDI all-in-one
 @reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
-
+ 
 # Upload data
 */5 * * * * nice /home/pi/bin/upload_data.py -s today > /dev/null 2>&1
 4 */6 * * * nice /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
-
+ 
 # Check periodically that the server is running; restart if needed.
 */15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
+ 
+# Check wifi is up (uncomment only if using wifi, you may need to
+# adjust the interface name from wlan0)
+# */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
 \end{Cmd}
 
 \helpbox{Make sure you terminate the last line by pressing the
