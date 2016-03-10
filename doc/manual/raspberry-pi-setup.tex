@@ -203,12 +203,25 @@ similar to
 \begin{Cmd}
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
 \end{Cmd}
-Change the mount options (\filename{defaults,noatime} in the example
+Change the mount options (\code{defaults,noatime} in the example
 above) so that the mount options are now
 \filename{noatime,nodiratime}. The line should look similar to the one
 below.
 \begin{Cmd}
 /dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
+\end{Cmd}
+
+At the end of the \filename{/etc/fstab} add the following lines:
+\begin{Cmd}[fontsize=\relsize{-2.5}]
+# tmpfs for AuroraWatchNet temporary files. Files will be deleted on 
+# a reboot, which is desirable for the NTP status files.
+tmpfs  /home/pi/tmpfs  tmpfs  rw,size=100k,nr_inodes=1k,noexec,nodev,nosuid,uid=pi,gid=pi,mode=1700  0  0
+\end{Cmd}
+
+As user \rootUser
+\begin{Cmd}
+mkdir /home/pi/tmpfs
+mount /home/pi/tmpfs
 \end{Cmd}
 
 \subsection{Automatically create symlinks for FTDI all-in-one}
@@ -291,6 +304,9 @@ In the \filename{nano} editor add the following text.
 # Check periodically that the server is running; restart if needed.
 */15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
  
+# Check NTP status
+*/2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
+
 # Check wifi is up (uncomment only if using wifi, you may need to
 # adjust the interface name from wlan0)
 # */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
