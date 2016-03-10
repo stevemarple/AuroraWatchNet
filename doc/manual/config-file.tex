@@ -266,8 +266,9 @@ Define the upload method in use. Valid options are: \code{rsync},
 \code{rrsync}, \code{http}, and \code{https}. \code{rsync} uses the
 \filename{rsync} program to efficiently transfer only the portions of
 data files which have changed since the last upoad; \code{rrsync} is
-similar. Both are tunnelled through \ssh\ and thus require the network
-to permit outward \tcp\ connections to port 22.
+similar but the server restricts which directories may be written
+to. Both are tunnelled through \ssh\ and thus require the network to
+permit outward \tcp\ connections to port 22.
 
 The \code{http} and \code{https} upload methods make use of the standard
 \http(s) protocol, and therefore require outgoing \tcp\ connections to
@@ -290,6 +291,10 @@ The \URL\ to which \http/\slash \https\ uploads are sent.
 \subsection{\code{password}}
 The upload password for \http\ and \https\ methods. Digest
 authentication is used.
+
+\subsection{\code{username}}
+The upload username for \http\ and \https\ methods. If not specified
+it defaults to the site abbreivation prefixed with \code{awn-}.
 
 \subsection{\code{realm}}
 The \emph{realm} used for digest authentication when uploading data
