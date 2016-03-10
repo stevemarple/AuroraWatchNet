@@ -93,7 +93,7 @@ def http_upload(file_name, url):
                 logger.info(file_name + ' already uploaded')
                 return True
             else:
-                logger.info(file_name + ' already partially uploaded')
+                logger.info(file_name + ' partially uploaded')
                 values['file_offset'] = content_length
         else:
             # Portion on server differs, upload everything
@@ -193,7 +193,7 @@ parser.add_argument('-e', '--end-time',
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
                     default='awnettextdata awpacket aurorawatchrealtime ' \
-                        + 'cloud logfile',
+                        + 'cloud logfile raspitextdata',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 
@@ -382,7 +382,10 @@ elif method in ('http', 'https'):
     # hourly or daily variations are allowed.
 
     file_type_data = get_file_type_data()
-    username = 'awn-' + site_lc
+    if config.has_option('upload', 'username'):
+        username = config.get('upload', 'username')
+    else:
+        username = 'awn-' + site_lc
     password = config.get('upload', 'password')
     realm = config.get('upload', 'realm')
     
@@ -409,7 +412,8 @@ elif method in ('http', 'https'):
                     response = http_upload(file_name, url)
                     if not response:
                         all_ok = False
-                elif ext == '' and ft in ('awnettextdata', 'awpacket'):
+                elif ext == '' and ft in ('awnettextdata', 'awpacket', 
+                                          'raspitextdata'):
                     # These should normally be present
                     logger.info('Missing ' + file_name)
                 else:
