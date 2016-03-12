@@ -76,7 +76,6 @@ class RasPiMagD():
             bus = get_smbus(config.get('daemon', 'i2c'))
         else:
             bus = get_smbus()
-        print('bus: ' + repr(bus))
 
         # This should be called after dropping root privileges because
         # it uses safe_eval to convert strings to numbers or
@@ -314,8 +313,12 @@ def get_sample():
                     r[comp + '_all_samples'][m] -= md[n][m]
                 r[comp] -= mag_agg(md[n])
                 n += 1
-        else:
-            r[comp] = np.NaN
+
+    # Take CPU temperature as system temperature
+    r['system_temperature'] = np.NaN
+    with open('/sys/class/thermal/thermal_zone0/temp') as f:
+        r['system_temperature'] = float(f.read().strip())/1000
+
     return r
 
 
@@ -343,7 +346,12 @@ def record_sample():
     if data is None:
         return
 
-    write_to_csv_file (data)
+    if config.has_option('awnettextdata', 'filename'):
+        write_to_txt_file(data)
+
+    if config.has_option('raspitextdata', 'filename'):
+        write_to_csv_file(data)
+
     mesg = create_awn_message(data)
     awn.message.print_packet(mesg)
 
@@ -377,6 +385,35 @@ def write_to_csv_file(data):
 
 write_to_csv_file.lock = threading.Lock()
 write_to_csv_file.data_file = None
+
+# Write data in standard AuroraWatchNet format
+def write_to_txt_file(data):
+    # Acquire lock, wait if necessary
+    logger.debug('write_to_txt_file(): acquiring lock')
+    write_to_txt_file.lock.acquire(True)
+    logger.debug('write_to_txt_file(): acquired lock')
+    comment_char = '#'
+    separator = ','
+    header = comment_char + 'sample_time'
+    fstr = '%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n'
+    write_to_txt_file.data_file = \
+        awn.get_file_for_time(data['sample_time'], 
+                              write_to_txt_file.data_file,
+                              config.get('awnettextdata', 'filename'),
+                              header=header)
+
+    x = data['x'] if 'x' in data else np.NaN
+    y = data['y'] if 'y' in data else np.NaN
+    z = data['z'] if 'z' in data else np.NaN
+    write_to_txt_file.data_file.write(fstr % (data['sample_time'],
+                                              x, y, z,
+                                              data['sensor_temperature'],
+                                              data['system_temperature'],
+                                              np.NaN))
+    write_to_txt_file.lock.release()
+
+write_to_txt_file.lock = threading.Lock()
+write_to_txt_file.data_file = None
 
 
 def create_awn_message(data):
