@@ -394,13 +394,11 @@ def write_to_txt_file(data):
     logger.debug('write_to_txt_file(): acquired lock')
     comment_char = '#'
     separator = ','
-    header = comment_char + 'sample_time'
     fstr = '%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n'
     write_to_txt_file.data_file = \
         awn.get_file_for_time(data['sample_time'], 
                               write_to_txt_file.data_file,
-                              config.get('awnettextdata', 'filename'),
-                              header=header)
+                              config.get('awnettextdata', 'filename'))
 
     x = data['x'] if 'x' in data else np.NaN
     y = data['y'] if 'y' in data else np.NaN
