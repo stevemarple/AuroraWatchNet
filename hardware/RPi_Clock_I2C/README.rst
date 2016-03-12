@@ -1,4 +1,4 @@
-Clock and I2C magnetometer infterface for Raspberry Pi
+Clock and I2C magnetometer interface for Raspberry Pi
 ======================================================
 
 This small PCB adds a suitable logic-level interface to the Raspberry
