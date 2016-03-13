@@ -59,7 +59,7 @@
 \usepackage[obeyspaces]{url}
 
 %% SI units
-\usepackage[abbreviations]{siunitx}
+\usepackage[abbreviations,binary-units=true]{siunitx}
 
 % Command to get a tilde which prints as an ASCII tilde in PDFs,
 % needed to allow copying text and pasting into a command window or
@@ -244,7 +244,8 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 
 \newcommand{\nT}[1]{\SI{#1}{\nano\tesla}}
 
-\newcommand{\MB}[1]{\SI{#1}{\mega\byte}}
+\newcommand{\MB}[1]{\SI{#1}{\mebi\byte}}
+
 %% Some simple abbreviations  
 \newcommand{\ie}{i.e.}
 \newcommand{\eg}{e.g.}
