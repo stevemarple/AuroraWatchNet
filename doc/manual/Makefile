@@ -32,7 +32,7 @@ images/Calunium_v2_1_sch.pdf : ../../hardware/Calunium/hardware/pcb/Calunium_v2.
 	$(CP) $< $@
 
 images/system-overview.pdf : images/src/system-overview.odg
-	libreoffice --headless --draw --convert-to pdf --outdir images images/src/system-overview.odg
+	libreoffice --headless --convert-to pdf --outdir images images/src/system-overview.odg
 
 makeabbrev : makeabbrev.c
 
