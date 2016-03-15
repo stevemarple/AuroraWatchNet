@@ -10,13 +10,16 @@ usage() {
     echo "    -h           Print this help"
     echo "    -i iface     Interface to restart"
     echo "    -t IP        Test IP address"
+    echo "    -r           Reboot when network failure detected"
     echo "    -v           Verbose. Print confirmation when interface is ok"
 }
 
 INTERFACE=""
+REBOOT="0"
 TARGET=`ip route | grep default | awk '{print $3}'`
 VERBOSE="0"
-while getopts "hi:t:v" option; do
+
+while getopts "hi:rt:v" option; do
     case $option in 
 	h)
 	    usage
@@ -25,6 +28,9 @@ while getopts "hi:t:v" option; do
 	i)
 	    INTERFACE="$OPTARG"
 	    ;;
+	r)
+            REBOOT="1"
+            ;;
 	t)
 	    TARGET="$OPTARG"
 	    ;;
@@ -43,9 +49,15 @@ ping -c4 ${TARGET} > /dev/null
 RESULT="$?"
 
 if [ "$RESULT" != 0 ]; then
-    echo "${INTERFACE} appears to be offline, restarting"
-    ifdown --force $INTERFACE
-    ifup $INTERFACE
+    if [ "$REBOOT" = "0" ]; then
+	echo "${INTERFACE} appears to be offline, restarting ${INTERFACE}"
+	sudo ifdown --force $INTERFACE
+	sleep 2
+	sudo ifup $INTERFACE
+    else
+	echo "${INTERFACE} appears to be offline, rebooting"
+	sudo shutdown -r now
+    fi
 elif [ "$VERBOSE" != "0" ]; then
     echo "${INTERFACE} is good"
 fi                                                                   
