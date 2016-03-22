@@ -1,18 +1,7 @@
 #!/usr/bin/env python
 
-### BEGIN INIT INFO
-# Provides:          raspimagd
-# Required-Start:    udev
-# Required-Stop:
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Description:       Raspberry Pi magnetometer data collection daemon
-### END INIT INFO
-
 import argparse
 import copy
-import daemon
-import daemon.runner
 import glob
 import logging
 import numpy as np
@@ -40,73 +29,46 @@ logger = logging.getLogger(__name__)
 
 bus = None
 adc_devices = None
-class RasPiMagD():
-    def __init__(self, progname, device=None, filename=None,
-                 pidfile_path=None, pidfile_timeout=None, 
-                 user='pi', group='pi', foreground=False):
-        self.progname = progname
-        self.user = user
-        self.group = group
 
-        if foreground:
-            self.stdin_path = '/dev/tty'
-            self.stdout_path = '/dev/tty'
-        else:
-            self.stdin_path = '/dev/null'
-            self.stdout_path = '/dev/null'
+def record_data():
+    global bus
+    global adc_devices
 
-        self.stderr_path = '/dev/null'
-        self.stderr_path = '/dev/tty'
-        self.pidfile_path = pidfile_path
-        if self.pidfile_path is None:
-            self.pidfile_path = '/var/run/' + progname + '.pid'
-            
-        self.pidfile_timeout = pidfile_timeout
-        
-           
-    def run(self, daemon_mode=True):
-        if (daemon_mode):
-            logger.info('Daemon starting')
-            # Set up signal handling
+    if config.has_option('daemon', 'i2c'):
+        bus = get_smbus(config.get('daemon', 'i2c'))
+    else:
+        bus = get_smbus()
 
-        global bus
-        global adc_devices
+    # This should be called after dropping root privileges because
+    # it uses safe_eval to convert strings to numbers or
+    # lists (not guaranteed safe!)
+    adc_devices = get_adc_devices(config, bus)
 
-        if config.has_option('daemon', 'i2c'):
-            bus = get_smbus(config.get('daemon', 'i2c'))
-        else:
-            bus = get_smbus()
+    signal.signal(signal.SIGTERM, stop_handler)
+    signal.signal(signal.SIGINT, stop_handler)
 
-        # This should be called after dropping root privileges because
-        # it uses safe_eval to convert strings to numbers or
-        # lists (not guaranteed safe!)
-        adc_devices = get_adc_devices(config, bus)
+    try:
+        logger.info('Starting sampling thread')
 
-        signal.signal(signal.SIGTERM, stop_handler)
-        signal.signal(signal.SIGINT, stop_handler)
+        do_every(config.getfloat('daemon', 'sampling_interval'), 
+                 record_sample)
+        while take_samples:
+            time.sleep(2)
 
-        try:
-            logger.info('Starting sampling thread')
-            
-            do_every(config.getfloat('daemon', 'sampling_interval'), 
-                     record_sample)
-            while take_samples:
-                time.sleep(2)
-
-            # Wait until all other threads have (or should have)
-            # completed
-            for n in range(int(round(config.getfloat('daemon', 
-                                                     'sampling_interval')))
-                           + 1):
-                if threading.activeCount() == 1:
-                    break
-                time.sleep(1)
+        # Wait until all other threads have (or should have)
+        # completed
+        for n in range(int(round(config.getfloat('daemon', 
+                                                 'sampling_interval')))
+                       + 1):
+            if threading.activeCount() == 1:
+                break
+            time.sleep(1)
 
 
-        except Exception as e:
-            print(e)
-            logger.error(traceback.format_exc())
-            time.sleep(5)
+    except Exception as e:
+        print(e)
+        logger.error(traceback.format_exc())
+        time.sleep(5)
 
        
 def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
@@ -483,9 +445,6 @@ if __name__ == '__main__':
                        metavar='start|stop|restart',
                        help='Daemon action')
     args = parser.parse_args()
-    if not args.foreground and len(sys.argv) > 2:
-        # Fix sys.argv for the daemon to parse
-        sys.argv = [sys.argv[0], args.action]
 
     config = awn.read_config_file(args.config_file)
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
@@ -507,22 +466,5 @@ if __name__ == '__main__':
         pidfile_path = None
 
    
-    magd = RasPiMagD(progname, 
-                     pidfile_path=pidfile_path, 
-                     user=config.get('daemon', 'user'),
-                     foreground=args.foreground)
-
-    if args.foreground:
-        logger.info('running in foreground')
-        magd.run(daemon_mode=False)
-    else:
-
-        daemon_runner = daemon.runner.DaemonRunner(magd)
-        if log_filehandle:
-            daemon_runner.daemon_context.files_preserve=[log_filehandle.stream]
-        try:
-            daemon_runner.do_action()
-        except Exception as e:
-            logger.error('Daemon terminating with exception: ' + str(e) 
-                         + ', type: ' + str(type(e)))
+    record_data()
 
