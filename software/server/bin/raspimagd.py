@@ -314,8 +314,8 @@ def record_sample():
     if config.has_option('raspitextdata', 'filename'):
         write_to_csv_file(data)
 
-    mesg = create_awn_message(data)
-    awn.message.print_packet(mesg)
+    #mesg = create_awn_message(data)
+    #awn.message.print_packet(mesg)
     sys.stdout.write(data_to_str(data))
 
 record_sample.lock = threading.Lock()
