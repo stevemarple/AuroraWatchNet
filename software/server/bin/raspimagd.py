@@ -316,10 +316,28 @@ def record_sample():
 
     mesg = create_awn_message(data)
     awn.message.print_packet(mesg)
-
+    sys.stdout.write(data_to_str(data))
 
 record_sample.lock = threading.Lock()
 
+
+def data_to_str(data, separator=',', comments='#', want_header=False):
+    separator = ','
+    header = comments + 'sample_time'
+    fstr = '{sample_time:.3f}'
+    d = dict(sample_time=data['sample_time'], separator=separator)
+    for c in ('x', 'y', 'z', 'sensor_temperature'):
+        if c in data:
+            d[c] = data[c]
+            header += separator + c
+            fstr += '{separator}{' + c + ':.3f}'
+    header += '\n'
+    fstr += '\n'
+    s = fstr.format(**d)
+    if want_header:
+        return s, header
+    else:
+        return s
 
 def write_to_csv_file(data):
     # Acquire lock, wait if necessary
