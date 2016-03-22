@@ -34,7 +34,7 @@ USER="pi"
 
 # Path to the daemon
 DAEMON="/home/pi/bin/raspimagd.py"
-DAEMON_OPTIONS="-f"
+DAEMON_OPTIONS=""
 
 # The name of the awnet.ini file.
 INI_FILE="/etc/awnet${SITE_SUFFIX}.ini"

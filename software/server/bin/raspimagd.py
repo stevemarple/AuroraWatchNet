@@ -454,14 +454,6 @@ if __name__ == '__main__':
                         help='Set format of log messages',
                         metavar='FORMAT')
 
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-f', '--foreground', action='store_true',
-                       help='Run in foreground (not daemon)')
-
-    group.add_argument('action', nargs='?',
-                       choices=['start', 'stop', 'restart'],
-                       metavar='start|stop|restart',
-                       help='Daemon action')
     args = parser.parse_args()
 
     config = awn.read_config_file(args.config_file)
