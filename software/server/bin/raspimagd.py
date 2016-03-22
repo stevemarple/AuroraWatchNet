@@ -48,6 +48,7 @@ def record_data():
     signal.signal(signal.SIGINT, stop_handler)
 
     try:
+        get_log_file_for_time(time.time(), log_filename)
         logger.info('Starting sampling thread')
 
         do_every(config.getfloat('daemon', 'sampling_interval'), 
@@ -67,6 +68,7 @@ def record_data():
 
     except Exception as e:
         print(e)
+        get_log_file_for_time(time.time(), log_filename)
         logger.error(traceback.format_exc())
         time.sleep(5)
 
@@ -108,7 +110,8 @@ def cancel_sampling_threads():
 take_samples = True
 def stop_handler(signal, frame):
     global take_samples
-    logger.info('Stopping sampling threads...')
+    get_log_file_for_time(time.time(), log_filename)
+    logger.info('Stopping sampling threads')
     take_samples = False
     cancel_sampling_threads()
 
@@ -294,6 +297,7 @@ def get_sample():
 # results to a file.
 def record_sample():
     data = None
+    get_log_file_for_time(time.time(), log_filename, delay=False)
     logger.debug('record_sample(): acquiring lock')
     if record_sample.lock.acquire(False):
         try:
@@ -429,6 +433,44 @@ def create_awn_message(data):
     return mesg[:awn.message.get_packet_length(mesg)]
 
 
+def get_log_file_for_time(t, fstr, 
+                          mode='a', 
+                          delay=True, 
+                          name=__name__):
+    if fstr is None:
+        return
+    fh = get_log_file_for_time.fh
+    tmp_name = time.strftime(fstr, time.gmtime(t))
+
+    if fh is not None:
+        if fh.stream and fh.stream.closed:
+            fh = None
+        elif fh.stream.name != tmp_name:
+            # Filename has changed
+            fh.close()
+            fh = None
+        
+    if fh is None:
+        # File wasn't open or filename changed
+        p = os.path.dirname(tmp_name)
+        if not os.path.isdir(p):
+            os.makedirs(p)
+
+        fh = logging.FileHandler(tmp_name, mode=mode, delay=delay)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s',
+                                      datefmt='%Y-%m-%dT%H:%M:%SZ')
+        fh.setFormatter(formatter)
+        logger = logging.getLogger(name)
+        for h in logger.handlers:
+            # Only remove file handlers 
+            if isinstance(h, logging.FileHandler):
+                logger.removeHandler(h)
+        logger.addHandler(fh)
+
+
+get_log_file_for_time.fh = None
+
+
 if __name__ == '__main__':
 
     logger = logging.getLogger(__name__)
@@ -458,23 +500,13 @@ if __name__ == '__main__':
 
     config = awn.read_config_file(args.config_file)
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
-                        format=args.log_format)
+                        format=args.log_format, datefmt='%Y-%m-%dT%H:%M:%SZ')
 
-    log_formatter = logging.Formatter(args.log_format)
-    if config.has_option('logging', 'filename'):
-        log_filehandle = logging.FileHandler(config.get('daemon', 
-                                                        'logfile'))
-        log_filehandle.setFormatter(log_formatter)
-        logger.addHandler(log_filehandle)
-    else:
-        log_filehandle = None
-
-
-    if config.has_option('daemon', 'pidfile'):
-        pidfile_path = config.get('daemon', 'pidfile')
-    else:
-        pidfile_path = None
-
-   
+    log_filename = None
+    if config.has_option('logfile', 'filename'):
+        log_filename = config.get('logfile', 'filename')
+        
+    get_log_file_for_time(time.time(), log_filename)
+    logger.info(progname + ' started')
     record_data()
 
