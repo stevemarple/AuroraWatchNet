@@ -296,6 +296,8 @@ def get_sample():
 # lock (write_to_csv_file.lock) is used to avoid contention on writing
 # results to a file.
 def record_sample():
+    global data_quality_ok
+    global ntp_ok
     data = None
     get_log_file_for_time(time.time(), log_filename, delay=False)
     logger.debug('record_sample(): acquiring lock')
@@ -312,11 +314,45 @@ def record_sample():
     if data is None:
         return
 
+    if (config.has_option('dataqualitymonitor', 'filename') and
+        os.path.isfile(config.get('dataqualitymonitor', 
+                                  'filename'))):
+        # Problem with data quality
+        if data_quality_ok:
+            # Not known previously, log
+            get_log_file_for_time(time.time(), log_filename)
+            logger.warning('Data quality warning detected')
+            data_quality_ok = False
+    elif not data_quality_ok:
+            get_log_file_for_time(time.time(), log_filename)
+            logger.info('Data quality warning removed')
+            data_quality_ok = True
+    
+    if (config.has_option('ntp_status', 'filename') and 
+        config.has_option('ntp_status', 'max_age') and 
+        (not os.path.exists(config.get('ntp_status', 'filename')) or 
+         time.time() - os.stat(config.get('ntp_status', 'filename')).st_mtime
+         > config.get('ntp_status', 'max_age'))):
+        # NTP status file is missing/old, assume NTP not running
+        if ntp_ok:
+            get_log_file_for_time(time.time(), log_filename)
+            logger.warning('NTP not running/synchronized')
+            ntp_ok = False
+    elif not ntp_ok:
+        get_log_file_for_time(time.time(), log_filename)
+        logger.info('NTP problem resolved')
+        ntp_ok = True
+
+    ext = None
+    if not data_quality_ok or not ntp_ok:
+        ext = config.get('dataqualitymonitor', 'extension')
+
+
     if config.has_option('awnettextdata', 'filename'):
-        write_to_txt_file(data)
+        write_to_txt_file(data, ext)
 
     if config.has_option('raspitextdata', 'filename'):
-        write_to_csv_file(data)
+        write_to_csv_file(data, ext)
 
     #mesg = create_awn_message(data)
     #awn.message.print_packet(mesg)
@@ -343,7 +379,7 @@ def data_to_str(data, separator=',', comments='#', want_header=False):
     else:
         return s
 
-def write_to_csv_file(data):
+def write_to_csv_file(data, extension):
     # Acquire lock, wait if necessary
     logger.debug('write_to_csv_file(): acquiring lock')
     write_to_csv_file.lock.acquire(True)
@@ -363,6 +399,7 @@ def write_to_csv_file(data):
         awn.get_file_for_time(data['sample_time'], 
                               write_to_csv_file.data_file,
                               config.get('raspitextdata', 'filename'),
+                              extension=extension,
                               header=header)
     write_to_csv_file.data_file.write(fstr.format(**data))
     write_to_csv_file.lock.release()
@@ -371,7 +408,7 @@ write_to_csv_file.lock = threading.Lock()
 write_to_csv_file.data_file = None
 
 # Write data in standard AuroraWatchNet format
-def write_to_txt_file(data):
+def write_to_txt_file(data, extension):
     # Acquire lock, wait if necessary
     logger.debug('write_to_txt_file(): acquiring lock')
     write_to_txt_file.lock.acquire(True)
@@ -382,7 +419,8 @@ def write_to_txt_file(data):
     write_to_txt_file.data_file = \
         awn.get_file_for_time(data['sample_time'], 
                               write_to_txt_file.data_file,
-                              config.get('awnettextdata', 'filename'))
+                              config.get('awnettextdata', 'filename'),
+                              extension=extension)
 
     x = data['x'] if 'x' in data else np.NaN
     y = data['y'] if 'y' in data else np.NaN
@@ -508,5 +546,8 @@ if __name__ == '__main__':
         
     get_log_file_for_time(time.time(), log_filename)
     logger.info(progname + ' started')
+
+    data_quality_ok = True
+    ntp_ok = True
     record_data()
 
