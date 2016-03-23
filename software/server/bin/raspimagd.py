@@ -382,27 +382,27 @@ def data_to_str(data, separator=',', comments='#', want_header=False):
 def write_to_csv_file(data, extension):
     # Acquire lock, wait if necessary
     logger.debug('write_to_csv_file(): acquiring lock')
-    write_to_csv_file.lock.acquire(True)
-    logger.debug('write_to_csv_file(): acquired lock')
-    comment_char = '#'
-    separator = ','
-    header = comment_char + 'sample_time'
-    fstr = '{sample_time:.3f}'
-    for c in ('x', 'y', 'z', 'sensor_temperature'):
-        if c in data:
-            header += separator + c
-            fstr += '{separator}{' + c + ':.3f}'
-    header += '\n'
-    fstr += '\n'
-    data['separator'] = separator
-    write_to_csv_file.data_file = \
-        awn.get_file_for_time(data['sample_time'], 
-                              write_to_csv_file.data_file,
-                              config.get('raspitextdata', 'filename'),
-                              extension=extension,
-                              header=header)
-    write_to_csv_file.data_file.write(fstr.format(**data))
-    write_to_csv_file.lock.release()
+    with write_to_csv_file.lock:
+        logger.debug('write_to_csv_file(): acquired lock')
+        comment_char = '#'
+        separator = ','
+        header = comment_char + 'sample_time'
+        fstr = '{sample_time:.3f}'
+        for c in ('x', 'y', 'z', 'sensor_temperature'):
+            if c in data:
+                header += separator + c
+                fstr += '{separator}{' + c + ':.3f}'
+        header += '\n'
+        fstr += '\n'
+        data['separator'] = separator
+        write_to_csv_file.data_file = \
+            awn.get_file_for_time(data['sample_time'], 
+                                  write_to_csv_file.data_file,
+                                  config.get('raspitextdata', 'filename'),
+                                  extension=extension,
+                                  header=header)
+        write_to_csv_file.data_file.write(fstr.format(**data))
+
 
 write_to_csv_file.lock = threading.Lock()
 write_to_csv_file.data_file = None
@@ -411,26 +411,25 @@ write_to_csv_file.data_file = None
 def write_to_txt_file(data, extension):
     # Acquire lock, wait if necessary
     logger.debug('write_to_txt_file(): acquiring lock')
-    write_to_txt_file.lock.acquire(True)
-    logger.debug('write_to_txt_file(): acquired lock')
-    comment_char = '#'
-    separator = ','
-    fstr = '%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n'
-    write_to_txt_file.data_file = \
-        awn.get_file_for_time(data['sample_time'], 
-                              write_to_txt_file.data_file,
-                              config.get('awnettextdata', 'filename'),
-                              extension=extension)
+    with write_to_txt_file.lock:
+        logger.debug('write_to_txt_file(): acquired lock')
+        comment_char = '#'
+        separator = ','
+        fstr = '%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n'
+        write_to_txt_file.data_file = \
+            awn.get_file_for_time(data['sample_time'], 
+                                  write_to_txt_file.data_file,
+                                  config.get('awnettextdata', 'filename'),
+                                  extension=extension)
 
-    x = data['x'] if 'x' in data else np.NaN
-    y = data['y'] if 'y' in data else np.NaN
-    z = data['z'] if 'z' in data else np.NaN
-    write_to_txt_file.data_file.write(fstr % (data['sample_time'],
-                                              x, y, z,
-                                              data['sensor_temperature'],
-                                              data['system_temperature'],
-                                              np.NaN))
-    write_to_txt_file.lock.release()
+        x = data['x'] if 'x' in data else np.NaN
+        y = data['y'] if 'y' in data else np.NaN
+        z = data['z'] if 'z' in data else np.NaN
+        write_to_txt_file.data_file.write(fstr % (data['sample_time'],
+                                                  x, y, z,
+                                                  data['sensor_temperature'],
+                                                  data['system_temperature'],
+                                                  np.NaN))
 
 write_to_txt_file.lock = threading.Lock()
 write_to_txt_file.data_file = None
