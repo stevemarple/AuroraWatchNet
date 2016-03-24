@@ -28,6 +28,7 @@ import auroraplot.tools
 import auroraplot.auroralactivity 
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.samnet
+import auroraplot.datasets.bgs_schools
 
 # Set timezone appropriately to get intended np.datetime64 behaviour.
 os.environ['TZ'] = 'UTC'
