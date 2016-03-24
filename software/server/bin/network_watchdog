@@ -45,6 +45,13 @@ if [ -z "$INTERFACE" ]; then
     exit 1
 fi
 
+# Check interface exists
+/sbin/ifconfig | grep "$INTERFACE" > /dev/null 
+if [ "$?" != 0 ]; then
+    echo "Interface $INTERFACE not found"
+    exit 2
+fi
+
 ping -c4 ${TARGET} > /dev/null
 RESULT="$?"
 
