@@ -132,7 +132,12 @@ def do_every (interval, worker_func, iterations = 0):
                              0 if iterations == 0 else iterations-1])
         t.daemon = True
         t.start()
-    worker_func()
+    try:
+        worker_func()
+    except Exception as e:
+        get_log_file_for_time(time.time(), log_filename)
+        logger.error(traceback.format_exc())
+
 
 def round_to(n, nearest):
     return round(n / float(nearest)) * nearest
