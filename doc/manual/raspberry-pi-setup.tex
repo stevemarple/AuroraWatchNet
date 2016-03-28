@@ -294,15 +294,9 @@ In the \filename{nano} editor add the following text.
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
  
-# Start the process which monitors the FTDI all-in-one
-@reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
- 
 # Upload data
 */5 * * * * nice /home/pi/bin/upload_data.py -s today > /dev/null 2>&1
 4 */6 * * * nice /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
- 
-# Check periodically that the server is running; restart if needed.
-*/15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
  
 # Check NTP status
 */2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
@@ -310,6 +304,33 @@ In the \filename{nano} editor add the following text.
 # Check wifi is up (uncomment only if using wifi, you may need to
 # adjust the interface name from wlan0)
 # */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
+\end{Cmd}
+
+If using the Calunium-based systems include the following lines to
+start the data logging daemon.
+\begin{Cmd}
+# Start the data recording daemon; check periodically that the server
+# is running; restart if needed.
+@reboot sudo /etc/init.d/awnetd start > /dev/null 2>&1
+*/15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
+\end{Cmd}
+ 
+Systems where the sensors head is connected to the Raspberry Pi
+without using a microcontroller (such as the BGS school magnetometer)
+must include the following lines to start the data recording damon.
+\begin{Cmd}
+# Start the data recording daemon; check periodically that the server
+# is running; restart if needed.
+@reboot sudo /etc/init.d/raspimagd start > /dev/null 2>&1
+*/15 * * * * sudo /etc/init.d/raspimagd start > /dev/null 2>&1
+\end{Cmd}
+
+If you plan to use the FTDI-all-in-one pogrammer and switch to
+indicate periods of bad data then also include the following lines
+(most users can ignore this):
+\begin{Cmd}
+# Start the process which monitors the FTDI all-in-one
+@reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
 \end{Cmd}
 
 \helpbox{Make sure you terminate the last line by pressing the
@@ -340,14 +361,6 @@ As user \rootUser
 cd /etc/init.d
 update-rc.d awnetd defaults
 \end{Cmd}
-
-%\subsection{Automatically start the daemon for the FTDI all-in-one}
-%
-% As user \rootUser
-% \begin{Cmd}
-% cd /etc/init.d
-% update-rc.d awnetd_monitor defaults
-% \end{Cmd}
 
 \subsection{Configure python}
 
