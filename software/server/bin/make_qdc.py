@@ -16,6 +16,11 @@ if os.environ.get("DISPLAY", "") == "":
     mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+
+# Set timezone appropriately to get intended np.datetime64 behaviour.
+os.environ['TZ'] = 'UTC'
+time.tzset()
+
 import auroraplot as ap
 import auroraplot.dt64tools as dt64
 import auroraplot.magdata
@@ -24,9 +29,6 @@ import auroraplot.datasets.samnet
 
 logger = logging.getLogger(__name__)
 
-# Set timezone appropriately to get intended np.datetime64 behaviour.
-os.environ['TZ'] = 'UTC'
-time.tzset()
 
 
 assert os.environ.get('TZ') == 'UTC', \
