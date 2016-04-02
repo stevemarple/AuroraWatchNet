@@ -21,6 +21,13 @@ if os.environ.get('DISPLAY', '') == '':
     mpl.use('Agg')
 import matplotlib.pyplot as plt
 
+try:
+    # Try to force all times to be read as UTC
+    os.environ['TZ'] = 'UTC'
+    time.tzset()
+except:
+    pass
+
 import auroraplot as ap
 import auroraplot.dt64tools as dt64
 import auroraplot.magdata 
@@ -29,10 +36,6 @@ import auroraplot.auroralactivity
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.samnet
 import auroraplot.datasets.bgs_schools
-
-# Set timezone appropriately to get intended np.datetime64 behaviour.
-os.environ['TZ'] = 'UTC'
-time.tzset()
 
 mpl.rcParams['legend.fontsize'] = 'medium'
 
