@@ -273,13 +273,8 @@ def make_aurorawatch_plot(project, site, st, et, rolling, exif_tags):
     fit_st = fit_et - qdc_fit_interval
     fit_data = my_load_data(project, site, 'MagData', fit_st, fit_et)
 
-    # Load a QDC. For the 4th or later in the month load the previous
-    # month, otherwise go back two months. This gives a few days for
-    # data to be transferred, and QDCs to be made and checked.
-    qdc_t = dt64.get_start_of_previous_month(st)
-    if dt64.get_day_of_month(st) < 4:
-        qdc_t = dt64.get_start_of_previous_month(qdc_t)
-    mag_qdc = ap.magdata.load_qdc(project, site, qdc_t, tries=6)
+    # Load a QDC.
+    mag_qdc = ap.magdata.load_qdc(project, site, st, tries=6, realtime=True)
 
     if mag_qdc is None:
         logger.info('No QDC')
