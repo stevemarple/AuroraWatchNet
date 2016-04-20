@@ -107,6 +107,23 @@ if not os.path.isdir(default_awn_repo_path) \
     default_awn_repo_path = os.path.join(os.path.expanduser('~' + user),
                                          'AuroraWatchNet')
 
+
+
+mcp342x_package_dir = \
+    os.path.realpath(os.path.join(site.getusersitepackages(), 
+                                  'MCP342x'))
+    
+default_mcp342x_repo_path = os.path.realpath( \
+    re.sub(os.path.join('python-MCP342x', 'MCP342x') + '$', 'MCP342x', 
+           mcp342x_package_dir, 1))
+
+if not os.path.isdir(default_mcp342x_repo_path):
+    # Does not exist so fall back to being inside of home directory
+    default_mcp342x_repo_path = \
+        os.path.join(os.path.expanduser('~' + user), 'python-MCP342x')
+
+
+    
 parser.add_argument('-c', '--config-file', 
                     default='/etc/awnet.ini',
                     help='Configuration file',
@@ -127,6 +144,10 @@ parser.add_argument('--aurorawatchnet-repository',
 parser.add_argument('--auroraplot-repository',
                     default=default_auroraplot_repo_path,
                     help='Path to auroraplot repository',
+                    metavar='PATH')
+parser.add_argument('--mcp342x-repository',
+                    default=default_mcp342x_repo_path,
+                    help='Path to python MCP342x repository',
                     metavar='PATH')
 parser.add_argument('--sudo',
                     default=None,
@@ -149,8 +170,12 @@ logger.debug('Best guess for auroraplot repository: '
              + default_auroraplot_repo_path)
 logger.debug('Best guess for AuroraWatchNet repository: ' 
              + default_awn_repo_path)
+logger.debug('Best guess for MCP342x repository: ' 
+             + default_mcp342x_repo_path)
+
 logger.info('auroraplot repository: ' + args.auroraplot_repository)
 logger.info('AuroraWatchNet repository: ' + args.aurorawatchnet_repository)
+logger.info('MCP342x repository: ' + args.mcp342x_repository)
 
 # Check current username
 if user == 'root':
@@ -187,6 +212,7 @@ package_links = {
     'auroraplot': os.path.join(args.auroraplot_repository, 'auroraplot'),
     'aurorawatchnet':  os.path.join(args.aurorawatchnet_repository, 
                                     'software', 'server', 'aurorawatchnet'),
+    'MCP342x': os.path.join(args.mcp342x_repository, 'MCP342x'),
     }
 fix_symlinks(site.getusersitepackages(), package_links)
 
