@@ -438,6 +438,10 @@ def make_links(link_dir, link_data):
             logger.debug('link exists but is incorrect: ' + link_name)
             os.unlink(link_name)
         logger.debug('creating link ' + link_name + ' -> ' + target)
+        link_dir = os.path.dirname(link_name)
+        if not os.path.exists(link_dir):
+            logger.debug('creating directory %s', link_dir)
+            os.makedirs(link_dir)
         os.symlink(target, link_name)
 
 
