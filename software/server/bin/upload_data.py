@@ -83,7 +83,7 @@ def get_redirected_url(url, authhandler):
     n = 0
     while n < max_redirects:
         response = opener.open(url)
-        if response.code in (301, 302):
+        if response.code in (301, 302, 307, 308):
             url = response.headers['Location']
             authhandler.add_password(realm, url, username, password)
         else:
