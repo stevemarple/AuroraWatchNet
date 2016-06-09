@@ -408,10 +408,14 @@ elif method in ('http', 'https'):
             for ext in ['', config.get('dataqualitymonitor', 'extension')]:
                 file_name = file_base_name + ext
                 if os.path.exists(file_name):
-                    data_missing = False
-                    response = http_upload(file_name, url)
-                    if not response:
-                        all_ok = False
+                    if os.path.getsize(file_name):
+                        data_missing = False
+                        response = http_upload(file_name, url)
+                        if not response:
+                            all_ok = False
+                    else:
+                        logger.info('Refusing to upload %s: empty file',
+                                    file_name)
                 
                 elif ext == '':
                     # No .bad extension
