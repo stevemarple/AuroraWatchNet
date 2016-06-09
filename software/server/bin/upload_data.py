@@ -54,6 +54,13 @@ import aurorawatchnet as awn
 logger = logging.getLogger(__name__)
 
 
+class NoRedirection(urllib2.HTTPErrorProcessor):
+    def http_response(self, request, response):
+        return response
+
+    https_response = http_response
+
+
 def make_remote_rsync_directory(remote_host, remote_dir):
     logger.debug('Calling rsync to make remote directory, ' 
                   + remote_host + ':' + remote_dir)
@@ -61,6 +68,28 @@ def make_remote_rsync_directory(remote_host, remote_dir):
     if args.verbose:
         print(' '.join(cmd))
     subprocess.call(cmd)
+
+
+def get_redirected_url(url, authhandler):
+    '''Test if accessing the URL requires a redirect. 
+
+    Make  a HEAD request. Return the final URL used after any 
+    Future requests should use the redirected URL.'''
+
+    # Disable redirection and handle manually with limit on number of
+    # redirects.
+    opener = urllib2.build_opener(NoRedirection)
+    max_redirects = 5
+    n = 0
+    while n < max_redirects:
+        response = opener.open(url)
+        if response.code in (301, 302):
+            url = response.headers['Location']
+            authhandler.add_password(realm, url, username, password)
+        else:
+            return url
+
+    raise Exception('Too many HTTP redirects')
 
 
 def http_upload(file_name, url):
@@ -393,6 +422,13 @@ elif method in ('http', 'https'):
     authhandler.add_password(realm, url, username, password)
     opener = urllib2.build_opener(authhandler)
     urllib2.install_opener(opener)
+
+    # Check for HTTP redirects. Do this once and update the url used
+    # here. Don't update the config file.
+    new_url = get_redirected_url(url, authhandler)
+    if new_url != url:
+        url = new_url
+        logger.info('HTTP redirection, using %s', url)
 
     all_ok = True
     for ft in file_type_data.keys():
