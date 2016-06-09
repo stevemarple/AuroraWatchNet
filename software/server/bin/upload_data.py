@@ -412,14 +412,17 @@ elif method in ('http', 'https'):
                     response = http_upload(file_name, url)
                     if not response:
                         all_ok = False
-                elif ext == '' and ft in ('awnettextdata', 'awpacket', 
-                                          'raspitextdata'):
-                    # These should normally be present
-                    logger.info('Missing ' + file_name)
-                else:
-                    # Log files etc might not be present even in
-                    # normal operation
-                    logger.debug('Missing ' + file_name)
+                
+                elif ext == '':
+                    # No .bad extension
+                    if ft in ('logfile'):
+                        # Log files etc might not be present even
+                        # in normal operation
+                        logger.debug('Missing ' + file_name)
+                    else:
+                        # These should normally be present
+                        logger.info('Missing ' + file_name)
+                            
             if data_missing:
                 report_no_data(url, t, ft)
             t += interval
