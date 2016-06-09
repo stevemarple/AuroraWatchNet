@@ -80,8 +80,7 @@ def get_redirected_url(url, authhandler):
     # redirects.
     opener = urllib2.build_opener(NoRedirection)
     max_redirects = 5
-    n = 0
-    while n < max_redirects:
+    for n in range(max_redirects + 1):
         response = opener.open(url)
         if response.code in (301, 302, 307, 308):
             url = response.headers['Location']
