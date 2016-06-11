@@ -3,7 +3,6 @@ import argparse
 import copy
 import io
 import logging
-logger = logging.getLogger(__name__)
 
 import os
 import sys
@@ -110,9 +109,8 @@ def mysavefig(fig, filename, exif_tags=None):
     #     plt.close(fig) # Close to save memory
 
 def has_data_of_type(project, site, data_type):
-    return ap.projects.has_key(project) \
-        and ap.projects[project].has_key(site) \
-        and ap.projects[project][site]['data_types'].has_key(data_type)
+    dti = ap.get_site_info(project, site, 'data_types')
+    return dti.has_key(data_type)
 
 def round_to(a, b, func=np.round):
     return func(a / b) * b
@@ -531,9 +529,12 @@ parser.add_argument('--summary-dir',
                     metavar='PATH')
 
 args = parser.parse_args()
-logging.basicConfig(level=getattr(logging, args.log_level.upper()),
-                    format=args.log_format)
+if __name__ == '__main__':
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()),
+                        format=args.log_format)
     
+logger = logging.getLogger(__name__)
+
 # Use a consistent value for current time, process any --now option
 # first.
 if args.now:
@@ -601,6 +602,7 @@ for s in args.sites.upper().split():
 
 t1 = start_time
 while t1 < end_time:
+    logger.debug('time: %s', dt64.strftime(t1, '%Y-%m-%d'))
     plt.close('all')
 
     t2 = t1 + day
@@ -621,13 +623,14 @@ while t1 < end_time:
     for project_uc, site_uc in project_site.values():
         project_lc = project_uc.lower()
         site_lc = site_uc.lower()
-
+        logger.debug('%s/%s', project_uc, site_uc)
         if not ap.projects.has_key(project_uc):
             try:
                 __import__('auroraplot.datasets.' + project_lc)
                 logger.debug('imported auroraplot.datasets.' + project_lc)
             except:
-                pass
+                logger.error('could not import dataset for %s', project_lc)
+                
 
         site_start_time = ap.get_site_info(project_uc, site_uc, 
                                            info='start_time')
@@ -638,7 +641,6 @@ while t1 < end_time:
         if site_end_time and t1 >= site_end_time:
             next
 
-        
         copyright_ = ap.get_site_info(project_uc, site_uc, 'copyright')
         attribution = ap.get_site_info(project_uc, site_uc, 'attribution')
         
@@ -707,7 +709,8 @@ while t1 < end_time:
 
             except Exception as e:
                 logger.error(traceback.format_exc())
-
+        else:
+            logger.debug('%s/%s does not have MagData', project_uc, site_uc)
         temp_data = None
         if has_data_of_type(project_uc, site_uc, 'TemperatureData'):
             temp_data = my_load_data(project_uc, site_uc, 'TemperatureData', 
