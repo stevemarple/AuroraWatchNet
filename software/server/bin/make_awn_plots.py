@@ -284,11 +284,12 @@ def activity_plot(mag_data, mag_qdc, filename, exif_tags,
     ax2.set_position(pos)
 
     # min_ylim_range = 400
-    min_ylim_range = activity.thresholds[-1] * 1.5 * 1e9
-    ax2_ylim = ax2.get_ylim()
-    if np.diff(ax2_ylim) < min_ylim_range:
-        ax2.set_ylim(round_to(np.mean(ax2_ylim), 50) 
-                     + min_ylim_range * np.array([-0.5, 0.5]))
+    if activity:
+        min_ylim_range = activity.thresholds[-1] * 1.5 * 1e9
+        ax2_ylim = ax2.get_ylim()
+        if np.diff(ax2_ylim) < min_ylim_range:
+            ax2.set_ylim(round_to(np.mean(ax2_ylim), 50) 
+                         + min_ylim_range * np.array([-0.5, 0.5]))
     fig.set_figwidth(6.4)
     fig.set_figheight(4.8)
 
