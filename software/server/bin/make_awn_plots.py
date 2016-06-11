@@ -351,11 +351,6 @@ def make_stack_plot(mdl, filename, exif_tags):
     ax.grid(True)
     fig.subplots_adjust(left=0.15, right=0.925)
 
-    # Shorten AuroraWatchNet
-    tll = ax.yaxis.get_ticklabels() # tick label list
-    labels = [ tl.get_text() for tl in tll]
-    labels = map(lambda x: x.replace('AURORAWATCHNET', 'AWN'), labels)
-    ax.yaxis.set_ticklabels(labels)
     mysavefig(fig, filename, exif_tags)
 
 def combined_activity_plot(act, filename, exif_tags):
