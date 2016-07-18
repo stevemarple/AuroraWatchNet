@@ -221,7 +221,7 @@ parser.add_argument('-e', '--end-time',
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
                     default='awnettextdata awpacket aurorawatchrealtime ' \
-                        + 'cloud logfile raspitextdata',
+                        + 'cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 
