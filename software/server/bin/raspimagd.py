@@ -6,6 +6,7 @@ import glob
 import logging
 import numpy as np
 import os
+from scipy.stats import trim_mean
 import signal
 import smbus
 import struct
@@ -225,7 +226,11 @@ def get_adc_devices(config, bus):
 
 def get_aggregate_function(config, section, option):
     to_func = {'mean': np.mean,
-               'median': np.median}
+               'median': np.median,
+               'tmean_20pc': lambda x : trim_mean(x, 0.2),
+               'tmean_25pc': lambda x : trim_mean(x, 0.25),
+               'tmean_33pc': lambda x : trim_mean(x, 1.0/3),
+               }
     
     if config.has_option(section, option):
         s = config.get(section, option)
