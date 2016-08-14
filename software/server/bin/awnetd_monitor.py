@@ -33,6 +33,7 @@ from operator import xor
 import os
 import re
 import signal
+import subprocess
 import sys
 import time
 from serial import Serial, SerialException, SerialTimeoutException
@@ -124,8 +125,11 @@ class FtdiMonitor():
                         # externally-induced state change.
                         if file_exists:
                             logger.info(filename + ' created externally')
+                            cmd = warning_cmd
+                            
                         else:
                             logger.info(filename + ' removed externally')
+                            cmd = ok_cmd
                         time.sleep(1)
 
                     elif r is not None:
@@ -143,10 +147,12 @@ class FtdiMonitor():
                             ser.setDTR(xor(not file_exists, led_active_low))
                             try:
                                 if file_exists:
+                                    cmd = warning_cmd
                                     fh = open(filename, 'a')
                                     fh.close()
                                     logger.info(filename + ' created')
                                 else:
+                                    cmd = ok_cmd
                                     os.remove(filename)
                                     logger.info(filename + ' removed')
                                 # Dont' allow state to be changed
@@ -160,6 +166,20 @@ class FtdiMonitor():
 
                     previous_file_exists = file_exists
                     previous_device_state = 'opened'
+                    try:
+                        if file_exists:
+                            cmd = warning_cmd
+                        else:
+                            cmd = ok_cmd
+                        if cmd:
+                            logger.info('Running command %s',
+                                        repr(cmd))
+                            subprocess.check_call(cmd, shell=True)
+
+                    except Exception as e:
+                        logger.error(str(e))
+
+
 
             except (SerialTimeoutException, IOError):
                 if previous_device_state == 'opened':
@@ -283,6 +303,16 @@ if __name__ == '__main__':
                                            'led_active_low')
     else:
         led_active_low = True
+
+    if config.has_option('dataqualitymonitor', 'warning_command'):
+        warning_cmd = config.get('dataqualitymonitor', 'warning_command')
+    else:
+        warning_cmd = None
+    if config.has_option('dataqualitymonitor', 'ok_command'):
+        ok_cmd = config.get('dataqualitymonitor', 'ok_command')
+    else:
+        ok_cmd = None
+
     fm = FtdiMonitor(progname, device=device, filename=filename,
                      pidfile_path=pidfile_path, 
                      username=config.get('dataqualitymonitor', 'username'),
