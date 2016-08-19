@@ -205,7 +205,6 @@ const uint8_t gnssPpsPin = 6;
 volatile bool ppsTriggered = false;
 volatile AsyncDelay ppsTimeout;
 volatile bool useGnss = false;
-CounterRTC::Time maxGnssTimeError(1, 0);
 char gnssBuffer[85];
 RTCx::time_t gnssFixTime;
 bool gnssFixValid = false;
@@ -294,8 +293,10 @@ char sdFilename[sdFilenameLen] = "OLD_FILE";
 File sdFile;
 #endif
 
-volatile bool startSampling = true;
+volatile bool crtcTriggered = true;
 volatile bool callbackWasLate = true;
+
+bool startSampling = false;
 
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
@@ -308,10 +309,10 @@ void get_mcusr(void)
 }
 
 
-void startSamplingCallback(uint8_t alarmNum __attribute__ ((unused)), bool late, const void *context __attribute__ ((unused)) )
+void crtcCallback(uint8_t alarmNum __attribute__ ((unused)), bool late, const void *context __attribute__ ((unused)) )
 {
   // Indicate that main loop should commence sampling
-  startSampling = true;
+  crtcTriggered = true;
   callbackWasLate = late;
 }
 
@@ -334,7 +335,7 @@ void setAlarm(void)
   if (callbackWasLate) {
     CounterRTC::Time now;
     cRTC.getTime(now);
-    console << F("startSamplingCallback()  LATE ====\n");
+    console << F("crtcCallback()  LATE ====\n");
     extern CounterRTC::Time alarmBlockTime[CounterRTC::numAlarms];
     extern uint8_t alarmCounter[CounterRTC::numAlarms];
     console << F("alarm block: ") <<  alarmBlockTime[0].getSeconds()
@@ -343,11 +344,11 @@ void setAlarm(void)
 	    << F("\nnow: ") << now.getSeconds() << ' ' << now.getFraction() << endl;
   }
   else
-    console << F("startSamplingCallback()\n");
+    console << F("crtcCallback()\n");
   console << F("alarmTime: ") << t.getSeconds() << ' ' << t.getFraction() << endl;
   // --------------------
   */
-  cRTC.setAlarm(0, t, startSamplingCallback);
+  cRTC.setAlarm(0, t, crtcCallback);
 }
 
 #ifdef PRINT_BINARY_BUFFER
@@ -524,7 +525,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	if (absTimeError > samplingInterval)
 	  // Update alarm since it might be a long time in the future
 	  cRTC.setAlarm(0, serverTime + samplingInterval,
-			startSamplingCallback);
+			crtcCallback);
 	
       	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
@@ -1391,7 +1392,7 @@ void setup(void)
 
 #if defined(COMMS_XRF) && (F_CPU) == 8000000L
   // Assume battery-powered operation. Efficient sleep cycles are
-  // required. HAve the counter RTC ticking at 16Hz, giving maximum
+  // required. Have the counter RTC ticking at 16Hz, giving maximum
   // sleep time of 16s.
   
   // Ensure square-wave output is enabled.
@@ -1404,34 +1405,9 @@ void setup(void)
 #else
   // XRF communications are not compiled in, or the clock speed is
   // wrong for battery operation. Assume efficient sleeping is not
-  // important so optimiate the counter RTC for high resolution
+  // important so optimize the counter RTC for high resolution
   // measurements instead.
   
-#if 0
-  // Ensure square-wave output is enabled.
-  rtc.setSQW(RTCx::freq4096Hz);
-
-  // Input: 4096Hz, prescaler is divide by 1, clock tick is 4096Hz
-  cRTC.begin(4096, true, _BV(CS20));
-  counter2Frequency = 4096;
-#ifdef FEATURE_GNSS
-  maxGnssTimeError = CounterRTC::Time(0, 64);
-#endif
-
-#elif 0
-  // Ensure square-wave output is enabled. Set the highest input
-  // frequency possible so that register changes which rely upon
-  // transtions of TOSC1 happen fastest.
-  rtc.setSQW(RTCx::freq32768Hz);
-
-  // Input: 32768Hz, prescaler is divide by 8, clock tick is 4096Hz
-  cRTC.begin(4096, true, _BV(CS21));
-  counter2Frequency = 4096;
-#ifdef FEATURE_GNSS
-  maxGnssTimeError = CounterRTC::Time(0, 64);
-#endif
-  
-#elif 1
   // Ensure square-wave output is enabled. Set the highest input
   // frequency possible so that register changes which rely upon
   // transtions of TOSC1 happen fastest.
@@ -1440,35 +1416,12 @@ void setup(void)
   // Input: 32768Hz, prescaler is divide by 1, clock tick is 32768Hz
   cRTC.begin(32768, true, _BV(CS20));
   counter2Frequency = 32768;
-#ifdef FEATURE_GNSS
-  maxGnssTimeError = CounterRTC::Time(0, 328);				      
-#endif
-  
-#else
-  // Ensure square-wave output is enabled.
-  rtc.setSQW(RTCx::freq4096Hz);
-
-  // Input: 4096Hz, prescaler is divide by 256, clock tick is 16Hz
-  cRTC.begin(16, true, (_BV(CS22) | _BV(CS21))); 
-  counter2Frequency = 16;
-#ifdef FEATURE_GNSS
-  maxGnssTimeError = CounterRTC::Time(0, 1 * (CounterRTC::fractionsPerSecond /
-					      counter2Frequency));
-#endif
-#endif
-  
-#endif
+    
+#endif /* Matches #if defined(COMMS_XRF) && (F_CPU) == 8000000L */
 
   console << F("System clock: ") << counter2Frequency << "Hz\n";
 
-  /*
-#ifdef FEATURE_GNSS
-  maxGnssTimeError = CounterRTC::Time(0, (CounterRTC::fractionsPerSecond /
-					  counter2Frequency) * 1);
-#endif
-  */
-  
-  
+ 
   // Set counter RTC time from the hardware RTC
   struct RTCx::tm tm;
   if (rtc.readClock(&tm)) {
@@ -1550,39 +1503,60 @@ void loop(void)
 {
   wdt_reset();
 
+  // Decide when to start sampling. Use the GNSS PPS input if
+  // possible, otherwise use the alarm feature of the CounterRTC
+  // clock.
+#ifdef FEATURE_GNSS
+  RTCx::time_t gnssNow;
+  bool gnssNowOk = false;
+  if (ppsTriggered)
+    gnssNowOk = gnss_clock.readClock(gnssNow);
+    
+  if (useGnss && samplingInterval.getFraction() == 0) {
+    if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0))
+      startSampling = true;
+  }
+  else {
+    if (crtcTriggered)
+      startSampling = true;
+  }
+
+#else
+  if (crtcTriggered)
+    startSampling = true;
+#endif
+
+  
 #ifdef FEATURE_GNSS
   if (ppsTriggered) {
+    // Set CounterRTC clock from GNSS
     ppsTriggered = false;
 
-    RTCx::time_t gnss_t;
-    if (!startSampling && useGnss && gnss_clock.readClock(gnss_t))  {
+    if (gnssNowOk)  {
       CounterRTC::Time ourTime;
       cRTC.getTime(ourTime);
-      CounterRTC::Time gnssTime(gnss_t, 0);
+      CounterRTC::Time gnssTime(gnssNow, 0);
       CounterRTC::Time timeError = ourTime - gnssTime;
       CounterRTC::Time absTimeError = abs_(timeError);
       
-      if (absTimeError > maxGnssTimeError) {
-	// Update clock
-	cRTC.setTime(gnssTime);
-	if (absTimeError > samplingInterval)
-	  // Update alarm since it might be a long time in the future
-	  cRTC.setAlarm(0, gnssTime + samplingInterval,
-			startSamplingCallback);
-	
-	console << F("Time set from GNSS\n");
-	timeAdjustment = -timeError;
-      }
-
-      if (verbosity > 1)
+      // Update clock
+      cRTC.setTime(gnssTime);
+      if (absTimeError > samplingInterval)
+	// Update alarm since it might be a long time in the future
+	cRTC.setAlarm(0, gnssTime + samplingInterval,
+		      crtcCallback);
+      
+      if (verbosity > 1) {
 	console << F("Time error (our-GNSS): ")
 		<< timeError.getSeconds() << sep
 		<< timeError.getFraction() << endl;
-
+      }
     }
   }
 #endif
+  
 
+  
   if (startSampling) {
     cRTC.getTime(sampleStartTime);
 #ifdef FEATURE_FLC100
@@ -1604,14 +1578,7 @@ void loop(void)
     if (!houseKeeping.isSampling())
       houseKeeping.start();
      
-    // Set startSampling=false BEFORE setting the alarm. If the
-    // computed alarm time is in the past then the callback will be
-    // run immediately and will ensure startSampling is made true. If
-    // the alarm is set before setting startSampling=false then an
-    // alarm could be lost and sampling would stop.
     startSampling = false;
-    setAlarm();
-
     resultsProcessed = false;
 
 #ifdef FEATURE_GNSS
@@ -1625,9 +1592,20 @@ void loop(void)
     --gnssFixTime;
     
 #endif
-    console << F("----\nSampling started\n");
+    if (verbosity)
+      console << F("--\nSampling started\n");
   }
 
+  if (crtcTriggered) {
+    // Set crtcTriggered=false BEFORE setting the alarm. If the
+    // computed alarm time is in the past then the callback will be
+    // run immediately and will ensure crtcTriggered is made true. If
+    // the alarm is set before setting crtcTriggered=false then an
+    // alarm could be lost and sampling would stop.
+    crtcTriggered = false;
+    setAlarm();
+  }
+  
 #ifdef FEATURE_FLC100
   if (flc100Present)
     flc100.process();
