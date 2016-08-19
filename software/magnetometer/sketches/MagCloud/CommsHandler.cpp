@@ -257,7 +257,7 @@ bool CommsHandler::validateResponse(uint8_t *responseBuffer,
 	// comparison early and aim to have all outcomes take the
 	// same time.
 	for (uint8_t i = 0; i < AWPacket::hmacLength; ++i)
-	  valid = ((*calcHmacPtr++ == *respHmacPtr++) && valid);
+	  valid = ((*calcHmacPtr++ == *respHmacPtr++) & valid);
       }
     }
       
