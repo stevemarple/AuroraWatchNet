@@ -1482,6 +1482,32 @@ void setup(void)
     console << F("Could not get time from hardware RTC\n");
   console.flush();
 
+  // Configure radio module or Ethernet adaptor.
+#if defined(COMMS_W5100) || defined(COMMS_W5500)
+  if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
+    begin_WIZnet_UDP();
+    
+    disableJTAG();
+    ledPin = 17; // JTAG TDO
+    commsHandler.setCommsInterface(&wiz_udp);
+    useLed = true;
+
+    // Enable faster sampling rates for Ethernet communication
+    minSamplingInterval.setSeconds(1);
+  }
+#endif
+  
+#ifdef COMMS_XRF
+  if (radioType == EEPROM_COMMS_TYPE_XRF) {
+    console.println("Initialising XRF");
+    xrfSerial.begin(9600);
+    commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
+    xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
+    commsHandler.setCommsInterface(&xrf);
+  }
+#endif
+
+
   // Set samplingInterval
   uint16_t samplingInterval_16th_s
     = eeprom_read_word((const uint16_t*)EEPROM_SAMPLING_INTERVAL_16TH_S);
@@ -1501,27 +1527,6 @@ void setup(void)
 	  << sep << samplingInterval.getFraction() << endl;
   console.flush();
 
-  // Configure radio module or Ethernet adaptor.
-#if defined(COMMS_W5100) || defined(COMMS_W5500)
-  if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
-    begin_WIZnet_UDP();
-    
-    disableJTAG();
-    ledPin = 17; // JTAG TDO
-    commsHandler.setCommsInterface(&wiz_udp);
-    useLed = true;
-  }
-#endif
-  
-#ifdef COMMS_XRF
-  if (radioType == EEPROM_COMMS_TYPE_XRF) {
-    console.println("Initialising XRF");
-    xrfSerial.begin(9600);
-    commsBlockSize = 12; // By default XRF sends 12 byte packets, set to reduce TX latency.
-    xrf.begin(xrfSleepPin, xrfOnPin, xrfResetPin);
-    commsHandler.setCommsInterface(&xrf);
-  }
-#endif
   
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
