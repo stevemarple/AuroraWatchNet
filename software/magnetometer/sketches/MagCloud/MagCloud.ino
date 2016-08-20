@@ -296,8 +296,6 @@ File sdFile;
 volatile bool crtcTriggered = true;
 volatile bool callbackWasLate = true;
 
-bool startSampling = false;
-
 // Code to ensure watchdog is disabled after reboot code. Also takes a
 // copy of MCUSR register.
 static uint8_t mcusrCopy;
@@ -388,7 +386,7 @@ void doSleep(uint8_t mode)
     ; // Wait for any pending updates to have latched
   volatile uint8_t tccr2aCopy = TCCR2A;
 
-  while (!startSampling) {
+  while (!crtcTriggered) {
     // TODO: restrict how many times loop can run
     
     /*
@@ -1501,6 +1499,7 @@ bool resultsProcessed = false;
 CounterRTC::Time sampleStartTime;
 void loop(void)
 {
+  bool startSampling = false;
   wdt_reset();
 
   // Decide when to start sampling. Use the GNSS PPS input if
