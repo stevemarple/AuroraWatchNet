@@ -132,7 +132,7 @@
 #define STRINGIFY(a) STRINGIFY2(a)
 #define STRINGIFY2(a) #a
 
-#define FIRMWARE_VERSION "MagCloud-0.29a"
+#define FIRMWARE_VERSION "MagCloud-0.30a"
 //                        1234567890123456
 // Firmware version limited to 16 characters
 
