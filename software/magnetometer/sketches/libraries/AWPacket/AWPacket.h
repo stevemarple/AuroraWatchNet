@@ -36,7 +36,8 @@ public:
   enum flags_t {
     flagsSignedMessageBit = 0,     // Signed message
     flagsSampleTimingErrorBit = 1, // Sampled late
-    flagsResponseBit = 2,          // An acknowledegement message
+    flagsResponseBit = 2,          // An acknowledgement message
+    flagsDataQualityWarningBit = 3,
   };
 
   enum tags_t {

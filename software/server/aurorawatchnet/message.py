@@ -48,6 +48,7 @@ hmac_length = 8
 flags_signed_message_bit = 0
 flags_sample_timing_error_bit = 1
 flags_response_bit = 2
+flags_data_quality_warning_bit = 3
 
 size_of_tag = 1
 size_of_packet_length = 2
