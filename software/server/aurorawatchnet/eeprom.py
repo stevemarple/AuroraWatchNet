@@ -416,5 +416,29 @@ eeprom = {
         'help': 'Maximum time (in seconds) without receiving an acknowledgement before rebooting',
         'metavar': 'NUMBER',
         },
+
+    'data_quality_input_pin': {
+        'address': 0xda,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'default': 14,
+        'help': 'Data quality input pin',
+        },
+    'data_quality_input_active_low': {
+        'address': 0xdb,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'choices': [0, 1],
+        'default': False,
+        'help': 'Flag indicating if input is active low',
+        },
+    # Reserved
+    # 'data_quality_output_pin': {
+    #     'address': 0xdc,
+    #     'format': 'B',
+    #     'type': awn.safe_eval,
+    #     'default': 255,
+    #     'help': 'Data quality output pin',
+    #     },
 }
 
