@@ -215,6 +215,12 @@ uint8_t numSat;
 uint8_t hdop;
 #endif
 
+#ifdef FEATURE_DATA_QUALITY
+bool dataQualityWarning = false;
+uint8_t dataQualityInputPin = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALITY_INPUT_PIN);
+uint8_t dataQualityInputActiveLow = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALITY_INPUT_ACTIVE_LOW);
+#endif
+
 CommandHandler commandHandler;
 
 
@@ -1103,6 +1109,9 @@ void setup(void)
 #ifdef FEATURE_GNSS
 	       " GNSS"
 #endif
+#ifdef FEATURE_DATA_QUALITY
+	       " DATA_QUALITY"
+#endif
 	       "\n");
   
   // Only use the LED following a reset initiated by user action
@@ -1344,6 +1353,11 @@ void setup(void)
   // Send RMC and GGA messages.
   MicroNMEA::sendSentence(gnssSerial, "$PORZB,RMC,1,GGA,1");
 
+#endif
+
+#ifdef FEATURE_DATA_QUALITY
+  if (dataQualityInputPin != 255)
+    pinMode(dataQualityInputPin, INPUT_PULLUP);
 #endif
   
   uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
@@ -1589,8 +1603,12 @@ void loop(void)
     // readClock() returns current time at second boundary, adjust to
     // get true time of position fix
     --gnssFixTime;
-    
 #endif
+
+#ifdef FEATURE_DATA_QUALITY
+    dataQualityWarning = false;
+#endif
+    
     if (verbosity)
       console << F("--\nSampling started\n");
   }
@@ -1631,6 +1649,17 @@ void loop(void)
     gnss_clock.process(c);
   }
 #endif
+
+#ifdef FEATURE_DATA_QUALITY
+  if (dataQualityInputPin != 255) {
+    bool i = digitalRead(dataQualityInputPin);
+    if (dataQualityInputActiveLow)
+      i = !i;
+
+    dataQualityWarning |= i;
+  }
+#endif
+  
   
   if (commsHandler.process(responseBuffer, responseBufferLen))
     processResponse(responseBuffer, responseBufferLen);
@@ -1784,6 +1813,10 @@ void loop(void)
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
       packet.setFlagBit(AWPacket::flagsSampleTimingErrorBit, callbackWasLate);
+#ifdef FEATURE_DATA_QUALITY
+      packet.setFlagBit(AWPacket::flagsDataQualityWarningBit,
+			dataQualityWarning);
+#endif
       packet.setTimestamp(sampleStartTime.getSeconds(),
 			  sampleStartTime.getFraction());
       
