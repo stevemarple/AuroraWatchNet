@@ -219,6 +219,9 @@ uint8_t hdop;
 bool dataQualityWarning = false;
 uint8_t dataQualityInputPin = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALITY_INPUT_PIN);
 uint8_t dataQualityInputActiveLow = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALITY_INPUT_ACTIVE_LOW);
+// Flag set by dataQualityISR() to indicate sleep mode should be
+// terminated early
+volatile bool dataQualityChanged = false;
 #endif
 
 CommandHandler commandHandler;
@@ -392,7 +395,11 @@ void doSleep(uint8_t mode)
     ; // Wait for any pending updates to have latched
   volatile uint8_t tccr2aCopy = TCCR2A;
 
-  while (!crtcTriggered) {
+  while (!crtcTriggered
+#ifdef FEATURE_DATA_QUALITY
+	 && !dataQualityChanged
+#endif
+	 ) {
     // TODO: restrict how many times loop can run
     
     /*
@@ -965,6 +972,14 @@ void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
 }
 #endif
 
+#ifdef FEATURE_DATA_QUALITY
+void dataQualityISR(void)
+{
+  dataQualityChanged = true;
+}
+#endif
+
+
 #if defined(COMMS_W5100) || defined(COMMS_W5500)
 void maintainDhcpLease(void)
 {
@@ -1356,8 +1371,11 @@ void setup(void)
 #endif
 
 #ifdef FEATURE_DATA_QUALITY
-  if (dataQualityInputPin != 255)
+  if (dataQualityInputPin != 255) {
     pinMode(dataQualityInputPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(dataQualityInputPin),
+		    dataQualityISR, CHANGE);
+  }
 #endif
   
   uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
@@ -1652,6 +1670,7 @@ void loop(void)
 
 #ifdef FEATURE_DATA_QUALITY
   if (dataQualityInputPin != 255) {
+    dataQualityChanged = false;
     bool i = digitalRead(dataQualityInputPin);
     if (dataQualityInputActiveLow)
       i = !i;
