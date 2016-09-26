@@ -15,12 +15,12 @@
 # DTR is used to indicate the presence of the file, by lighting an LED
 # connected to it. Switch debouncing is implemented to confirm the
 # switch state. In the case of an error the LED is flashed. DTR can be
-# active low or active high. Ihe LED is wired (via a resistor) between
+# active low or active high. If the LED is wired (via a resistor) between
 # DTR and ground then it is active high, if wired between DTR and
 # supply it is active low.
 #
 # The purpose of this program in the AuroraWatchNet system is to allow
-# a non-technical use to flag when data quality may be suspect (for
+# a non-technical user to flag when data quality may be suspect (for
 # instance, when grass-cutting at the site is about to commence). By
 # using a semaphore file to signal to the recording process it is easy
 # to change the data quality status remotely.
