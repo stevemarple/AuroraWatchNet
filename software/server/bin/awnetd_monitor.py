@@ -289,7 +289,15 @@ if __name__ == '__main__':
 
     filename = args.filename
     if not filename:
-        if config.has_option('dataqualitymonitor', 'filename'):
+        if config.has_option('dataqualitymonitor', 'directory'):
+            directory = config.get('dataqualitymonitor', 'directory')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            elif not os.path.isdir(directory):
+                raise Exception('Data quality directory exists but is not a directory (%s)', directory)
+            filename = os.path.join(directory, 'data_quality_monitor_' 
+                                    + os.path.basename(device)
+        elif config.has_option('dataqualitymonitor', 'filename'):
             filename = config.get('dataqualitymonitor', 'filename')
         else:
             raise Exception('Filename not specified')
