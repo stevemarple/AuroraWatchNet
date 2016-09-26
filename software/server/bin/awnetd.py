@@ -966,9 +966,18 @@ while running:
 
             if message is not None:
                 message_received = time.time()
-                if (config.has_option('dataqualitymonitor', 'filename') and
-                    os.path.isfile(config.get('dataqualitymonitor', 
-                                              'filename'))):
+                data_quality_warning = False
+                if config.has_option('dataqualitymonitor', 'directory'):
+                    # Any file/directory counts as a warning
+                    data_quality_warning = \
+                        bool(os.listdir(config.get('dataqualitymonitor', 
+                                                   'directory')))
+                elif config.has_option('dataqualitymonitor', 'filename'):
+                    data_quality_warning = \
+                        os.path.isfile(config.get('dataqualitymonitor', 
+                                                  'filename'))):
+
+                if data_quality_warning:
                     if data_quality_extension is None:
                         write_to_log_file( \
                             message_received, 
