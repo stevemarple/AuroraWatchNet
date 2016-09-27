@@ -977,6 +977,9 @@ while running:
                         os.path.isfile(config.get('dataqualitymonitor', 
                                                   'filename'))):
 
+                if awn.message.is_data_quality_flag_set(message):
+                    data_quality_warning = True
+
                 if data_quality_warning:
                     if data_quality_extension is None:
                         write_to_log_file( \
