@@ -1016,7 +1016,12 @@ while running:
                     if data_quality_cmd:
                         if os.fork() == 0:
                             # Child process
-                            os.execlp(data_quality_cmd)
+                            try:
+                                os.execlp(data_quality_cmd)
+                            finally:
+                                # Ensure child terminates if exec()
+                                # failed. Don't call any cleanup code.
+                                os._exit(1)
 
                 if (device and device.isatty()) or device_socket:
                     message_time = message_received
