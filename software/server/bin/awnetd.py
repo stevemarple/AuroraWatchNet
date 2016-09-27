@@ -977,7 +977,7 @@ while running:
                 elif config.has_option('dataqualitymonitor', 'filename'):
                     data_quality_warning = \
                         os.path.isfile(config.get('dataqualitymonitor',
-                                                  'filename')):
+                                                  'filename'))
 
                 if awn.message.is_data_quality_flag_set(message):
                     data_quality_warning = True
