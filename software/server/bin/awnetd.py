@@ -1017,6 +1017,10 @@ while running:
                     previous_rt_data_quality = \
                         awn.message.is_data_quality_flag_set(message)
                     if data_quality_cmd:
+                        write_to_log_file( \
+                            message_received, 
+                            iso_timestamp(message_received) +
+                            ' D Running command "%s"\n' % data_quality_cmd)
                         if os.fork() == 0:
                             # Child process
                             try:
