@@ -399,6 +399,11 @@ def is_response_message(buf):
         return None
     return buf[flags_offset] & (1 << flags_response_bit)
 
+def is_data_quality_flag_set(buf):
+    if len(buf) <= flags_offset:
+        return None
+    return buf[flags_offset] & (1 << flags_data_quality_warning_bit)
+
 def get_sequence_id(buf):
     if not is_signed_message(buf):
         return None
