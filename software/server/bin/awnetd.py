@@ -971,9 +971,12 @@ while running:
                 data_quality_warning = False
                 if config.has_option('dataqualitymonitor', 'directory'):
                     # Any file/directory counts as a warning
-                    data_quality_warning = \
-                        bool(os.listdir(config.get('dataqualitymonitor',
-                                                   'directory')))
+                    try:
+                        data_quality_warning = \
+                            bool(os.listdir(config.get('dataqualitymonitor',
+                                                       'directory')))
+                    except:
+                        pass
                 elif config.has_option('dataqualitymonitor', 'filename'):
                     data_quality_warning = \
                         os.path.isfile(config.get('dataqualitymonitor',
