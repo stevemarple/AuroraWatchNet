@@ -913,6 +913,8 @@ buf = bytearray()
 
 
 data_quality_extension = None
+# Remember previous value of data quality flag (excludes message retries).
+previous_rt_data_quality = False
 running = True
 while running:
     try:
@@ -996,6 +998,26 @@ while running:
                         ' D Data quality warning removed\n')
                     data_quality_extension = None
                 
+                if not awn.message.get_retries(message):
+                    data_quality_cmd = None
+                    if (awn.message.is_data_quality_flag_set(message)
+                        and not previous_rt_data_quality
+                        and config.has_option('daemon', 'warning_command')):
+                            data_quality_cmd = config.get('daemon',
+                                                          'warning_command')
+                    elif (not awn.message.is_data_quality_flag_set(message)
+                          and previous_rt_data_quality
+                          and config.has_option('daemon', 'ok_command')):
+                        data_quality_cmd = config.get('daemon',
+                                                      'ok_command')
+                        
+                    previous_rt_data_quality = \
+                        awn.message.is_data_quality_flag_set(message)
+                    if data_quality_cmd:
+                        if os.fork() == 0:
+                            # Child process
+                            os.execlp(data_quality_cmd)
+
                 if (device and device.isatty()) or device_socket:
                     message_time = message_received
                 else:
