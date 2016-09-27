@@ -970,12 +970,12 @@ while running:
                 if config.has_option('dataqualitymonitor', 'directory'):
                     # Any file/directory counts as a warning
                     data_quality_warning = \
-                        bool(os.listdir(config.get('dataqualitymonitor', 
+                        bool(os.listdir(config.get('dataqualitymonitor',
                                                    'directory')))
                 elif config.has_option('dataqualitymonitor', 'filename'):
                     data_quality_warning = \
-                        os.path.isfile(config.get('dataqualitymonitor', 
-                                                  'filename'))):
+                        os.path.isfile(config.get('dataqualitymonitor',
+                                                  'filename')):
 
                 if awn.message.is_data_quality_flag_set(message):
                     data_quality_warning = True
