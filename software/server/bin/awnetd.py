@@ -11,6 +11,7 @@ import re
 import select
 import socket
 import struct
+import subprocess
 import sys
 import termios
 import time
@@ -1024,7 +1025,7 @@ while running:
                         if os.fork() == 0:
                             # Child process
                             try:
-                                os.execlp(data_quality_cmd)
+                                subprocess.call(data_quality_cmd, shell=True)
                             finally:
                                 # Ensure child terminates if exec()
                                 # failed. Don't call any cleanup code.
