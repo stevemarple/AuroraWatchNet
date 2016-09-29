@@ -268,12 +268,17 @@ ln -s ../AuroraWatchNet/software/server/bin/upload_data.py
 cd \mytilde
 \end{Cmd}
 
-\subsection{Create configuration file}
-
+\subsection{Create data directory}
 As user \rootUser
 \begin{Cmd}
 mkdir /data
 chown pi.pi /data
+\end{Cmd}
+
+\subsection{Create configuration file}
+
+As user \rootUser
+\begin{Cmd}
 nano /etc/awnet.ini
 \end{Cmd}
 
