@@ -356,26 +356,32 @@ cd /etc/ifplugd/action.d
 ln -s /home/pi/AuroraWatchNet/software/server/bin/log_ip
 \end{Cmd}
 
-\subsection{Automatically start the data recording daemon}
-As user \rootUser
-\begin{Cmd}
-cd /etc/init.d
-update-rc.d awnetd defaults
-\end{Cmd}
-
 \subsection{Configure python}
 
 Create the python local site directory and create appropriate symbolic
 links. As user \piUser
 \begin{Cmd}
 \mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
+\mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
 \end{Cmd}
 
 The first time the command runs there will be some errors printed as
-symbolic links are other configuration details are missing. Run the
-same command a second time to confirm that the errors have been
-corrected.
+symbolic links are other configuration details are missing. On the
+second run confirm that the errors have been corrected.
 
+\subsection{Automatically start the data recording daemon}
+If using the Calunium-based systems then run, as user \rootUser
+\begin{Cmd}
+cd /etc/init.d
+update-rc.d awnetd defaults
+\end{Cmd}
+
+For systems where the sensor head is connected to the Raspberry Pi
+without using a microcontroller then run, as user \rootUser
+\begin{Cmd}
+cd /etc/init.d
+update-rc.d raspimagd defaults
+\end{Cmd}
 
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing
