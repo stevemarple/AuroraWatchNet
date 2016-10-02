@@ -1557,6 +1557,10 @@ void loop(void)
     startSampling = true;
 #endif
 
+#ifdef FEATURE_DATA_QUALITY
+  if (dataQualityChanged)
+    startSampling = true;
+#endif
   
 #ifdef FEATURE_GNSS
   if (ppsTriggered) {
