@@ -296,7 +296,7 @@ if __name__ == '__main__':
             elif not os.path.isdir(directory):
                 raise Exception('Data quality directory exists but is not a directory (%s)', directory)
             filename = os.path.join(directory, 'data_quality_monitor_' 
-                                    + os.path.basename(device)
+                                    + os.path.basename(device))
         elif config.has_option('dataqualitymonitor', 'filename'):
             filename = config.get('dataqualitymonitor', 'filename')
         else:
