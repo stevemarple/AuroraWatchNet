@@ -172,8 +172,8 @@ class FtdiMonitor():
                         else:
                             cmd = ok_cmd
                         if cmd:
-                            logger.info('Running command %s',
-                                        repr(cmd))
+                            # logger.info('Running command %s',
+                            #             repr(cmd))
                             subprocess.check_call(cmd, shell=True)
 
                     except Exception as e:
