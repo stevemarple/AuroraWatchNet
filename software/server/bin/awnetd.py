@@ -707,6 +707,23 @@ def add_current_time_tag(message):
     awn.message.put_current_epoch_time(message)
     return
 
+
+def fork_exec_cmd(cmd):
+    ''' Fork and run a command'''
+    t = time.time()
+    write_to_log_file(t, 
+                      '%s D Running command "%s"\n' % (iso_timestamp(t), cmd))
+    if os.fork() == 0:
+        # Child process
+        try:
+            subprocess.check_call(data_quality_cmd, 
+                                  shell=True)
+        finally:
+            # Ensure child terminates if exec()
+            # failed. Don't call any cleanup code.
+            os._exit(1)
+            
+
 # ==========================================================================
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -912,7 +929,6 @@ if config.has_option('awpacket', 'key'):
 
 buf = bytearray()
 
-
 data_quality_extension = None
 # Remember previous value of data quality flag (excludes message retries).
 previous_rt_data_quality = False
@@ -1018,18 +1034,7 @@ while running:
                     previous_rt_data_quality = \
                         awn.message.is_data_quality_flag_set(message)
                     if data_quality_cmd:
-                        write_to_log_file( \
-                            message_received, 
-                            iso_timestamp(message_received) +
-                            ' D Running command "%s"\n' % data_quality_cmd)
-                        if os.fork() == 0:
-                            # Child process
-                            try:
-                                subprocess.call(data_quality_cmd, shell=True)
-                            finally:
-                                # Ensure child terminates if exec()
-                                # failed. Don't call any cleanup code.
-                                os._exit(1)
+                        fork_exec_cmd(data_quality_cmd)
 
                 if (device and device.isatty()) or device_socket:
                     message_time = message_received
