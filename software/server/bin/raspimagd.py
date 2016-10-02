@@ -324,9 +324,21 @@ def record_sample():
     if data is None:
         return
 
-    if (config.has_option('dataqualitymonitor', 'filename') and
-        os.path.isfile(config.get('dataqualitymonitor', 
-                                  'filename'))):
+    # A warning about data quality from any source
+    data_quality_warning = False
+    if config.has_option('dataqualitymonitor', 'directory'):
+        # Any file/directory counts as a warning
+        try:
+            data_quality_warning = \
+                bool(os.listdir(config.get('dataqualitymonitor',
+                                           'directory')))
+        except:
+            pass
+    elif config.has_option('dataqualitymonitor', 'filename'):
+        data_quality_warning = \
+            os.path.isfile(config.get('dataqualitymonitor', 'filename'))
+
+    if data_quality_warning:
         # Problem with data quality
         if data_quality_ok:
             # Not known previously, log
