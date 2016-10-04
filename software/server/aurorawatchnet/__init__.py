@@ -132,20 +132,67 @@ def parse_datetime(s, now=None):
         now = datetime.datetime.utcnow()
     
     today = now.replace(hour=0,minute=0,second=0,microsecond=0)
-    yesterday = today - datetime.timedelta(days=1)
-    tomorrow = today + datetime.timedelta(days=1)
 
-    if s == 'tomorrow':
-        return tomorrow
-    elif s == 'now':
-        return now
-    elif s == 'today':
-        return today
-    elif s == 'yesterday':
-        return yesterday
+    if s.startswith('overmorrow'):
+        return (today + datetime.timedelta(days=2)
+                + parse_timedelta(' '.join(s.split()[1:])))
+    elif s.startswith('tomorrow'):
+        return (today + datetime.timedelta(days=1)
+                + parse_timedelta(' '.join(s.split()[1:])))
+    elif s.startswith('now'):
+        return now + parse_timedelta(' '.join(s.split()[1:]))
+    elif s.startswith('today'):
+        return today + parse_timedelta(' '.join(s.split()[1:]))
+    elif s.startswith('yesterday'):
+        return (today - datetime.timedelta(days=1) 
+                + parse_timedelta(' '.join(s.split()[1:])))
     else:
         return datetime.datetime.strptime(s, '%Y-%m-%d')
     
+def parse_timedelta(s):
+    r = datetime.timedelta(seconds=0)
+    value_next = True
+    values = []
+    units = []
+    for w in s.split():
+        m = re.match('^([+-]?[0-9]+)?(s|m|h|D|W)?$', w)
+        if m is None:
+            raise ValueError('unknown value/unit (%s)' % w)
+        v, u = m.groups()
+        if v is not None and u is not None:
+            # Value and unit
+            if not value_next:
+                raise ValueError('unit expected but found %s' % repr(w))
+            values.append(v)
+            units.append(u)
+        elif v is None and u is not None:
+            # unit only
+            if value_next:
+                raise ValueError('value expected but found %s' % repr(w))
+            units.append(u)
+            value_next = True
+        elif v is not None and u is None:
+            # value only
+            if not value_next:
+                raise ValueError('unit expected but found %s' % repr(w))
+            values.append(v)
+            value_next = False
+
+    if not value_next:
+        raise ValueError('Last value missing unit: %s' % repr(s))
+
+    units_to_datetimes = {
+        's': datetime.timedelta(seconds=1),
+        'm': datetime.timedelta(minutes=1),
+        'h': datetime.timedelta(hours=1),
+        'D': datetime.timedelta(days=1),
+        'W': datetime.timedelta(weeks=1),
+        }
+
+    for n in range(len(values)):
+        r += int(values[n]) * units_to_datetimes[units[n]]
+    return r
+
 
 def drop_root_privileges(username='nobody', group=None):
     if os.getuid() != 0:
