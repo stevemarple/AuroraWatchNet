@@ -115,7 +115,12 @@ def get_rt_transfer_info(config):
                     suf = mo.group(1) # suffix
                     hmac_key = config.get(sec, 'remote_key' + suf).decode('hex')
                     # Hostnames may resolve to multiple IP addresses, add all
-                    for ip in socket.gethostbyname_ex(i[1])[2]:
+                    try:
+                        ip_list = socket.gethostbyname_ex(i[1])[2]
+                    except:
+                        logger.error('Could not resolve %s for real-time transfer, ignoring', i[1])
+                        ip_list = []
+                    for ip in ip_list:
                         r.append({'hostname': i[1],
                                   'ip': ip,
                                   'port': int(config.get(sec, 'remote_port' 
