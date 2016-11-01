@@ -78,7 +78,7 @@ def read_config_file(filename):
     return config
 
 
-def get_rt_tranfer_info(config):
+def get_rt_transfer_info(config):
     '''Read realtime transfer details.
 
     Return a list of hosts to transfer data to in real time. List

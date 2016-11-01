@@ -758,7 +758,8 @@ parser.add_argument('-v', '--verbose', dest='verbosity', action='count',
 args = parser.parse_args()
 
 config = awn.read_config_file(args.config_file)
-rt_transfer = awn.get_rt_tranfer_info(config)
+
+rt_transfer = awn.get_rt_transfer_info(config)
 if rt_transfer:
     rt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
 else:
