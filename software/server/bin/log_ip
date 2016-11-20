@@ -11,7 +11,7 @@
 # See how we were called.
 
 hostname=`hostname`
-ip=`hostname -I|tr -d ' '`
+ip=`ip route get 148.88.0.0 | awk '{print $NF;exit}'`
 
 if [ "$#" = 2 ]; then
     # Called from plugd with interface and up/down
