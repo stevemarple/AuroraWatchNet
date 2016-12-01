@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# Location of the config file
+CONFIG_FILE="/etc/duckdns"
+
+# Config file should look similar to
+# TOKEN="Your toek goes here"
+# DUCKDNS_HOSTNAME="your-hostname"
+# Can update with either the local IP address or the external IP address
+# USE_LOCAL_IP_ADDRESS="1"
+
+if [ -f "$CONFIG_FILE" ]; then
+    . "$CONFIG_FILE"
+    if [ -z "$TOKEN" ]; then
+	eho "TOKEN not set"
+    fi
+    if [ -z "$DUCKDNS_HOSTNAME" ]; then
+	DUCKDNS_HOSTNAME="`hostname -s`"
+    fi
+else
+    echo "Config file $CONFIG_FILE missing"
+    exit 1
+fi
+
+
+# Request URL (see duckdns help)
+url="https://www.duckdns.org/update?domains=${DUCKDNS_HOSTNAME}&token=${TOKEN}"
+
+if [ "$USE_LOCAL_IP_ADDRESS" != "0" ]; then
+    # Retrieve local IP address. Uncomment below to use local (internal) 
+    # IP address. Comment out line below to have duckdns use the external
+    # IP address.
+    ip="`/sbin/ifconfig eth0|grep -o 'inet addr:[0-9.]*' | cut -d: -f2`"
+    url="${url}&ip=${ip}"
+fi
+
+
+# Update Duck DNS
+curl -s -S -k "$url"
+ret="$?"
+echo ""
+exit $ret
