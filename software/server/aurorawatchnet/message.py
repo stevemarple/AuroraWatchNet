@@ -9,6 +9,7 @@ import struct
 import time
 
 import aurorawatchnet as awn
+import aurorawatchnet.eeprom as eeprom
 
 __all__ = ['validate_packet']
 
@@ -97,8 +98,22 @@ def format_eeprom_contents(tag_name, data_len, payload):
     if data_len < 3:
         return 'Data too short'
     address = 256 * payload[0] + payload[1]
-    data_repr = '0x  ' + ' '.join(map(byte_hex, payload[2:]))
-    return ('address=0x%04x ' % address) + data_repr
+    r = 'address=0x%04x ' % address
+    if address in eeprom.eeprom_address_to_key:
+        setting = eeprom.eeprom_address_to_key[address]
+        r += '(%s) ' % setting
+        fmt = eeprom.eeprom[setting]['format']
+        order, quantity, elem_type = eeprom.parse_unpack_format(fmt)
+        data = struct.unpack(fmt, payload[2:])
+        if len(data) == 1:
+            data = data[0]
+            if elem_type == 's':
+                data = data.rstrip('\x00')
+        r += repr(data)
+    else:
+        r += '0x  ' + ' '.join(map(byte_hex, payload[2:]))
+    return r
+
 
 def format_upgrade_firmware(tag_name, data_len, payload):
     return "'{version:s}' pages={pages:d} crc=0x{crc:04x}".\

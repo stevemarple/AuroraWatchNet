@@ -48,7 +48,16 @@ def make_hmac_key(key=None):
         return k
     elif key == 'blank':
         return [0xFF] * hmac_key_length
-                             
+
+
+def get_eeprom_addresses():
+    r = {}
+    for k in eeprom:
+        if 'address' in eeprom[k]:
+            r[eeprom[k]['address']] = k
+    return r
+
+    
 # EEPROM address details. The key is derived from the C language name
 # and becomes the command line option when generating an EEPROM image
 # file. The value is a dict with the following entries:
@@ -442,3 +451,4 @@ eeprom = {
     #     },
 }
 
+eeprom_address_to_key = get_eeprom_addresses()
