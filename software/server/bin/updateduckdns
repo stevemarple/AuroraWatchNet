@@ -4,7 +4,7 @@
 CONFIG_FILE="/etc/duckdns"
 
 # Config file should look similar to
-# TOKEN="Your toek goes here"
+# TOKEN="Your token goes here"
 # DUCKDNS_HOSTNAME="your-hostname"
 # Can update with either the local IP address or the external IP address
 # USE_LOCAL_IP_ADDRESS="1"
@@ -26,14 +26,25 @@ fi
 # Request URL (see duckdns help)
 url="https://www.duckdns.org/update?domains=${DUCKDNS_HOSTNAME}&token=${TOKEN}"
 
-if [ "$USE_LOCAL_IP_ADDRESS" != "0" ]; then
+if [ -n "$USE_LOCAL_IP_ADDRESS" ]; then
     # Retrieve local IP address. Uncomment below to use local (internal) 
     # IP address. Comment out line below to have duckdns use the external
     # IP address.
     ip="`/sbin/ifconfig eth0|grep -o 'inet addr:[0-9.]*' | cut -d: -f2`"
     url="${url}&ip=${ip}"
+
+    if [ -n "USE_IPV6" ]; then
+	ipv6="`/sbin/ifconfig eth0| sed -r -n 's/.*inet6\s?addr: ([0-9a-f:]*).*/\1/pi'`"
+	if [ -n "$ipv6" ]; then
+	    url="${url}&ipv6=${ipv6}"
+	fi
+    fi
 fi
 
+if [ -n "$VERBOSE" ]; then
+    url="${url}&verbose=true"
+    echo "URL is $url"
+fi
 
 # Update Duck DNS
 curl -s -S -k "$url"
