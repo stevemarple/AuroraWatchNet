@@ -36,7 +36,7 @@ def record_data():
     global adc_devices
 
     if config.has_option('daemon', 'i2c'):
-        bus = get_smbus(config.get('daemon', 'i2c'))
+        bus = get_smbus(config.getint('daemon', 'i2c'))
     else:
         bus = get_smbus()
 
