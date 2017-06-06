@@ -91,7 +91,7 @@ def get_redirected_url(url, authhandler):
     raise Exception('Too many HTTP redirects')
 
 
-def http_upload(file_name, url):
+def http_upload(file_name, url, remove_source=False):
     logger.debug('Uploading ' + file_name)
     values = {'file_name': file_name}
     fh = open(file_name, 'r')
@@ -119,6 +119,13 @@ def http_upload(file_name, url):
                 # Same size so complete
                 fh.close()
                 logger.info(file_name + ' already uploaded')
+                if remove_source:
+                    logger.info('removing source file ' + file_name)
+                    try:
+                        os.remove(file_name)
+                    except:
+                        logger.exception('could not remove ' + file_name)
+                        
                 return True
             else:
                 logger.info(file_name + ' partially uploaded')
@@ -224,6 +231,9 @@ parser.add_argument('--file-types',
                         + 'cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
+parser.add_argument('--remove-source-files',
+                    action='store_true',
+                    help='Remove source file')
 
 # rsync options
 rsync_grp = parser.add_argument_group('rsync', 'options for rsync uploads')
@@ -319,7 +329,7 @@ if method in ['rsync', 'rrsync']:
 
     if args.dry_run:
         cmd.append('--dry-run')
-        
+
     if args.all:
         if args.start_time is not None:
             logger.error('--start-time cannot be specified with --all')
@@ -381,6 +391,12 @@ if method in ['rsync', 'rrsync']:
                     last_year = t.year
 
                 cmd2 = copy.copy(cmd)
+                if args.remove_source_files:
+                    if t >= today:
+                        logger.info('refusing to remove source files for today')
+                    else:
+                        cmd2.append('--remove-source-files')
+                
                 cmd2.extend(file_list)
                 # Use trailing slash to signal to the remote rsync
                 # that the target is a directory (it can't work this
@@ -445,7 +461,12 @@ elif method in ('http', 'https'):
                 if os.path.exists(file_name):
                     if os.path.getsize(file_name):
                         data_missing = False
-                        response = http_upload(file_name, url)
+                        rem_source = args.remove_source_files
+                        if rem_source and t >= today:
+                            logger.info('refusing to remove source files for today')
+                            rem_source = False
+                            
+                        response = http_upload(file_name, url, rem_source)
                         if not response:
                             all_ok = False
                     else:
@@ -461,9 +482,18 @@ elif method in ('http', 'https'):
                     else:
                         # These should normally be present
                         logger.info('Missing ' + file_name)
-                            
-            if data_missing:
+
+            if data_missing and not args.remove_source_files:
                 report_no_data(url, t, ft)
+
+            dname = os.path.dirname(file_name)
+            if args.remove_source_files and os.path.isdir(dname) and len(os.listdir(dname)) == 0:
+                try:
+                    logger.info('removing directory ' + dname)
+                    os.removedirs(dname)
+                except:
+                    logger.exception('could not remove directory ' + dname)
+                        
             t += interval
     
 else:
