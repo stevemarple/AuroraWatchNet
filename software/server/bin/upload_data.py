@@ -36,6 +36,7 @@ import datetime
 import hashlib
 import logging
 import os
+import random
 import sys
 if sys.version_info[0] >= 3:
     import configparser
@@ -45,6 +46,7 @@ else:
     from ConfigParser import SafeConfigParser
 
 import subprocess
+import time
 import urlparse
 import urllib
 import urllib2
@@ -193,7 +195,7 @@ def report_no_data(url, t, file_type):
     req = urllib2.urlopen(no_data_url)
     req.read()
     req.close()
-    
+
 
 now = datetime.datetime.utcnow()
 today = now.replace(hour=0,minute=0,second=0,microsecond=0)
@@ -231,6 +233,9 @@ parser.add_argument('--file-types',
                         + 'cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
+parser.add_argument('--random-delay',
+                    help='Add random delay (for use by cron)',
+                    metavar='SECONDS')
 parser.add_argument('--remove-source-files',
                     action='store_true',
                     help='Remove source file')
@@ -285,6 +290,16 @@ except Exception as e:
     logger.error('Bad config file ' + args.config_file + ': ' + str(e))
     raise
 
+delay = None
+if args.random_delay:
+    delay = random.random() * float(args.random_delay)
+elif not sys.stdin.isatty():
+    # Standard input is not a TTY, assume called from cron
+    delay = random.random() * 50
+    
+if delay:
+    logger.debug('sleeping for %.1fs', delay)
+    time.sleep(delay)
 
 if args.method:
     method = args.method
