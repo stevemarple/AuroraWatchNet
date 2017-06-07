@@ -23,7 +23,7 @@
 # 
 # m h  dom mon dow   command
 
-# Log IP address (useful for debugging)
+# Log IP address, local time etc to indicate Pi is running correctly.
 @reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
 @hourly /home/pi/bin/log_ip > /dev/null 2>&1
 
@@ -39,9 +39,15 @@
 # Upload any older data, remove if already transferred
 36 4 * * * /home/pi/bin/upload_data.py -s 'today -100D' -e  'today -30D' > /dev/null 2>&1
 
-
 # Check NTP status
 */2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
+
+# Check wifi is up (uncomment only if using wifi, you may need to
+# adjust the interface name from wlan0)
+# */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
+
+# Start the process which monitors the FTDI all-in-one
+# @reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
 
 # Check wifi is up (uncomment only if using wifi, you may need to
 # adjust the interface name from wlan0)
@@ -51,6 +57,3 @@
 # is running; restart if needed.
 @reboot sudo /etc/init.d/raspimagd start > /dev/null 2>&1
 */15 * * * * sudo /etc/init.d/raspimagd start > /dev/null 2>&1
-
-# Start the process which monitors the FTDI all-in-one
-# @reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
