@@ -37,7 +37,7 @@
 24 */12 * * * /home/pi/bin/upload_data.py -s 'today -5D' -e yesterday > /dev/null 2>&1
 
 # Upload any older data, remove if already transferred
-36 4 * * * /home/pi/bin/upload_data.py -s 'today -100D' -e  'today -30D' > /dev/null 2>&1
+36 4 * * * /home/pi/bin/upload_data.py -s 'today -100D' -e  'today -30D' --remove-source-files > /dev/null 2>&1
 
 # Check NTP status
 */2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
@@ -57,4 +57,3 @@
 # is running; restart if needed.
 @reboot sudo /etc/init.d/awnetd start > /dev/null 2>&1
 */15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
-
