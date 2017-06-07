@@ -288,67 +288,35 @@ the repository]
 \newpage
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
-As user \piUser
+
+If using a Calunium-based system configure \filename{cron} with the
+following command:
 \begin{Cmd}
-crontab -e
+crontab ~/AuroraWatchNet/software/server/crontabs/awnetd.crontab
 \end{Cmd}
 
-In the \filename{nano} editor add the following text. 
-
-\begin{Cmd}[fontsize=\smaller]
-# Log IP address (useful for debugging)
-@reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
-@hourly /home/pi/bin/log_ip > /dev/null 2>&1
- 
-# Upload data
-*/5 * * * * nice /home/pi/bin/upload_data.py -s today > /dev/null 2>&1
-4 */6 * * * nice /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
- 
-# Check NTP status
-*/2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
-
-# Check wifi is up (uncomment only if using wifi, you may need to
-# adjust the interface name from wlan0)
-# */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
-\end{Cmd}
-
-If using the Calunium-based systems include the following lines to
-start the data logging daemon.
+For systems where the sensor head is connected to the Raspberry Pi
+without using a microcontroller (such as the \bgs\ school
+magnetometer) then instead configure \filename{cron} with the
+following command:
 \begin{Cmd}
-# Start the data recording daemon; check periodically that the server
-# is running; restart if needed.
-@reboot sudo /etc/init.d/awnetd start > /dev/null 2>&1
-*/15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
-\end{Cmd}
- 
-Systems where the sensors head is connected to the Raspberry Pi
-without using a microcontroller (such as the \bgs\ school magnetometer)
-must include the following lines to start the data recording damon.
-\begin{Cmd}
-# Start the data recording daemon; check periodically that the server
-# is running; restart if needed.
-@reboot sudo /etc/init.d/raspimagd start > /dev/null 2>&1
-*/15 * * * * sudo /etc/init.d/raspimagd start > /dev/null 2>&1
+crontab ~/AuroraWatchNet/software/server/crontabs/raspimagd.crontab
 \end{Cmd}
 
 If you plan to use the FTDI-all-in-one pogrammer and switch to
-indicate periods of bad data then also include the following lines
-(most users can ignore this):
-\begin{Cmd}
-# Start the process which monitors the FTDI all-in-one
-@reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
-\end{Cmd}
+indicate periods of bad data then uncomment the line with the
+reference to \filename{awnetd_monitor.py}.
 
-\helpbox{Make sure you terminate the last line by pressing the
-  \myreturn\ key.}
+If the Raspberry Pi is using Wi-Fi networking uncommented the line
+referencing \filename{network_watchdog}, it will cause the Raspberry
+Pi to be rebooted if it appears that Wi-Fi networking has stopped
+working for some reason.
 
-The \code{log_ip} lines periodically report that the Raspberry Pi is
-operating. This helps the AuroraWatch administrators monitor which
-stations are active. These reporting commands can be omitted if you
-prefer.
+The \code{log_ip} lines in the cron file cause the Raspberry Pi to
+periodically report that it is operating. This helps the AuroraWatch
+administrators monitor which stations are active. These reporting
+commands can be omitted if you prefer.
 
-Save the file, \keystroke{CTRL}-\keystroke{x}, \keystroke{y},
-\myreturn.
 
 \subsection{Configure \protect\filename{ifplugd}}
 
