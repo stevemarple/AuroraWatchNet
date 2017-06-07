@@ -1,0 +1,60 @@
+# -*-fundamental-*-  (set emacs mode)
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').
+# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+# 
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+# 
+# For more information see the manual pages of crontab(5) and cron(8)
+# 
+# m h  dom mon dow   command
+
+# Log IP address, local time etc to indicate Pi is running correctly.
+@reboot /home/pi/bin/log_ip reboot > /dev/null 2>&1
+@hourly /home/pi/bin/log_ip > /dev/null 2>&1
+
+# Upload today's data
+*/5 * * * * /home/pi/bin/upload_data.py -s today > /dev/null 2>&1
+
+# Upload yesterday's data
+2 */6 * * * /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
+
+# Upload recent data
+24 */12 * * * /home/pi/bin/upload_data.py -s 'today -5D' -e yesterday > /dev/null 2>&1
+
+# Upload any older data, remove if already transferred
+36 4 * * * /home/pi/bin/upload_data.py -s 'today -100D' -e  'today -30D' > /dev/null 2>&1
+
+# Check NTP status
+*/2 * * * * /home/pi/bin/check_ntp_status > /dev/null 2>&1
+
+# Check wifi is up (uncomment only if using wifi, you may need to
+# adjust the interface name from wlan0)
+# */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
+
+# Start the process which monitors the FTDI all-in-one
+# @reboot /home/pi/bin/awnetd_monitor.py start > /dev/null 2>&1
+
+# Check wifi is up (uncomment only if using wifi, you may need to
+# adjust the interface name from wlan0)
+# */10 * * * * /home/pi/bin/network_watchdog -i wlan0 | logger -t network_watchdog
+
+# Start the data recording daemon; check periodically that the server
+# is running; restart if needed.
+@reboot sudo /etc/init.d/awnetd start > /dev/null 2>&1
+*/15 * * * * sudo /etc/init.d/awnetd start > /dev/null 2>&1
+
