@@ -233,6 +233,10 @@ parser.add_argument('--file-types',
                         + 'cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
+if hasattr(os, 'nice'):
+    parser.add_argument('--nice',
+                        type=int,
+                        help='Modify scheduling priority')
 parser.add_argument('--random-delay',
                     help='Add random delay (for use by cron)',
                     metavar='SECONDS')
@@ -290,6 +294,20 @@ except Exception as e:
     logger.error('Bad config file ' + args.config_file + ': ' + str(e))
     raise
 
+if hasattr(os, 'nice'):
+    nice = 0
+    if args.nice is not None:
+        nice = args.nice
+    elif not sys.stdin.isatty():
+        # Standard input is not a TTY, assume called from cron. Set
+        # niceness to 10, taking into account that niceness may have been
+        # set externally. Do not attmept to reduce niceness.
+        nice = max(10 - os.nice(0), 0)
+    if nice:
+        os.nice(nice)
+    if os.nice(0):
+        logger.debug('niceness set to %d', os.nice(0))
+        
 delay = None
 if args.random_delay:
     delay = random.random() * float(args.random_delay)
