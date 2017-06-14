@@ -277,15 +277,40 @@ chown pi.pi /data
 
 \subsection{Create configuration file}
 
+The configuration file depends upon the actual hardware design and
+construction choices made. Following the instructions which match the
+hardware in use.
+
+\subsection{AuroraWatchNet magnetometer design using the Calunium
+  microcontroller}
+Instructions for the battery-powered or \PoE\ magnetometer designs
+where the sensor unit is connected to a Calunium microcontroller.
+
+\todo.
+
+\subsection{AuroraWatchNet magnetometer design without Calunium
+  microcontroller}
+Instructions for the magnetometer design where the sensor unit is
+connected directly to a Rapsberry Pi.
+
+\todo.
+
+\subsubsection[BGS school magnetometer design]{\protect\bgs\ school magnetometer design}
+
+Instructions for the \bgs\ school magnetometer which uses the
+AB Electronics \adc.
+
 As user \rootUser
-\begin{Cmd}
+\begin{Cmd}[fontsize=\relsize{-1.75}]
+cp \mytilde pi/AuroraWatchNet/software/server/ini_files/raspimagd_bgs_awnet.ini  /etc/awnet.ini
 nano /etc/awnet.ini
 \end{Cmd}
+In the editor find the \code{[DEFAULT]} section, edit the \code{site}
+to the correct value. Navigate to the \code{[upload]} section and
+enter the correct values for \code{url}, \code{username},
+\code{password} and \code{realm}. Ensure the leading comment character
+(\code{\#}) is removed.
 
-\todo[Create file contents, perhaps using a template copied from
-the repository]
-
-\newpage
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
 
