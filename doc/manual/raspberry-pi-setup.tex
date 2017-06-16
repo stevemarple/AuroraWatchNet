@@ -39,17 +39,7 @@ sudo raspi-config
 \textbf{If the default password has not been changed then do so now to keep
 your system secure.}
 
-\subsubsection{Internationalisation options}
-\filename{cron} uses local time and the shift to and from daylight
-saving time complicates the \filename{cron} tables. Set the Raspberry
-Pi's timezone to \utc\ to avoid daylight saving.
-
-Select \code{Internationalisation Options} and
-then \code{Change Timezone}. For geographic area select %
-\code{None of the above}, then select \code{\utc}. Select \code{OK}.
-
 \subsubsection{Hostname} 
-
 If you wish change the hostname of your Raspberry Pi select
 \code{Advanced Options} and then \code{Hostname}.
 
@@ -57,6 +47,21 @@ If you have multiple Raspberry Pi computers on your network then you
 should arrange for them to have unique hostnames. Our preference is to
 set the hostname to \code{awn-xxx}, where \code{xxx} is the
 abbreviation (typically 3 letters) used for the magnetometer site.
+
+\subsubsection{Localisation options}
+\filename{cron} uses local time and the shift to and from daylight
+saving time complicates the \filename{cron} tables. Set the Raspberry
+Pi's timezone to \utc\ to avoid daylight saving.
+
+Select \code{Localisation Options} and
+then \code{Change Timezone}. For geographic area select %
+\code{None of the above}, then select \code{\utc}. Select \code{OK}.
+
+\subsubsection{Interfacing options}
+For systems where the sensor unit is connected directly to the
+Raspberry Pi the \itwoc\ interface must be enabled. For systems
+utilising a Calunium microcontroller this option is not required but
+can be safely enabled.
 
 \subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
@@ -70,15 +75,13 @@ server.
 Select \code{Advanced Options} and then \code{SSH}. Choose the
 appropriate option.
 
-\subsubsection{I2C}
-Enable the ARM \itwoc\ interface and kernel module.
-
 \subsubsection{Expand Filesystem}
 The filesystem should be expanded to use all of the (micro)\sd\
 card. Advanced users planning to make a backup of the card may wish to
 perform this step last so that the backup can be smaller.
 
-Select \code{Expand Filesystem}. Choose \code{Finish} and then reboot.
+Select \code{Advanced Options} and then \code{Expand Filesystem}. Choose 
+\code{Finish} and then reboot.
 
 
 
@@ -361,25 +364,26 @@ links. As user \piUser
 \begin{Cmd}
 \mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
 \mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
+\mytilde/AuroraWatchNet/software/server/bin/setup.py --sudo
 \end{Cmd}
 
 The first time the command runs there will be some errors printed as
 symbolic links are other configuration details are missing. On the
 second run confirm that the errors have been corrected.
 
-\subsection{Automatically start the data recording daemon}
-If using the Calunium-based systems then run, as user \rootUser
-\begin{Cmd}
-cd /etc/init.d
-update-rc.d awnetd defaults
-\end{Cmd}
+% \subsection{Automatically start the data recording daemon}
+% If using the Calunium-based systems then run, as user \rootUser
+% \begin{Cmd}
+% cd /etc/init.d
+% update-rc.d awnetd defaults
+% \end{Cmd}
 
-For systems where the sensor head is connected to the Raspberry Pi
-without using a microcontroller then run, as user \rootUser
-\begin{Cmd}
-cd /etc/init.d
-update-rc.d raspimagd defaults
-\end{Cmd}
+% For systems where the sensor head is connected to the Raspberry Pi
+% without using a microcontroller then run, as user \rootUser
+% \begin{Cmd}
+% cd /etc/init.d
+% update-rc.d raspimagd defaults
+% \end{Cmd}
 
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing
