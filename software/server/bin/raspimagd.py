@@ -64,7 +64,8 @@ def record_data():
             if threading.activeCount() == 1:
                 break
             time.sleep(1)
-
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print(e)
         get_log_file_for_time(time.time(), log_filename)
@@ -135,6 +136,8 @@ def do_every(interval, worker_func, iterations=0):
         t.start()
     try:
         worker_func()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         get_log_file_for_time(time.time(), log_filename)
         logger.error(traceback.format_exc())
@@ -154,7 +157,9 @@ def get_smbus(bus_number=None):
         try:
             n = int(bus.replace(prefix, ''))
             candidates.append(n)
-        except:
+        except KeyboardInterrupt:
+            raise
+        except Exception:
             pass
         
     if len(candidates) == 1:
@@ -333,7 +338,9 @@ def record_sample():
             data_quality_warning = \
                 bool(os.listdir(config.get('dataqualitymonitor',
                                            'directory')))
-        except:
+        except KeyboardInterrupt:
+            raise
+        except Exception:
             pass
     elif config.has_option('dataqualitymonitor', 'filename'):
         data_quality_warning = \
