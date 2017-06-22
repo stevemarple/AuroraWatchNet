@@ -296,9 +296,9 @@ def get_sample():
                 n += 1
 
     # Take CPU temperature as system temperature
-    r['system_temperature'] = np.NaN
+    r['cpu_temperature'] = np.NaN
     with open('/sys/class/thermal/thermal_zone0/temp') as f:
-        r['system_temperature'] = float(f.read().strip())/1000
+        r['cpu_temperature'] = float(f.read().strip())/1000
 
     return r
 
@@ -457,7 +457,7 @@ def write_to_txt_file(data, extension):
         write_to_txt_file.data_file.write(fstr % (data['sample_time'],
                                                   x, y, z,
                                                   data['sensor_temperature'],
-                                                  data['system_temperature'],
+                                                  data['cpu_temperature'],
                                                   np.NaN))
 
 write_to_txt_file.lock = threading.Lock()
