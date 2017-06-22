@@ -40,7 +40,6 @@ def read_config_file(filename):
     config.set('daemon', 'sampling_interval', '5')
     config.set('daemon', 'oversampling', '5')
     config.set('daemon', 'sensor_temperature_oversampling', '1')
-    config.set('daemon', 'columns', 'x y z sensor_temperature system_temperature')
 
     config.add_section('controlsocket')
     # ord('A') = 65, ord('W') = 87 
