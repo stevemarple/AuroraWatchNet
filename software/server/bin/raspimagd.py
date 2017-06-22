@@ -14,14 +14,12 @@ import sys
 import threading
 import time
 import traceback
-
 if sys.version_info[0] >= 3:
     import configparser
     from configparser import SafeConfigParser
 else:
     import ConfigParser
     from ConfigParser import SafeConfigParser
-
 import aurorawatchnet as awn
 import aurorawatchnet.message
 from MCP342x import MCP342x
@@ -30,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 bus = None
 adc_devices = None
+
 
 def record_data():
     global bus
@@ -66,7 +65,6 @@ def record_data():
                 break
             time.sleep(1)
 
-
     except Exception as e:
         print(e)
         get_log_file_for_time(time.time(), log_filename)
@@ -87,7 +85,7 @@ def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
     signal.alarm(timeout_duration)
     try:
         result = func(*args, **kwargs)
-    except TimeoutError as exc:
+    except TimeoutError:
         result = default
     finally:
         signal.alarm(0)
@@ -105,10 +103,11 @@ def cancel_sampling_threads():
     t = time.time()
     while time.time() < t + 1 and len(threading.enumerate()) > 2:
         time.sleep(0.1)
-    #sys.exit()
 
 
 take_samples = True
+
+
 def stop_handler(signal, frame):
     global take_samples
     get_log_file_for_time(time.time(), log_filename)
@@ -116,7 +115,8 @@ def stop_handler(signal, frame):
     take_samples = False
     cancel_sampling_threads()
 
-def do_every (interval, worker_func, iterations = 0):
+
+def do_every(interval, worker_func, iterations=0):
     if iterations != 1:
         # Schedule the next worker thread. Aim to start at the next
         # multiple of sampling interval. Take current time, add 1.25
@@ -143,6 +143,7 @@ def do_every (interval, worker_func, iterations = 0):
 def round_to(n, nearest):
     return round(n / float(nearest)) * nearest
 
+
 def get_smbus(bus_number=None):
     candidates = []
     prefix = '/dev/i2c-'
@@ -165,7 +166,9 @@ def get_smbus(bus_number=None):
 
 
 def get_adc_devices(config, bus):
-    '''Return MCP342x devices based on config settings'''
+    """
+    Return MCP342x devices based on config settings
+    """
 
     r = {}
     sec = 'daemon'
@@ -184,10 +187,8 @@ def get_adc_devices(config, bus):
             # channels.
             pseudo_de = False
             if hasattr(address, '__iter__') or hasattr(channel, '__iter__'):
-                if (not hasattr(address, '__iter__') or 
-                    not hasattr(channel, '__iter__') or 
-                    len(address) != 2 or 
-                    len(channel) != 2):
+                if (not hasattr(address, '__iter__') or not hasattr(channel, '__iter__') or len(address) != 2
+                        or len(channel) != 2):
                     raise Exception('Pseudo double-ended configuration '
                                     + 'requires two values for both '
                                     + 'address and channe')
@@ -227,9 +228,9 @@ def get_adc_devices(config, bus):
 def get_aggregate_function(config, section, option):
     to_func = {'mean': np.mean,
                'median': np.median,
-               'tmean_20pc': lambda x : trim_mean(x, 0.2),
-               'tmean_25pc': lambda x : trim_mean(x, 0.25),
-               'tmean_33pc': lambda x : trim_mean(x, 1.0/3),
+               'tmean_20pc': lambda x: trim_mean(x, 0.2),
+               'tmean_25pc': lambda x: trim_mean(x, 0.25),
+               'tmean_33pc': lambda x: trim_mean(x, 1.0/3),
                }
     
     if config.has_option(section, option):
@@ -240,9 +241,11 @@ def get_aggregate_function(config, section, option):
             raise Exception('Unknown aggregate function: ' + s)
     else:
         return to_func['mean']
-    
+
+
 def voltage_to_deg_C(voltage, offset, scale):
     return (voltage - offset) / scale
+
 
 def voltage_to_tesla(voltage, sensitivity=20000):
     # sensitivity in V/T
@@ -262,8 +265,6 @@ def get_sample():
     md = MCP342x.convert_and_read_many(adc_list, 
                                        samples=config.getint('daemon', 
                                                              'oversampling'))
-                                       #aggregate=mag_agg)
-
     r = {'sample_time': t}
 
     if 'sensor_temperature' in adc_devices:
@@ -375,9 +376,6 @@ def record_sample():
 
     if config.has_option('raspitextdata', 'filename'):
         write_to_csv_file(data, ext)
-
-    #mesg = create_awn_message(data)
-    #awn.message.print_packet(mesg)
     sys.stdout.write(data_to_str(data))
 
 record_sample.lock = threading.Lock()
@@ -400,6 +398,7 @@ def data_to_str(data, separator=',', comments='#', want_header=False):
         return s, header
     else:
         return s
+
 
 def write_to_csv_file(data, extension):
     # Acquire lock, wait if necessary
@@ -428,6 +427,7 @@ def write_to_csv_file(data, extension):
 
 write_to_csv_file.lock = threading.Lock()
 write_to_csv_file.data_file = None
+
 
 # Write data in standard AuroraWatchNet format
 def write_to_txt_file(data, extension):
@@ -481,11 +481,9 @@ def create_awn_message(data):
 
     if 'sensor_temperature' in data:
         tag_id = awn.message.tag_data['magnetometer_temperature']['id']
-        ba = struct.pack(awn.message.tag_data[\
-                'magnetometer_temperature']['format'],
+        ba = struct.pack(awn.message.tag_data['magnetometer_temperature']['format'],
                          int(round(data['sensor_temperature'] * 100)))
         awn.message.put_data(mesg, tag_id, ba)
-        
 
     hmac_key = config.get('magnetometer', 'key').decode('hex')
     awn.message.put_signature(mesg, hmac_key, 0, 0)
@@ -571,4 +569,3 @@ if __name__ == '__main__':
     data_quality_ok = True
     ntp_ok = True
     record_data()
-
