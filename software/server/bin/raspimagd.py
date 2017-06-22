@@ -563,6 +563,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     config = awn.read_config_file(args.config_file)
+    if not config.has_option('daemon', 'columns'):
+        config.set('daemon', 'columns', 'x y z sensor_temperature cpu_temperature')
+
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
                         format=args.log_format, datefmt='%Y-%m-%dT%H:%M:%SZ')
 
