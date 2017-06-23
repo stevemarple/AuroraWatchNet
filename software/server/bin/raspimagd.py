@@ -177,7 +177,7 @@ def get_adc_devices(config, bus):
 
     r = {}
     sec = 'daemon'
-    for comp in ('x', 'y', 'z', 'sensor_temperature'):
+    for comp in config.get('daemon', 'columns').split():
         if config.has_option(sec, comp + '_address'):
             if not config.has_option(sec, comp + '_channel'):
                 raise Exception('Option ' + comp + 
@@ -260,39 +260,30 @@ def voltage_to_tesla(voltage, sensitivity=20000):
 def get_sample():
     t = time.time()
     adc_list = []
-    for comp in ('x', 'y', 'z'):
-        if comp in adc_devices:
-            adc_list.append(adc_devices[comp])
-        if comp + '_ref' in adc_devices:
-            adc_list.append(adc_devices[comp + '_ref'])
+    cols = config.get('daemon', 'columns').split()
+    for c in cols:
+        if c in adc_devices:
+            adc_list.append(adc_devices[c])
+        if c + '_ref' in adc_devices:
+            adc_list.append(adc_devices[c + '_ref'])
 
-    mag_agg = get_aggregate_function(config, 'daemon', 'aggregate')
-    md = MCP342x.convert_and_read_many(adc_list, 
-                                       samples=config.getint('daemon', 
-                                                             'oversampling'))
+    md = MCP342x.convert_and_read_many(adc_list, samples=config.getint('daemon', 'oversampling'))
     r = {'sample_time': t}
 
-    if 'sensor_temperature' in adc_devices:
-        temp_adc = adc_devices['sensor_temperature']
-        temp_oversampling = config.getint('daemon', 
-                                          'sensor_temperature_oversampling')
-        temp_agg = get_aggregate_function(config, 'daemon', 
-                                          'sensor_temperature_aggregate')
-    
-        r['sensor_temperature'] = \
-            temp_data = temp_adc.convert_and_read(samples=temp_oversampling,
-                                                  aggregate=temp_agg)
-    
     n = 0
-    for comp in ('x', 'y', 'z'):
-        if comp in adc_devices:
-            r[comp + '_all_samples'] = md[n]
-            r[comp] = mag_agg(md[n])
+    for c in cols:
+        if c in adc_devices:
+            if config.has_option('daemon', c + '_aggregate'):
+                agg = get_aggregate_function(config, 'daemon', c + '_aggregate')
+            else:
+                agg = get_aggregate_function(config, 'daemon', 'aggregate')
+            r[c + '_all_samples'] = md[n]
+            r[c] = agg(md[n])
             n += 1
-            if comp + '_ref' in adc_devices:
+            if c + '_ref' in adc_devices:
                 for m in range(len(md[n])):
-                    r[comp + '_all_samples'][m] -= md[n][m]
-                r[comp] -= mag_agg(md[n])
+                    r[c + '_all_samples'][m] -= md[n][m]
+                r[c] -= agg(md[n])
                 n += 1
 
     # Take CPU temperature as system temperature
@@ -393,7 +384,7 @@ def data_to_str(data, separator=',', comments='#', want_header=False):
     header = comments + 'sample_time'
     fstr = '{sample_time:.3f}'
     d = dict(sample_time=data['sample_time'], separator=separator)
-    for c in ('x', 'y', 'z', 'sensor_temperature'):
+    for c in config.get('daemon', 'columns').split():
         if c in data:
             d[c] = data[c]
             header += separator + c
@@ -416,7 +407,7 @@ def write_to_csv_file(data, extension):
         separator = ','
         header = comment_char + 'sample_time'
         fstr = '{sample_time:.3f}'
-        for c in ('x', 'y', 'z', 'sensor_temperature'):
+        for c in config.get('daemon', 'columns').split():
             if c in data:
                 header += separator + c
                 fstr += '{separator}{' + c + ':.3f}'
