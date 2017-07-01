@@ -237,7 +237,7 @@ def safe_eval(s):
                                      'False': False}}, {})
 
 
-def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
+def get_file_for_time(t, file_obj, fstr, mode='ab', buffering=0,
                       extension=None, header=None):
     """
     t: seconds since unix epoch
