@@ -282,10 +282,10 @@ def get_sample():
                 r[c] -= agg(md[n])
                 n += 1
 
-    # Take CPU temperature as system temperature
-    r['cpu_temperature'] = np.NaN
-    with open('/sys/class/thermal/thermal_zone0/temp') as f:
-        r['cpu_temperature'] = float(f.read().strip())/1000
+    if 'cpu_temperature' in cols:
+        r['cpu_temperature'] = np.NaN
+        with open('/sys/class/thermal/thermal_zone0/temp') as f:
+            r['cpu_temperature'] = float(f.read().strip())/1000
 
     return r
 
