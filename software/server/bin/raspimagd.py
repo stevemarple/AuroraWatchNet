@@ -6,6 +6,8 @@ import aurorawatchnet as awn
 import aurorawatchnet.message
 import copy
 import glob
+from HIH6130.io import HIH6130
+import importlib
 import logging
 import numpy as np
 from MCP342x import MCP342x
@@ -24,11 +26,12 @@ logger = logging.getLogger(__name__)
 
 bus = None
 adc_devices = None
-
+hih6xxx = None
 
 def record_data():
     global bus
     global adc_devices
+    global hih6xxx
 
     if config.has_option('daemon', 'i2c'):
         bus = get_smbus(config.getint('daemon', 'i2c'))
@@ -39,6 +42,10 @@ def record_data():
     # it uses safe_eval to convert strings to numbers or
     # lists (not guaranteed safe!)
     adc_devices = get_adc_devices(config, bus)
+
+    if any(c.startswith('hih6xxx_') for c in config.get('daemon', 'columns').split()):
+        importlib.import_module('HIH6130')
+        hih6xxx = HIH6130()
 
     signal.signal(signal.SIGTERM, stop_handler)
     signal.signal(signal.SIGINT, stop_handler)
@@ -267,6 +274,7 @@ def get_sample():
     r = {'sample_time': t}
 
     n = 0
+    hih6xxx_read = False
     for c in cols:
         if c in adc_devices:
             if config.has_option('daemon', c + '_aggregate'):
@@ -281,6 +289,20 @@ def get_sample():
                     r[c + '_all_samples'][m] -= md[n][m]
                 r[c] -= agg(md[n])
                 n += 1
+        elif c.startswith('hih6xxx_'):
+            if not hih6xxx_read:
+                hih6xxx.read()
+                hih6xxx_read = True
+            if c == 'hih6xxx_humidity':
+                r[c] = hih6xxx.rh
+            elif c == 'hih6xxx_temperature':
+                r[c] = hih6xxx.t
+            else:
+                r[c] = np.NaN
+        elif c == 'cpu_temperature':
+            pass  # Do later as slow
+        else:
+            r[c] = np.NaN
 
     if 'cpu_temperature' in cols:
         r['cpu_temperature'] = np.NaN
