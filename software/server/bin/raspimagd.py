@@ -364,12 +364,18 @@ def record_sample():
     if not data_quality_ok or not ntp_ok:
         ext = config.get('dataqualitymonitor', 'extension')
 
-
     if config.has_option('awnettextdata', 'filename'):
         write_to_txt_file(data, ext)
 
+    if config.has_option('awnettextdata', 'latest'):
+        with smart_open(config.get('awnettextdata', 'latest'), 'w') as fh:
+            s, h = data_to_str(data, separator='\t', want_header=True)
+            fh.write(h)
+            fh.write(s)
+
     if config.has_option('raspitextdata', 'filename'):
         write_to_csv_file(data, ext)
+
     sys.stdout.write(data_to_str(data))
 
 record_sample.lock = threading.Lock()
