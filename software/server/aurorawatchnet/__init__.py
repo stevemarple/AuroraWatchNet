@@ -117,6 +117,8 @@ def get_rt_transfer_info(config):
                     # Hostnames may resolve to multiple IP addresses, add all
                     try:
                         ip_list = socket.gethostbyname_ex(i[1])[2]
+                    except KeyboardInterrupt:
+                        raise
                     except:
                         logger.error('Could not resolve %s for real-time transfer, ignoring', i[1])
                         ip_list = []
