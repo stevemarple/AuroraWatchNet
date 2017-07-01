@@ -382,7 +382,6 @@ record_sample.lock = threading.Lock()
 
 
 def data_to_str(data, separator=',', comments='#', want_header=False):
-    separator = ','
     header = comments + 'sample_time'
     fstr = '{sample_time:.3f}'
     d = dict(sample_time=data['sample_time'], separator=separator)
