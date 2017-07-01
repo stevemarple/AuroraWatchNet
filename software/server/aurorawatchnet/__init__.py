@@ -79,7 +79,7 @@ def read_config_file(filename):
 
 
 def get_rt_transfer_info(config):
-    '''Read realtime transfer details.
+    """Read realtime transfer details.
 
     Return a list of hosts to transfer data to in real time. List
     items are dicts containing 'hostname', 'ip', 'port' and
@@ -102,7 +102,7 @@ def get_rt_transfer_info(config):
     real-time data is transferred to the host(s). Only if present and
     set to a false value is data not transferred.
 
-    '''
+    """
 
     sections = config.sections()
     r = []
@@ -112,7 +112,7 @@ def get_rt_transfer_info(config):
             for i in config.items(sec):
                 mo = re.match('^remote_host(.*)$', i[0])
                 if mo:
-                    suf = mo.group(1) # suffix
+                    suf = mo.group(1)  # suffix
                     hmac_key = config.get(sec, 'remote_key' + suf).decode('hex')
                     # Hostnames may resolve to multiple IP addresses, add all
                     try:
@@ -136,7 +136,7 @@ def parse_datetime(s, now=None):
     if now is None:
         now = datetime.datetime.utcnow()
     
-    today = now.replace(hour=0,minute=0,second=0,microsecond=0)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     if s.startswith('overmorrow'):
         return (today + datetime.timedelta(days=2)
@@ -154,6 +154,7 @@ def parse_datetime(s, now=None):
     else:
         return datetime.datetime.strptime(s, '%Y-%m-%d')
     
+
 def parse_timedelta(s):
     r = datetime.timedelta(seconds=0)
     value_next = True
@@ -222,23 +223,23 @@ def drop_root_privileges(username='nobody', group=None):
     os.setuid(pwnam.pw_uid)
 
     # Set umask
-    old_umask = os.umask(0o22)
+    os.umask(0o22)
 
 
 def safe_eval(s):
-    '''Like eval but prevent access to builtins and locals.
+    """Like eval but prevent access to builtins and locals.
 
     Certain safe builtins are permitted, including True and False.
-    This function cannot be guaranteed safe with untrusted input.'''
+    This function cannot be guaranteed safe with untrusted input."""
     return eval(s, {'__builtins__': {'True': True,
                                      'False': False}}, {})
 
 
 def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0, 
                       extension=None, header=None):
-    '''
+    """
     t: seconds since unix epoch
-    '''
+    """
     tmp_name = time.strftime(fstr, time.gmtime(t))
     if extension is not None:
         tmp_name += extension
