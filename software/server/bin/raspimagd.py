@@ -434,23 +434,15 @@ def write_to_txt_file(data, extension):
     logger.debug('write_to_txt_file(): acquiring lock')
     with write_to_txt_file.lock:
         logger.debug('write_to_txt_file(): acquired lock')
-        comment_char = '#'
-        separator = ','
-        fstr = '%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n'
-        write_to_txt_file.data_file = \
-            awn.get_file_for_time(data['sample_time'], 
-                                  write_to_txt_file.data_file,
-                                  config.get('awnettextdata', 'filename'),
-                                  extension=extension)
+        s, h = data_to_str(data, separator='\t', want_header=True)
+        write_to_txt_file.data_file = awn.get_file_for_time(data['sample_time'],
+                                                            write_to_txt_file.data_file,
+                                                            config.get('awnettextdata', 'filename'),
+                                                            extension=extension)
+        if write_to_txt_file.data_file.tell() == 0:
+            write_to_txt_file.data_file.write(h)
+        write_to_txt_file.data_file.write(s)
 
-        x = data['x'] if 'x' in data else np.NaN
-        y = data['y'] if 'y' in data else np.NaN
-        z = data['z'] if 'z' in data else np.NaN
-        write_to_txt_file.data_file.write(fstr % (data['sample_time'],
-                                                  x, y, z,
-                                                  data['sensor_temperature'],
-                                                  data['cpu_temperature'],
-                                                  np.NaN))
 
 write_to_txt_file.lock = threading.Lock()
 write_to_txt_file.data_file = None
