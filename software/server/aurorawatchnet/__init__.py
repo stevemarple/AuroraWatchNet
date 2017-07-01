@@ -5,15 +5,15 @@ import os
 import pwd
 import re
 import socket
-import sys
 import time
 
-if sys.version_info[0] >= 3:
-    import configparser
+
+try:
+    # Python 3
     from configparser import SafeConfigParser
-else:
-    import ConfigParser
+except ImportError:
     from ConfigParser import SafeConfigParser
+
 
 logger = logging.getLogger(__name__)
 
