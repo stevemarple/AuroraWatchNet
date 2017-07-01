@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
+from atomiccreate import smart_open
+import aurorawatchnet as awn
+import aurorawatchnet.message
 import copy
 import glob
 import logging
 import numpy as np
+from MCP342x import MCP342x
 import os
 from scipy.stats import trim_mean
 import signal
@@ -14,15 +18,7 @@ import sys
 import threading
 import time
 import traceback
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
-import aurorawatchnet as awn
-import aurorawatchnet.message
-from MCP342x import MCP342x
+
 
 logger = logging.getLogger(__name__)
 
