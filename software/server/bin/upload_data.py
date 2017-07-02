@@ -52,7 +52,7 @@ import urllib
 import urllib2
 
 import aurorawatchnet as awn
-    
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +64,7 @@ class NoRedirection(urllib2.HTTPErrorProcessor):
 
 
 def make_remote_rsync_directory(remote_host, remote_dir):
-    logger.debug('Calling rsync to make remote directory, ' 
+    logger.debug('Calling rsync to make remote directory, '
                   + remote_host + ':' + remote_dir)
     cmd = ['rsync', '/dev/null', remote_host + ':' + remote_dir + '/']
     if args.verbose:
@@ -73,9 +73,9 @@ def make_remote_rsync_directory(remote_host, remote_dir):
 
 
 def get_redirected_url(url, authhandler):
-    '''Test if accessing the URL requires a redirect. 
+    '''Test if accessing the URL requires a redirect.
 
-    Make  a HEAD request. Return the final URL used after any 
+    Make  a HEAD request. Return the final URL used after any
     Future requests should use the redirected URL.'''
 
     # Disable redirection and handle manually with limit on number of
@@ -288,7 +288,7 @@ if not os.path.exists(args.config_file):
 
 try:
     config = awn.read_config_file(args.config_file)
-    site = config.get('magnetometer', 'site').upper()
+    site = config.get('upload', 'site').upper()
     site_lc = site.lower()
 except Exception as e:
     logger.error('Bad config file ' + args.config_file + ': ' + str(e))
