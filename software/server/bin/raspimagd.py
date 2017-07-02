@@ -26,11 +26,14 @@ logger = logging.getLogger(__name__)
 
 bus = None
 adc_devices = None
+file_devices = None  # TODO: Find more descriptive name
 hih6xxx = None
+
 
 def record_data():
     global bus
     global adc_devices
+    global file_devices
     global hih6xxx
 
     if config.has_option('daemon', 'i2c'):
@@ -42,6 +45,7 @@ def record_data():
     # it uses safe_eval to convert strings to numbers or
     # lists (not guaranteed safe!)
     adc_devices = get_adc_devices(config, bus)
+    file_devices = get_file_devices(config)
 
     if any(c.startswith('hih6xxx_') for c in config.get('daemon', 'columns').split()):
         importlib.import_module('HIH6130')
@@ -180,14 +184,14 @@ def get_adc_devices(config, bus):
 
     r = {}
     sec = 'daemon'
-    for comp in config.get('daemon', 'columns').split():
-        if config.has_option(sec, comp + '_address'):
-            if not config.has_option(sec, comp + '_channel'):
-                raise Exception('Option ' + comp + 
+    for col in config.get(sec, 'columns').split():
+        if config.has_option(sec, col + '_address'):
+            if not config.has_option(sec, col + '_channel'):
+                raise Exception('Option ' + col +
                                 '_channel is required in section ' + sec)
 
-            address = awn.safe_eval(config.get(sec, comp + '_address'))
-            channel = awn.safe_eval(config.get(sec, comp + '_channel'))
+            address = awn.safe_eval(config.get(sec, col + '_address'))
+            channel = awn.safe_eval(config.get(sec, col + '_channel'))
 
             # Some devices were constructed with single-ended ADC
             # boards. Enable a pseudo double-ended mode where IN+ and
@@ -200,7 +204,7 @@ def get_adc_devices(config, bus):
                     raise Exception('Pseudo double-ended configuration '
                                     + 'requires two values for both '
                                     + 'address and channe')
-                if comp == 'sensor_temperature':
+                if col == 'sensor_temperature':
                     raise Exception('Pseudo double-ended configuration '
                                     + ' for sensor temperature is '
                                     + 'not supported')
@@ -212,8 +216,8 @@ def get_adc_devices(config, bus):
                           resolution=18,
                           gain=1)
             for opt in ('resolution', 'gain', 'scale_factor', 'offset'):
-                if config.has_option(sec, comp + '_' + opt):
-                    v = awn.safe_eval(config.get(sec, comp + '_' + opt))
+                if config.has_option(sec, col + '_' + opt):
+                    v = awn.safe_eval(config.get(sec, col + '_' + opt))
                     getattr(adc, 'set_' + opt)(v)
             
             if pseudo_de:
@@ -224,12 +228,28 @@ def get_adc_devices(config, bus):
                 adc2.set_channel(channel[1])
                 # Offset must be zero otherwise it will be removed later
                 adc2.set_offset(0)
-                r[comp + '_ref'] = adc2
+                r[col + '_ref'] = adc2
             else:
                 adc.set_address(address)
                 adc.set_channel(channel)
 
-            r[comp] = adc
+            r[col] = adc
+    return r
+
+
+def get_file_devices(config):
+    r = {}
+    sec = 'daemon'
+    for col in config.get(sec, 'columns').split():
+        if config.has_option(sec, col + '_device') and config.get(sec, col + '_device').startswith('file:'):
+            r[col] = {
+                'file': config.get(sec, col + '_device').replace('file:', '', 1),
+                'offset': 0,
+                'scale_factor': 1.0,
+            }
+            for opt in ('offset', 'scale_factor'):
+                if config.has_option(sec, col + '_' + opt):
+                    r[col][opt] = awn.safe_eval(config.get(sec, col + '_' + opt))
     return r
 
 
@@ -289,6 +309,10 @@ def get_sample():
                     r[c + '_all_samples'][m] -= md[n][m]
                 r[c] -= agg(md[n])
                 n += 1
+        elif c in file_devices:
+            r[c] = np.NaN
+            with open(file_devices[c]['file']) as f:
+                r[c] = (float(f.read()) * file_devices[c]['scale_factor']) + file_devices[c]['offset']
         elif c.startswith('hih6xxx_'):
             if not hih6xxx_read:
                 hih6xxx.read()
@@ -299,15 +323,8 @@ def get_sample():
                 r[c] = hih6xxx.t
             else:
                 r[c] = np.NaN
-        elif c == 'cpu_temperature':
-            pass  # Do later as slow
         else:
             r[c] = np.NaN
-
-    if 'cpu_temperature' in cols:
-        r['cpu_temperature'] = np.NaN
-        with open('/sys/class/thermal/thermal_zone0/temp') as f:
-            r['cpu_temperature'] = float(f.read().strip())/1000
 
     return r
 
@@ -570,6 +587,7 @@ if __name__ == '__main__':
 
     config = awn.read_config_file(args.config_file)
     if not config.has_option('daemon', 'columns'):
+        # For backward compatibility
         config.set('daemon', 'columns', 'x y z sensor_temperature cpu_temperature')
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
