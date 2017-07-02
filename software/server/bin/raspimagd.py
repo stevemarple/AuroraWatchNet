@@ -311,8 +311,15 @@ def get_sample():
                 n += 1
         elif c in file_devices:
             r[c] = np.NaN
-            with open(file_devices[c]['file']) as f:
-                r[c] = (float(f.read()) * file_devices[c]['scale_factor']) + file_devices[c]['offset']
+            # noinspection PyBroadException
+            try:
+                with open(file_devices[c]['file']) as f:
+                    r[c] = (float(f.read()) * file_devices[c]['scale_factor']) + file_devices[c]['offset']
+            except KeyboardInterrupt:
+                raise
+            except:
+                get_log_file_for_time(time.time(), log_filename)
+                logger.exception('could not read %s for %s', file_devices[c]['file'], c)
         elif c.startswith('hih6xxx_'):
             if not hih6xxx_read:
                 hih6xxx.read()
