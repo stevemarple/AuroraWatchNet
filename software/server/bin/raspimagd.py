@@ -57,7 +57,7 @@ def record_data():
     try:
         get_log_file_for_time(time.time(), log_filename)
         logger.info('Starting sampling thread')
-
+        logger.info('Recording data for columns %s', ', '.join(config.get('daemon', 'columns').split()))
         do_every(config.getfloat('daemon', 'sampling_interval'), 
                  record_sample)
         while take_samples:
