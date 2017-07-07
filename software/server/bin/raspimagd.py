@@ -246,10 +246,13 @@ def get_file_devices(config):
                 'file': config.get(sec, col + '_device').replace('file:', '', 1),
                 'offset': 0,
                 'scale_factor': 1.0,
+                'max_age': 0,
             }
             for opt in ('offset', 'scale_factor'):
                 if config.has_option(sec, col + '_' + opt):
                     r[col][opt] = awn.safe_eval(config.get(sec, col + '_' + opt))
+            if config.has_option(sec, col + '_max_age'):
+                r[col]['max_age'] = config.getfloat(sec, col + '_max_age')
     return r
 
 
@@ -313,8 +316,10 @@ def get_sample():
             r[c] = np.NaN
             # noinspection PyBroadException
             try:
-                with open(file_devices[c]['file']) as f:
-                    r[c] = (float(f.read()) * file_devices[c]['scale_factor']) + file_devices[c]['offset']
+                if file_devices[c]['max_age'] == 0 or (time.time() - os.path.getmtime(file_devices[c]['file'])) <= \
+                        file_devices[c]['max_age']:
+                    with open(file_devices[c]['file']) as f:
+                        r[c] = (float(f.read()) * file_devices[c]['scale_factor']) + file_devices[c]['offset']
             except KeyboardInterrupt:
                 raise
             except:
