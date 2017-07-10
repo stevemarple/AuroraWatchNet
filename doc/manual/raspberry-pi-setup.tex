@@ -10,7 +10,11 @@ the \href{http://www.raspberrypi.org/downloads}{instructions} on the
 Raspberry Pi web site. \textbf{Copying the compressed image to a \fat\
   partition on the \sd\ card will not work}.
 
-These instructions assume Debian 8 (``Jessie'') is used.
+These instructions assume Debian 8 (``Jessie'') is used. Most users
+should probably download the desktop version. Advanced users, and
+those planning to use the Pi without a display connected
+(``headless``) shouldx probably download the minimal version without
+the desktop software.
 
 \section{Configuring Raspbian}
 \label{sec:configuring-raspbian}
@@ -48,6 +52,12 @@ should arrange for them to have unique hostnames. Our preference is to
 set the hostname to \code{awn-xxx}, where \code{xxx} is the
 abbreviation (typically 3 letters) used for the magnetometer site.
 
+\subsubsection{Boot options} 
+Configure the Pi for console access (text console, requiring the user
+to login). The console can be started manually when required with the
+\filename{startx} command which saves memory when an interactive login
+is not required.
+
 \subsubsection{Localisation options}
 \filename{cron} uses local time and the shift to and from daylight
 saving time complicates the \filename{cron} tables. Set the Raspberry
@@ -62,6 +72,9 @@ For systems where the sensor unit is connected directly to the
 Raspberry Pi the \itwoc\ interface must be enabled. For systems
 utilising a Calunium microcontroller this option is not required but
 can be safely enabled.
+
+Systems which does use the Calunium microcontroller should disable the
+login shell and enable the serial interface.
 
 \subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
@@ -83,23 +96,6 @@ perform this step last so that the backup can be smaller.
 Select \code{Advanced Options} and then \code{Expand Filesystem}. Choose 
 \code{Finish} and then reboot.
 
-
-
-\subsection{/dev/ttyAMA0 serial port setup}
-
-Disable the console from running on \filename{/dev/ttyAMA0}. Edit
-\filename{/boot/cmdline.txt} to remove the parts which relate to
-\filename{ttyAMA0}. Remove
-\begin{Cmd}
-console=ttyAMA0,115200 kgdboc=ttyAMA0,115200
-\end{Cmd}
-
-
-Disable the \code{getty} process from running on
-\filename{/dev/ttyAMA0}. Edit \filename{/etc/inittab}. Find the line
-relating to \filename{ttyAMA0}. Either delete the line entirely or
-comment it out by inserting a hash character (\#) at the start of the
-line.
 
 \subsection{Force HDMI output (optional)}
 The default operation is to detect if a HDMI nomitor is connected at
@@ -184,7 +180,11 @@ Wolfram Engine uses over \MB{450} and is not needed. Remove to save
 valuable space on the \sd\ card. As user \rootUser
 \begin{Cmd}
 apt-get purge wolfram-engine
+apt-get autoremove
 \end{Cmd}
+
+\helpbox{Wolfram engine is not installed by default in the light
+  version of Raspbian.}
 
 \subsection{Install missing software packages}
 As user \rootUser
@@ -261,6 +261,7 @@ git clone --recursive https://github.com/stevemarple/AuroraWatchNet.git
 git clone --recursive https://github.com/stevemarple/auroraplot.git
 git clone --recursive https://github.com/stevemarple/Calunium.git
 git clone --recursive https://github.com/stevemarple/xboot.git
+git clone --recursive https://github.com/stevemarple/python-MCP342x.git
 mkdir \mytilde/bin
 . \mytilde/.bashrc
 cd \mytilde/bin
@@ -305,7 +306,7 @@ AB Electronics \adc.
 
 As user \rootUser
 \begin{Cmd}[fontsize=\relsize{-1.75}]
-cp \mytilde pi/AuroraWatchNet/software/server/ini_files/raspimagd_bgs_awnet.ini  /etc/awnet.ini
+cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/raspimagd_bgs_awnet.ini  /etc/awnet.ini
 nano /etc/awnet.ini
 \end{Cmd}
 In the editor find the \code{[DEFAULT]} section, edit the \code{site}
@@ -318,7 +319,7 @@ enter the correct values for \code{url}, \code{username},
 \label{sec:cron-configuration}
 
 If using a Calunium-based system configure \filename{cron} with the
-following command:
+following command. As user \piUser
 \begin{Cmd}
 crontab ~/AuroraWatchNet/software/server/crontabs/awnetd.crontab
 \end{Cmd}
@@ -326,7 +327,7 @@ crontab ~/AuroraWatchNet/software/server/crontabs/awnetd.crontab
 For systems where the sensor head is connected to the Raspberry Pi
 without using a microcontroller (such as the \bgs\ school
 magnetometer) then instead configure \filename{cron} with the
-following command:
+following command. As user \piUser
 \begin{Cmd}
 crontab ~/AuroraWatchNet/software/server/crontabs/raspimagd.crontab
 \end{Cmd}
@@ -343,7 +344,8 @@ working for some reason.
 The \code{log_ip} lines in the cron file cause the Raspberry Pi to
 periodically report that it is operating. This helps the AuroraWatch
 administrators monitor which stations are active. These reporting
-commands can be omitted if you prefer.
+commands can be omitted if you prefer (comment out the command by
+inserting a \code{\#} at the start of the line).
 
 
 \subsection{Configure \protect\filename{ifplugd}}
