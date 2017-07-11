@@ -136,8 +136,9 @@ def main():
             if cadence:
                 md.set_cadence(cadence, aggregate=agg_func, inplace=True)
 
+            temp_channels = ['System temperature', 'Sensor temperature']
             td = ap.load_data(project, site, 'TemperatureData', st, et,
-                              channels=['Sensor temperature'])
+                              channels=temp_channels)
             if td is not None and td.data.size and np.any(np.isfinite(td.data)):
                 td = td.mark_missing_data(cadence=3 * td.nominal_cadence)
                 if cadence:
@@ -153,9 +154,9 @@ def main():
                     raise Exception('Unexpected units')
                 
                 if td is not None and td.data.size:
-                    cols.append(td.data[0, tidx])
+                    cols.extend(td.data[:, tidx])
                 else:
-                    cols.append(np.NaN)
+                    cols.extend([np.NaN] * len(temp_channels))
 
                 # Ignore timestamp if no valid magnetometer data
                 if np.any(np.isfinite(md.data[:, tidx])):
