@@ -2,6 +2,7 @@
 
 import argparse
 import auroraplot as ap
+import auroraplot.tools
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.bgs_schools
 import auroraplot.dt64tools as dt64
@@ -9,11 +10,28 @@ import auroraplot.tools
 from importlib import import_module
 import logging
 import numpy as np
+import os
 import requests
 import sys
 
-
+if sys.version_info[0] >= 3:
+    # noinspection PyCompatibility
+    from configparser import SafeConfigParser
+else:
+    # noinspection PyCompatibility
+    from ConfigParser import SafeConfigParser
 logger = logging.getLogger(__name__)
+
+
+def read_config_file(filename):
+    """Read config file."""
+    logger.info('Reading config file ' + filename)
+    config = SafeConfigParser()
+    config_files_read = config.read(filename)
+    if filename not in config_files_read:
+        raise UserWarning('Could not read ' + filename)
+    logger.debug('Successfully read ' + ', '.join(config_files_read))
+    return config
 
 
 def main():
@@ -37,6 +55,11 @@ def main():
     parser.add_argument('--cadence',
                         default='1m',
                         help='Set cadence')
+    parser.add_argument('-c', '--config-file',
+                        help='awnet.ini configuration file')
+    parser.add_argument('-n', '--dry-run',
+                        action='store_true',
+                        help='Dry run (do not upload data)')
     parser.add_argument('-e', '--end-time',
                         help='End time for data transfer (exclusive)',
                         metavar='DATETIME')
@@ -64,7 +87,7 @@ def main():
                         metavar="PROJECT/SITE")
 
     args = parser.parse_args()
-
+    print(args.project_site)
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
     st = dt64.parse_datetime64(args.start_time, 's')
@@ -88,9 +111,30 @@ def main():
             raise
 
     project_list, site_list = ap.parse_project_site_list(args.project_site)
-    if len(site_list) == 0:
-        sys.stderr.write('No sites specified\n')
-        sys.exit(1)
+    if args.config_file:
+        if len(site_list):
+            raise Exception('Cannot specify sites and a config file')
+        config = read_config_file(args.config_file)
+        project = config.get('DEFAULT', 'project').upper()
+        site = config.get('DEFAULT', 'site').upper()
+        project_list = [project]
+        site_list = [site]
+        file_ext = os.path.splitext(ap.get_archive_info(project, site, 'MagData')[1]['path'])[1]
+        if file_ext == '.txt':
+            # Uses awnettextdata data format
+            local_path = config.get('awnettextdata', 'filename')
+        elif file_ext == '.csv':
+            local_path = config.get('raspitextdata', 'filename')
+        else:
+            raise Exception('Unknown data type')
+
+        # Patch auroraplot to use local data from the path defined in the config file
+        use_local_path = lambda path, project, site, data_type, archive: local_path
+        ap.tools.change_load_data_paths(project, use_local_path,
+                                        site_list=site_list, data_type_list=['MagData', 'TemperatureData'])
+
+    elif len(site_list) == 0:
+        raise Exception('No sites specified')
     elif len(site_list) > 1 and args.site_id:
         raise Exception('Only a single site can be processed when WOW site ID given on command line')
 
@@ -158,7 +202,7 @@ def main():
                 else:
                     cols.extend([np.NaN] * len(temp_channels))
 
-                # Ignore timestamp if no valid magnetometer data
+                # Ignore this time if no valid magnetometer data
                 if np.any(np.isfinite(md.data[:, tidx])):
                     payload.append('\t'.join(map(str, cols)))
 
@@ -167,18 +211,20 @@ def main():
                 continue
             
             payload = '\n'.join(payload) + '\n'
-            print(payload)
 
             # Upload to WOW
             params = (('qqFile', 'test123.txt'),
                       ('siteId', wow_site_id),
                       ('siteAuthenticationKey', args.site_auth))
-            logger.debug('Uploading to %s', args.url)
+            if args.dry_run:
+                logger.debug('Dry run, not uploading to %s', args.url)
+            else:
+                logger.debug('Uploading to %s', args.url)
 
-            req = requests.post(args.url, params=params, data=payload)
-            logger.debug(req)
-            if req.status_code != 200:
-                logger.error('Failed to upload data to WOW')
+                req = requests.post(args.url, params=params, data=payload)
+                logger.debug(req)
+                if req.status_code != 200:
+                    logger.error('Failed to upload data to WOW')
 
 
 if __name__ == '__main__':
