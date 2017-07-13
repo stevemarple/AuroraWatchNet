@@ -6,7 +6,6 @@ import auroraplot.tools
 import auroraplot.datasets.aurorawatchnet
 import auroraplot.datasets.bgs_schools
 import auroraplot.dt64tools as dt64
-import auroraplot.tools
 from importlib import import_module
 import logging
 import numpy as np
@@ -56,7 +55,7 @@ def main():
                         default='1m',
                         help='Set cadence')
     parser.add_argument('-c', '--config-file',
-                        help='awnet.ini configuration file')
+                        help='Logger daemon configuration file')
     parser.add_argument('-n', '--dry-run',
                         action='store_true',
                         help='Dry run (do not upload data)')
@@ -79,7 +78,6 @@ def main():
                         help='WOW site authentication key (6 digit)',
                         metavar='AUTH')
     parser.add_argument('--url',
-                        default='',  # TODO: set production URL
                         help='Set upload URL')
 
     parser.add_argument('project_site',
@@ -111,12 +109,15 @@ def main():
             raise
 
     project_list, site_list = ap.parse_project_site_list(args.project_site)
+    config = None
+    config_section = 'wow'
+    wow_url = ''  # TODO: set production URL
     if args.config_file:
         if len(site_list):
             raise Exception('Cannot specify sites and a config file')
         config = read_config_file(args.config_file)
-        project = config.get('DEFAULT', 'project').upper()
-        site = config.get('DEFAULT', 'site').upper()
+        project = config.get(config_section, 'project').upper()
+        site = config.get(config_section, 'site').upper()
         project_list = [project]
         site_list = [site]
         file_ext = os.path.splitext(ap.get_archive_info(project, site, 'MagData')[1]['path'])[1]
@@ -127,10 +128,12 @@ def main():
             local_path = config.get('raspitextdata', 'filename')
         else:
             raise Exception('Unknown data type')
+        if config.has_option(config_section, 'url'):
+            wow_url = config.get(config_section, 'url')
 
         # Patch auroraplot to use local data from the path defined in the config file
-        use_local_path = lambda path, project, site, data_type, archive: local_path
-        ap.tools.change_load_data_paths(project, use_local_path,
+        ap.tools.change_load_data_paths(project,
+                                        lambda path, project, site, data_type, archive: local_path,
                                         site_list=site_list, data_type_list=['MagData', 'TemperatureData'])
 
     elif len(site_list) == 0:
@@ -146,6 +149,9 @@ def main():
     else:
         cadence = None
 
+    if args.url:
+        wow_url = args.url
+
     # Get the default archives
     archive = ap.parse_archive_selection(default_archive_selection)
 
@@ -156,11 +162,22 @@ def main():
     for n in range(len(project_list)):
         project = project_list[n]
         site = site_list[n]
+        # Get WOW site ID and authentication
         if args.site_id:
             wow_site_id = args.site_id
+        elif config and config.has_option(config_section, 'site_id'):
+            wow_site_id = config.get(config_section, 'site_id')
         else:
             wow_site_id = ap.get_site_info(project, site, 'wow_site_id')
-            
+        if args.site_auth:
+            wow_site_auth = args.site_id
+        elif config and config.has_option(config_section, 'site_auth'):
+            wow_site_auth = config.get(config_section, 'site_auth')
+        else:
+            # Site authentication should not be stored in the public record but might have been inserted by
+            # auroraplot_custom.py
+            wow_site_auth = ap.get_site_info(project, site, 'wow_site_auth')
+
         kwargs = {}
         if project in archive and site in archive[project]:
             kwargs['archive'] = archive[project][site]
@@ -196,7 +213,7 @@ def main():
                     cols.extend(md.data[:, tidx] * 1e9)  # convert to nT
                 else:
                     raise Exception('Unexpected units')
-                
+
                 if td is not None and td.data.size:
                     cols.extend(td.data[:, tidx])
                 else:
@@ -209,19 +226,19 @@ def main():
             if len(payload) == 0:
                 logger.debug('No data to upload for %s - %s', md.start_time, md.end_time)
                 continue
-            
+
             payload = '\n'.join(payload) + '\n'
 
             # Upload to WOW
             params = (('qqFile', 'test123.txt'),
                       ('siteId', wow_site_id),
-                      ('siteAuthenticationKey', args.site_auth))
+                      ('siteAuthenticationKey', wow_site_auth))
             if args.dry_run:
-                logger.debug('Dry run, not uploading to %s', args.url)
+                logger.debug('Dry run, not uploading to %s', wow_url)
             else:
-                logger.debug('Uploading to %s', args.url)
+                logger.debug('Uploading to %s', wow_url)
 
-                req = requests.post(args.url, params=params, data=payload)
+                req = requests.post(wow_url, params=params, data=payload)
                 logger.debug(req)
                 if req.status_code != 200:
                     logger.error('Failed to upload data to WOW')
