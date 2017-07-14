@@ -197,7 +197,7 @@ def main():
             if cadence:
                 md.set_cadence(cadence, aggregate=agg_func, inplace=True)
 
-            temp_channels = ['System temperature', 'Sensor temperature']
+            temp_channels = ['Sensor temperature']
             td = ap.load_data(project, site, 'TemperatureData', st, et,
                               channels=temp_channels)
             if td is not None and td.data.size and np.any(np.isfinite(td.data)):
