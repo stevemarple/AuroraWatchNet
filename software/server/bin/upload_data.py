@@ -37,20 +37,18 @@ import logging
 import os
 import random
 import sys
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
-
 import subprocess
 import time
 import urlparse
 import urllib
 import urllib2
-
 import aurorawatchnet as awn
+
+if sys.version_info[0] >= 3:
+    from configparser import SafeConfigParser
+else:
+    from ConfigParser import SafeConfigParser
+
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +61,7 @@ class NoRedirection(urllib2.HTTPErrorProcessor):
 
 
 def make_remote_rsync_directory(remote_host, remote_dir):
-    logger.debug('Calling rsync to make remote directory, '
-                  + remote_host + ':' + remote_dir)
+    logger.debug('Calling rsync to make remote directory, ' + remote_host + ':' + remote_dir)
     cmd = ['rsync', '/dev/null', remote_host + ':' + remote_dir + '/']
     if args.verbose:
         print(' '.join(cmd))
@@ -72,10 +69,12 @@ def make_remote_rsync_directory(remote_host, remote_dir):
 
 
 def get_redirected_url(url, authhandler):
-    '''Test if accessing the URL requires a redirect.
+    """
+    Test if accessing the URL requires a redirect.
 
     Make  a HEAD request. Return the final URL used after any
-    Future requests should use the redirected URL.'''
+    Future requests should use the redirected URL.
+    """
 
     # Disable redirection and handle manually with limit on number of
     # redirects.
@@ -108,9 +107,8 @@ def http_upload(file_name, url, remove_source=False):
         # some of the file can be sent
         content_length = file_details.get(section_name, 'content_length')
         md5_sum = file_details.get(section_name, 'md5_sum')
-        logger.debug('file exists on server, content_length=' + 
-                      str(content_length) +
-                      ', md5_sum=' + md5_sum)
+        logger.debug('file exists on server, content_length=%s, md5_sum=%s',
+                     str(content_length), md5_sum)
 
         h = hashlib.md5(fh.read(int(content_length)))
 
@@ -161,7 +159,6 @@ def http_upload(file_name, url, remove_source=False):
     except:
         logger.error('Failed to upload ' + file_name)
 
-    
 
 def get_file_type_data():
     file_type_data = {}
@@ -182,9 +179,9 @@ def get_file_type_data():
 
 
 def report_no_data(url, t, file_type):
-    '''
+    """
     Report to the server that no data was available for upload.
-    '''
+    """
     logger.debug('Reporting no ' + file_type + ' file for ' + str(t))
     no_data_url = url + '?' + urllib.urlencode(
         {'no_data': '1',
@@ -197,12 +194,11 @@ def report_no_data(url, t, file_type):
 
 
 now = datetime.datetime.utcnow()
-today = now.replace(hour=0,minute=0,second=0,microsecond=0)
+today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 yesterday = today - datetime.timedelta(days=1)
 tomorrow = today + datetime.timedelta(days=1)
 
-parser = argparse.ArgumentParser(description=\
-                                     'Upload AuroraWatch magnetometer data.')
+parser = argparse.ArgumentParser(description='Upload AuroraWatch magnetometer data.')
 
 parser.add_argument('-c', '--config-file', 
                     default='/etc/awnet.ini',
@@ -228,8 +224,7 @@ parser.add_argument('-e', '--end-time',
                     metavar='DATETIME')
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
-                    default='awnettextdata awpacket aurorawatchrealtime ' \
-                        + 'cloud logfile raspitextdata gnss',
+                    default='awnettextdata awpacket aurorawatchrealtime cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 if hasattr(os, 'nice'):
@@ -349,8 +344,8 @@ if method in ['rsync', 'rrsync']:
         start_time = end_time - datetime.timedelta(days=3)
     
     cmd = ['rsync', 
-           '--archive', # Preserve everything
-           '--no-perms', # Use file mode permissions
+           '--archive',  # Preserve everything
+           '--no-perms',  # Use file mode permissions
            # Don't transfer empty files, important since filesystem
            # corruption can cause files to have zero size which would
            # then destroy data on the server.
@@ -502,8 +497,7 @@ elif method in ('http', 'https'):
                         if not response:
                             all_ok = False
                     else:
-                        logger.info('Refusing to upload %s: empty file',
-                                    file_name)
+                        logger.info('Refusing to upload %s: empty file', file_name)
                 
                 elif ext == '':
                     # No .bad extension
@@ -529,7 +523,4 @@ elif method in ('http', 'https'):
             t += interval
     
 else:
-    raise Exception('Unknown upload method (' +  method + ')')
-
-
-
+    raise Exception('Unknown upload method (' + method + ')')
