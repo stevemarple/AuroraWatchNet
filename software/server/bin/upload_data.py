@@ -161,7 +161,14 @@ def http_upload(file_name, url, remove_source=False):
 
 def get_file_type_data():
     file_type_data = {}
-    for ft in args.file_types.split():
+    if args.file_types and args.file_types.strip():
+        file_types = args.file_types.split()
+    elif config.has_option(args.section, 'file_types'):
+        file_types = config.get(args.section, 'file_types').split()
+    else:
+        file_types = ['awnettextdata', 'awpacket', 'aurorawatchrealtime', 'cloud', 'logfile', 'raspitextdata', 'gnss']
+
+    for ft in file_types:
         if not config.has_option(ft, 'filename') or \
                 not config.get(ft, 'filename'):
             # This type not defined in config file
@@ -223,7 +230,6 @@ parser.add_argument('-e', '--end-time',
                     metavar='DATETIME')
 parser.add_argument('--file-types',
                     # aurorawatchrealtime deprecated for new sites
-                    default='awnettextdata awpacket aurorawatchrealtime cloud logfile raspitextdata gnss',
                     help='List of file types to upload',
                     metavar='TYPE1, TYPE2, ...')
 if hasattr(os, 'nice'):
