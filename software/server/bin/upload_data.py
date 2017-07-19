@@ -12,8 +12,7 @@
 # --copy-links options.
 #
 # For cases when SSH access is not available provide an option to
-# transfer using HTTP (also HTTPS although the server does not
-# currently support it). Authentication in this case uses the HTTP
+# transfer using HTTP. Authentication in this case uses the HTTP
 # digest method. The awnet.ini config file must contain a plaintext
 # password and realm to use; the username is derived from the site
 # name. Files to be uploaded can be selected on the basis of date
