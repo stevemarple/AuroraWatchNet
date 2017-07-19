@@ -49,7 +49,6 @@ if sys.version_info[0] >= 3:
 else:
     from ConfigParser import SafeConfigParser
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -124,7 +123,7 @@ def http_upload(file_name, url, remove_source=False):
                         os.remove(file_name)
                     except:
                         logger.exception('could not remove ' + file_name)
-                        
+
                 return True
             else:
                 logger.info(file_name + ' partially uploaded')
@@ -136,7 +135,7 @@ def http_upload(file_name, url, remove_source=False):
     else:
         # Missing, send all of file
         values['file_offset'] = 0
-        
+
     get_req.close()
 
     logger.debug('File offset: ' + str(values['file_offset']))
@@ -154,7 +153,7 @@ def http_upload(file_name, url, remove_source=False):
             logger.info('Uploaded ' + file_name)
         else:
             logger.error('Failed to upload ' + file_name)
-            
+
         return response
     except:
         logger.error('Failed to upload ' + file_name)
@@ -170,9 +169,9 @@ def get_file_type_data():
         file_type_data[ft] = {'fstr': config.get(ft, 'filename'),
                               'interval': datetime.timedelta(days=1)}
         today_file = today.strftime(file_type_data[ft]['fstr'])
-        for i in (datetime.timedelta(minutes=1), 
+        for i in (datetime.timedelta(minutes=1),
                   datetime.timedelta(hours=1)):
-            if today_file != (today+i).strftime(file_type_data[ft]['fstr']):
+            if today_file != (today + i).strftime(file_type_data[ft]['fstr']):
                 file_type_data[ft]['interval'] = i
                 break
     return file_type_data
@@ -200,10 +199,10 @@ tomorrow = today + datetime.timedelta(days=1)
 
 parser = argparse.ArgumentParser(description='Upload AuroraWatch magnetometer data.')
 
-parser.add_argument('-c', '--config-file', 
+parser.add_argument('-c', '--config-file',
                     default='/etc/awnet.ini',
                     help='Configuration file')
-parser.add_argument('--log-level', 
+parser.add_argument('--log-level',
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
                     help='Control how much detail is printed',
@@ -216,7 +215,7 @@ parser.add_argument('--method',
                     choices=['rsync', 'rrsync', 'http', 'https'],
                     help='Select upload method')
 
-parser.add_argument('-s', '--start-time', 
+parser.add_argument('-s', '--start-time',
                     help='Start time for data transfer (inclusive)',
                     metavar='DATETIME')
 parser.add_argument('-e', '--end-time',
@@ -237,6 +236,9 @@ parser.add_argument('--random-delay',
 parser.add_argument('--remove-source-files',
                     action='store_true',
                     help='Remove source file')
+parser.add_argument('--section',
+                    default='upload',
+                    help='Name of upload section in configuration file')
 
 # rsync options
 rsync_grp = parser.add_argument_group('rsync', 'options for rsync uploads')
@@ -254,12 +256,10 @@ rsync_grp.add_argument('-v', '--verbose',
                        action='store_true',
                        help='Be verbose')
 
-
 args = parser.parse_args()
 if __name__ == '__main__':
     logging.basicConfig(level=getattr(logging, args.log_level.upper()),
                         format=args.log_format)
-
 
 if args.start_time is None:
     start_time = today
@@ -275,14 +275,13 @@ logger.debug('Now: ' + str(now))
 logger.debug('Start time: ' + str(start_time))
 logger.debug('End time: ' + str(end_time))
 
-
 if not os.path.exists(args.config_file):
     logger.error('Missing config file ' + args.config_file)
     exit(1)
 
 try:
     config = awn.read_config_file(args.config_file)
-    site = config.get('upload', 'site').upper()
+    site = config.get(args.section, 'site').upper()
     site_lc = site.lower()
 except Exception as e:
     logger.error('Bad config file ' + args.config_file + ': ' + str(e))
@@ -301,14 +300,14 @@ if hasattr(os, 'nice'):
         os.nice(nice)
     if os.nice(0):
         logger.debug('niceness set to %d', os.nice(0))
-        
+
 delay = None
 if args.random_delay:
     delay = random.random() * float(args.random_delay)
 elif not sys.stdin.isatty():
     # Standard input is not a TTY, assume called from cron
     delay = random.random() * 50
-    
+
 if delay:
     logger.debug('sleeping for %.1fs', delay)
     time.sleep(delay)
@@ -316,7 +315,7 @@ if delay:
 if args.method:
     method = args.method
 else:
-    method = config.get('upload', 'method')
+    method = config.get(args.section, 'method')
 
 if args.all and method not in ['rsync', 'rrsync']:
     logger.error('--all can only be used with rsync and rrsync methods')
@@ -332,7 +331,7 @@ if method in ['rsync', 'rrsync']:
     # Hostname machine.lancs.ac.uk
     # User monty
     # remote_host = 'awn-data'
-    remote_host = config.get('upload', 'rsync_host')
+    remote_host = config.get(args.section, 'rsync_host')
     if method == 'rrsync':
         # rrsync script in use on remote host. Assume that the target
         # directory for this site is correctly enforced.
@@ -342,8 +341,8 @@ if method in ['rsync', 'rrsync']:
     if args.start_time is None and args.end_time is None:
         end_time = tomorrow
         start_time = end_time - datetime.timedelta(days=3)
-    
-    cmd = ['rsync', 
+
+    cmd = ['rsync',
            '--archive',  # Preserve everything
            '--no-perms',  # Use file mode permissions
            # Don't transfer empty files, important since filesystem
@@ -373,9 +372,9 @@ if method in ['rsync', 'rrsync']:
         logger.info('cmd: ' + ' '.join(cmd))
         if args.verbose:
             print(' '.join(cmd))
-            
+
         subprocess.call(cmd)
-            
+
     else:
         # Find list of files to upload
         file_type_data = get_file_type_data()
@@ -413,7 +412,7 @@ if method in ['rsync', 'rrsync']:
                 # Ensure yearly directory is made, unless we have
                 # already made it. The monthly data will get made on demand.
                 if last_year != t.year:
-                    make_remote_rsync_directory(remote_host, 
+                    make_remote_rsync_directory(remote_host,
                                                 os.path.dirname(target_dir))
                     last_year = t.year
 
@@ -423,7 +422,7 @@ if method in ['rsync', 'rrsync']:
                         logger.info('refusing to remove source files for today')
                     else:
                         cmd2.append('--remove-source-files')
-                
+
                 cmd2.extend(file_list)
                 # Use trailing slash to signal to the remote rsync
                 # that the target is a directory (it can't work this
@@ -440,7 +439,7 @@ elif method in ('http', 'https'):
     # Upload using HTTP POST. Enable a HTTPS method although not
     # supported by the server at present.
 
-    url = config.get('upload', 'url')
+    url = config.get(args.section, 'url')
 
     # If method is https then URL ought to use that scheme, but using
     # https URL for http upload is ok.
@@ -453,13 +452,13 @@ elif method in ('http', 'https'):
     # hourly or daily variations are allowed.
 
     file_type_data = get_file_type_data()
-    if config.has_option('upload', 'username'):
-        username = config.get('upload', 'username')
+    if config.has_option(args.section, 'username'):
+        username = config.get(args.section, 'username')
     else:
         username = 'awn-' + site_lc
-    password = config.get('upload', 'password')
-    realm = config.get('upload', 'realm')
-    
+    password = config.get(args.section, 'password')
+    realm = config.get(args.section, 'realm')
+
     authhandler = urllib2.HTTPDigestAuthHandler()
     authhandler.add_password(realm, url, username, password)
     opener = urllib2.build_opener(authhandler)
@@ -492,13 +491,13 @@ elif method in ('http', 'https'):
                         if rem_source and t >= today:
                             logger.info('refusing to remove source files for today')
                             rem_source = False
-                            
+
                         response = http_upload(file_name, url, rem_source)
                         if not response:
                             all_ok = False
                     else:
                         logger.info('Refusing to upload %s: empty file', file_name)
-                
+
                 elif ext == '':
                     # No .bad extension
                     if ft in ('logfile'):
@@ -519,8 +518,8 @@ elif method in ('http', 'https'):
                     os.removedirs(dname)
                 except:
                     logger.exception('could not remove directory ' + dname)
-                        
+
             t += interval
-    
+
 else:
     raise Exception('Unknown upload method (' + method + ')')
