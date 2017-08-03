@@ -355,6 +355,11 @@ if method in ['rsync', 'rrsync']:
            # corruption can cause files to have zero size which would
            # then destroy data on the server.
            '--min-size=1']
+
+    if config.has_option(args.section, 'rsync_options'):
+        # Space-separated list of options
+        cmd.extend(config.get(args.section, 'rsync_options').split())
+
     # Options
     if args.verbose:
         cmd.append('--verbose')
