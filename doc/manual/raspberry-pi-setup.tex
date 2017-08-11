@@ -68,13 +68,16 @@ then \code{Change Timezone}. For geographic area select %
 \code{None of the above}, then select \code{\utc}. Select \code{OK}.
 
 \subsubsection{Interfacing options}
-For systems where the sensor unit is connected directly to the
-Raspberry Pi the \itwoc\ interface must be enabled. For systems
-utilising a Calunium microcontroller this option is not required but
-can be safely enabled.
 
-Systems which does use the Calunium microcontroller should disable the
-login shell and enable the serial interface.
+\ifdef{\caluniumMagManual}{%
+  \protect\todo[Systems which use the Calunium microcontroller should disable
+  the login shell and enable the serial interface.]%
+}{}
+
+\ifdef{\raspiMagManual}{%
+  \protect\todo[For systems where the sensor unit is connected directly to the
+  Raspberry Pi the \protect\itwoc\ interface must be enabled.]%
+}{}
 
 \subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
@@ -256,21 +259,15 @@ ssh-keygen -A
 
 \subsection{Install the Git repository}
 As user \piUser
-\begin{Cmd}
-git clone --recursive https://github.com/stevemarple/AuroraWatchNet.git 
-git clone --recursive https://github.com/stevemarple/auroraplot.git
-git clone --recursive https://github.com/stevemarple/Calunium.git
-git clone --recursive https://github.com/stevemarple/xboot.git
-git clone --recursive https://github.com/stevemarple/python-MCP342x.git
-mkdir \mytilde/bin
-. \mytilde/.bashrc
-cd \mytilde/bin
-ln -s ../AuroraWatchNet/software/server/bin/awnetd.py
-ln -s ../AuroraWatchNet/software/server/bin/send_cmd.py
-ln -s ../AuroraWatchNet/software/server/bin/log_ip
-ln -s ../AuroraWatchNet/software/server/bin/upload_data.py
-cd \mytilde
-\end{Cmd}
+
+\ifdef{\caluniumMagManual}{%
+  \IncludeShellFileVerb{git-clone-cmds-calunium-mag.sh}%
+}{}
+
+\ifdef{\raspiMagManual}{%
+  \IncludeShellFileVerb{git-clone-cmds-raspi-mag.sh}%
+}{}
+
 
 \subsection{Create data directory}
 As user \rootUser
@@ -281,63 +278,34 @@ chown pi.pi /data
 
 \subsection{Create configuration file}
 
-The configuration file depends upon the actual hardware design and
-construction choices made. Following the instructions which match the
-hardware in use.
+\ifdef{\caluniumMagManual}{%
+  \input{raspberry-pi-setup-config-calunium-mag.tex}%
+}{}
 
-\subsection{AuroraWatchNet magnetometer design using the Calunium
-  microcontroller}
-Instructions for the battery-powered or \PoE\ magnetometer designs
-where the sensor unit is connected to a Calunium microcontroller.
+\ifdef{\raspiMagManual}{%
+  \input{raspberry-pi-setup-config-raspi-mag.tex}%
+}{}
 
-\todo.
-
-\subsection{AuroraWatchNet magnetometer design without Calunium
-  microcontroller}
-Instructions for the magnetometer design where the sensor unit is
-connected directly to a Rapsberry Pi.
-
-\todo.
-
-\subsubsection[BGS school magnetometer design]{\protect\bgs\ school magnetometer design}
-
-Instructions for the \bgs\ school magnetometer which uses the
-AB Electronics \adc.
-
-As user \rootUser
-\begin{Cmd}[fontsize=\relsize{-1.75}]
-cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/raspimagd_bgs_awnet.ini  /etc/awnet.ini
-nano /etc/awnet.ini
-\end{Cmd}
-In the editor find the \code{[DEFAULT]} section, edit the \code{site}
-to the correct value. Navigate to the \code{[upload]} section and
-enter the correct values for \code{url}, \code{username},
-\code{password} and \code{realm}. Ensure the leading comment character
-(\code{\#}) is removed.
 
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
 
-If using a Calunium-based system configure \filename{cron} with the
-following command. As user \piUser
-\begin{Cmd}
-crontab ~/AuroraWatchNet/software/server/crontabs/awnetd.crontab
-\end{Cmd}
+As user \piUser
+%%% Must choose a different crontab based upon the recording daemon to
+%%% be used.
+\ifdef{\caluniumMagManual}{%
+  \IncludeShellFileVerb{use-awnetd-crontab.sh}%
+}{}%
+\ifdef{\raspiMagManual}{%
+  \IncludeShellFileVerb{use-raspimagd-crontab.sh}%
+}{}
 
-For systems where the sensor head is connected to the Raspberry Pi
-without using a microcontroller (such as the \bgs\ school
-magnetometer) then instead configure \filename{cron} with the
-following command. As user \piUser
-\begin{Cmd}
-crontab ~/AuroraWatchNet/software/server/crontabs/raspimagd.crontab
-\end{Cmd}
-
-If you plan to use the FTDI-all-in-one pogrammer and switch to
+If you plan to use the FTDI-all-in-one programmer and switch to
 indicate periods of bad data then uncomment the line with the
 reference to \filename{awnetd_monitor.py}.
 
-If the Raspberry Pi is using Wi-Fi networking uncommented the line
-referencing \filename{network_watchdog}, it will cause the Raspberry
+If the Raspberry Pi is using Wi-Fi networking uncomment the line
+referencing \filename{network_watchdog}; it will cause the Raspberry
 Pi to be rebooted if it appears that Wi-Fi networking has stopped
 working for some reason.
 
@@ -373,19 +341,6 @@ The first time the command runs there will be some errors printed as
 symbolic links are other configuration details are missing. On the
 second run confirm that the errors have been corrected.
 
-% \subsection{Automatically start the data recording daemon}
-% If using the Calunium-based systems then run, as user \rootUser
-% \begin{Cmd}
-% cd /etc/init.d
-% update-rc.d awnetd defaults
-% \end{Cmd}
-
-% For systems where the sensor head is connected to the Raspberry Pi
-% without using a microcontroller then run, as user \rootUser
-% \begin{Cmd}
-% cd /etc/init.d
-% update-rc.d raspimagd defaults
-% \end{Cmd}
 
 \subsection{Configure \protect\filename{ntp}}
 Check that the current time is correct by typing

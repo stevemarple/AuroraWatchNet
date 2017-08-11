@@ -3,17 +3,39 @@ BIBTEX = bibtex
 MAKEABBREV = ./makeabbrev
 
 CP = cp -a
+
+# .PHONY : doc
+# doc : images makeabbrev gitlog.tex
+# 	$(PDFLATEX) manual
+# 	$(MAKEABBREV) manual
+# #	$(BIBTEX) manual
+# 	$(PDFLATEX) manual
+
 .PHONY : doc
-doc : images makeabbrev gitlog.tex
-	$(PDFLATEX) manual
-	$(MAKEABBREV) manual
-#	$(BIBTEX) installation-manual
-	$(PDFLATEX) manual
+doc : calunium-mag-manual raspi-mag-manual
+
+
+.PHONY : calunium-mag-manual
+calunium-mag-manual : images makeabbrev gitlog.tex
+#	$(CP) manual.tex calunium-mag-manual.tex
+#	/bin/echo -e 'calunium\n' | $(PDFLATEX) calunium-mag-manual
+	$(PDFLATEX) -jobname calunium-mag-manual manual 
+	$(MAKEABBREV) calunium-mag-manual
+#	$(BIBTEX) calunium-mag-manual
+	$(PDFLATEX) -jobname calunium-mag-manual manual 
+
+.PHONY : raspi-mag-manual
+raspi-mag-manual : images makeabbrev gitlog.tex
+	$(PDFLATEX) -jobname raspi-mag-manual manual
+	$(MAKEABBREV) raspi-mag-manual
+#	$(BIBTEX) raspi-mag-manual
+	$(PDFLATEX) -jobname raspi-mag-manual manual
+
 
 .PHONY : clean
 clean:
 # .tpt: PDF thumbnails from thumbpdf
-	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux manual.out manual.upa manual.abb manual.abr _region_.tex
+	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux manual.out manual.upa manual.abb manual.abr _region_.tex calunium-mag-manual.* raspi-mag-manual.*
 
 
 .PHONY : images

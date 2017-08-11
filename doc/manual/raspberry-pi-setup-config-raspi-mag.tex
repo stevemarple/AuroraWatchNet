@@ -1,0 +1,27 @@
+The instructions for the \bgs\ school magnetometer design and the
+AuroraWatchNet Raspberry Pi magnetometer design are very similar but
+there are subtle differences in the hardware designs which require
+different configuration files. Be sure to choose the correct version.
+
+\subsubsection[BGS school magnetometer design]{\protect\bgs\ school
+  magnetometer design}
+
+Instructions for the \bgs\ school magnetometer which uses the AB
+Electronics \adc.
+
+As user \rootUser
+\begin{Cmd}[fontsize=\relsize{-1.75}]
+  cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/raspimagd_bgs_awnet.ini  /etc/awnet.ini
+  nano /etc/awnet.ini
+\end{Cmd}
+
+In the editor find the \code{[DEFAULT]} section, edit the \code{site}
+to the correct value. Navigate to the \code{[upload]} section and
+enter the correct values for \code{url}, \code{username},
+\code{password} and \code{realm}. Ensure the leading comment character
+(\code{\#}) is removed. 
+
+\subsubsection{AuroraWatchNet Raspberry Pi magnetometer design}
+
+  \todo[Add instructions for AuroraWatchNet Raspberry Pi magnetometer
+  configuration file.]  

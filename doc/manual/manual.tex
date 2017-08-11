@@ -54,6 +54,7 @@
 
 %% Conditional sections
 \usepackage{ifthen}
+\usepackage{etoolbox}
 
 %% URLs
 \usepackage[obeyspaces]{url}
@@ -82,7 +83,9 @@
 %% underscore package because the custom command must be listed in
 %% \UnderscoreCommands
 \CustomVerbatimCommand{\IncludeMatlabFileVerb}{VerbatimInput}{frame=single,fontsize=\relsize{-1}}
-\CustomVerbatimCommand{\IncludeShellFileVerb}{VerbatimInput}{frame=single,fontsize=\relsize{-1}}
+\CustomVerbatimCommand{\IncludeShellFileVerb}{VerbatimInput}{%
+  frame=single,framesep=5mm,commandchars=\\\{\}
+}
 
 %% Include Matlab file verbatim and attach it for the user to download.
 \newcommand{\IncludeMatlabFile}[2]{\IncludeMatlabFileVerb{#1}%
@@ -281,20 +284,19 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 
 
 %% Verbatim-like environment for code.
-\DefineVerbatimEnvironment{Code}{Verbatim}%
-{frame=single,commandchars=\\\{\}}
-\DefineVerbatimEnvironment{Cmd}{Verbatim}%
-{frame=single,framesep=5mm,commandchars=\\\{\}}
+\DefineVerbatimEnvironment{Code}{Verbatim}{%
+  frame=single,commandchars=\\\{\}
+}
+\DefineVerbatimEnvironment{Cmd}{Verbatim}{%
+  frame=single,framesep=5mm,commandchars=\\\{\}
+}
+\DefineVerbatimEnvironment{LinuxCmd}{Verbatim}{%
+  frame=single,framesep=5mm,commandchars=\\\{\}
+}
 % {frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
-\DefineVerbatimEnvironment{LinuxCmd}{Verbatim}%
-{frame=single,framesep=5mm,commandchars=\\\{\}}
-% {frame=single,label=\linuxLogo,framesep=5mm,commandchars=\\\{\}}
-\DefineVerbatimEnvironment{WindowsCmd}{Verbatim}%
-{frame=single,framesep=5mm,commandchars=\\\{\}}
-% {frame=single,label=\windowsLogo,framesep=5mm,commandchars=\\\{\}}
-
-%% \DefineVerbatimEnvironment{Cmd}{LinuxCmd}{}
-
+\DefineVerbatimEnvironment{WindowsCmd}{Verbatim}{%
+  frame=single,framesep=5mm,commandchars=\\\{\}
+}
 
 \DefineVerbatimEnvironment{RootCmd}{Verbatim}%
 {frame=single,framesep=5mm,label=As user \rootUser,commandchars=\\\{\}}
@@ -334,6 +336,24 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
   \ifthenelse{\equal{\gitCommitYear}{2014}}{2014}{2014--\gitCommitYear}}
 \newcommand{\documentAttribution}{``AuroraWatchNet magnetometer
   manual. Steve R. Marple, Lancaster University. \gitCommitYear.''}
+
+\typeout{Job is \jobname}
+%%\ifthenelse{\equal{\detokenize{calunium-manual}}{\jobname}}{%
+%%  \typeout{Making Calunium manual}
+%%}{}
+\expandafter\ifstrequal\expandafter{\jobname}{calunium-mag-manual}{%
+  \typeout{Making Calunium manual}%
+  \def\caluniumMagManual{}
+}{%
+  \typeout{Not Calunium manual!}
+}
+\expandafter\ifstrequal\expandafter{\jobname}{raspi-mag-manual}{%
+  \typeout{Making Raspberry Pi manual}%
+  \def\raspiMagManual{}
+}{%
+  \typeout{Not Raspberry Pi manual!}
+}
+
 
 \begin{document}
 
