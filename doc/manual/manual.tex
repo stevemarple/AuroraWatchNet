@@ -120,13 +120,6 @@
 }
 \usepackage[strings]{underscore}
 
-%% Include these packages last!
-% \usepackage[bookmarksnumbered=true,
-% bookmarksopen=true,
-% bookmarksopenlevel=0,
-% unicode=true,
-% pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
-
 \usepackage[%
 bookmarksnumbered=true,
 bookmarksopen=true,
@@ -134,16 +127,6 @@ bookmarksopenlevel=0,
 unicode=true,colorlinks=false,
 allbordercolors={0 0 1},
 pdfborderstyle={/S/U/W 1}]{hyperref}
-
-% \usepackage[bookmarksnumbered=true,
-% bookmarksopen=true,
-% bookmarksopenlevel=0,
-% colorlinks=true,
-% linkcolor=blue,
-% citecolor=blue,
-% urlcolor=blue,
-% unicode=true,
-% pdftitle={AuroraWatchNet magnetometer manual}]{hyperref}
 
 %% Have references to figures link to the top of the figure, not the
 %% caption text.
@@ -338,9 +321,6 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
   manual. Steve R. Marple, Lancaster University. \gitCommitYear.''}
 
 \typeout{Job is \jobname}
-%%\ifthenelse{\equal{\detokenize{calunium-manual}}{\jobname}}{%
-%%  \typeout{Making Calunium manual}
-%%}{}
 \expandafter\ifstrequal\expandafter{\jobname}{calunium-mag-manual}{%
   \typeout{Making Calunium manual}%
   \def\caluniumMagManual{}
@@ -348,16 +328,33 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
   \typeout{Not Calunium manual!}
 }
 \expandafter\ifstrequal\expandafter{\jobname}{raspi-mag-manual}{%
-  \typeout{Making Raspberry Pi manual}%
+  \typeout{Making AuroraWatchNet Raspberry Pi manual}%
   \def\raspiMagManual{}
 }{%
-  \typeout{Not Raspberry Pi manual!}
+  \typeout{Not AuroraWatchNet Raspberry Pi manual!}
+}
+\expandafter\ifstrequal\expandafter{\jobname}{bgs-mag-manual}{%
+  \typeout{Making BGS Raspberry Pi manual}%
+  \def\bgsMagManual{}
+}{%
+  \typeout{Not BGS Raspberry Pi manual!}
 }
 
 
 \begin{document}
 
-\title{AuroraWatchNet magnetometer manual}
+\ifdef{\caluniumMagManual}{%
+  \title{AuroraWatchNet magnetometer manual\newline
+  \large For PoE and radio systems using Calunium microcontroller}%
+}{}
+\ifdef{\raspiMagManual}{%
+  \title{AuroraWatchNet Raspberry Pi\\
+    magnetometer manual}%
+}{}
+\ifdef{\bgsMagManual}{%
+  \title{BGS Raspberry Pi magnetometer\\
+  \Large Software configuration and operation manual}%
+}{}
 \author{Steve R. Marple, \\
 Lancaster University.}
 \date{\gitCommitDate\\
@@ -404,22 +401,82 @@ Please attribute this work as \documentAttribution
 %% Allow for sloppy wordbreaking to avoid text spilling into the
 %% margin (eg as a result of \filename and other non-breaking text)
 \sloppy
-\part{Introduction}
-\include{hardware-overview}
 
-\part{Construction}
-\include{beginning-construction}
-\include{flc100-shield}
-\include{calunium-assembly}
-\include{sensor-pcb}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% INTRODUCTION
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \part{Introduction}
+\ifdef{\caluniumMagManual}{%
+  \include{calunium-mag/hardware-overview}
+}{}
+\ifdef{\raspiMagManual}{%
+  \include{raspi-mag/hardware-overview}
+}{}
+\ifdef{\bgsMagManual}{%
+  \include{bgs-mag/hardware-overview}
+}{}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% CONSTRUCTION
+%%%
+%%% Note that there is no construction for the BGS mag - see BGS for
+%%% information.
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ifdef{\caluniumMagManual}{%
+  \part{Construction}
+  \include{beginning-construction}
+  \include{flc100-shield}
+  \include{calunium-assembly}
+  \include{sensor-pcb}
+}{}
+
+\ifdef{\raspiMagManual}{%
+  \part{Construction}
+  \protect\todo
+}{}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% INSTALLATION
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \part{Installation}
 
-\include{site-requirements}
+\ifdef{\caluniumMagManual}{%
+  \include{calunium-mag/site-requirements}
+}{}
+\ifdef{\raspiMagManual}{%
+  \include{raspi-mag/site-requirements}
+}{}
+\ifdef{\bgsMagManual}{%
+  \include{bgs-mag/site-requirements}
+}{}
+
 \include{raspberry-pi-setup}
-\include{installation-procedure}
+
+\ifdef{\caluniumMagManual}{%
+  \include{calunium-mag/installation-procedure}
+}{}
+\ifdef{\raspiMagManual}{%
+  \include{raspi-mag/installation-procedure}
+}{}
+\ifdef{\bgsMagManual}{%
+  \include{bgs-mag/installation-procedure}
+}{}
+
 \include{contributing-data}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% OPERATION
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \part{Operation}
 \include{raspberry-pi-operation}
 
@@ -427,7 +484,11 @@ Please attribute this work as \documentAttribution
 
 \appendix
 \include{config-file}
-\include{eeprom-settings}
+
+\ifdef{\caluniumMagManual}{%
+  %% Specific to the Calunium hardware
+  \include{eeprom-settings}
+}{}
 
 %%\include{custom-ras-pi-images}
 \end{document}

@@ -1,0 +1,26 @@
+If the magnetometer is to use the Ciseco XRF radio modules to
+communicate between the sensor unit and base unit then as user
+\rootUser
+\begin{Cmd}[fontsize=\relsize{-1.75}]
+cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/calunium_xrf_awnet.ini /etc/awnet.ini
+nano /etc/awnet.ini
+\end{Cmd}
+\todo[Add support for serial and USB versions.]
+
+If the magnetometer is to use Ethernet to communicate between the
+sensor unit and base unit then first identify which Ethernet shield is in use.
+
+If using the original Arduino Ethernet shield, which is fitted with
+the WIZnet W5100 Ethernet controller, then as user \rootUser
+\begin{Cmd}[fontsize=\relsize{-1.75}]
+cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/calunium_w5100_awnet.ini /etc/awnet.ini
+nano /etc/awnet.ini
+\end{Cmd}
+
+If using the later Arduino Ethernet shield 2, which is fitted with
+the WIZnet W5500 Ethernet controller, then as user \rootUser
+\begin{Cmd}[fontsize=\relsize{-1.75}]
+cp \mytilde{}pi/AuroraWatchNet/software/server/ini_files/calunium_w5500_awnet.ini /etc/awnet.ini
+nano /etc/awnet.ini
+\end{Cmd}
+

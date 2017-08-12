@@ -1,3 +1,5 @@
+*.abb
+*.abr
 *.acn
 *.acr
 *.alg
@@ -29,12 +31,10 @@
 *.snm
 *.synctex.gz
 *.toc
+*.upa
 *.vrb
 *.xdy
 *.tdo
 _region_.*
-manual.abb
-manual.abr
-manual.upa
 makeabbrev
 gitlog.tex

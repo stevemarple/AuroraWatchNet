@@ -26,6 +26,12 @@ abbreviation into filenames.
 The \code{[DEFAULT]} section is special as it defines values which can
 used elsewhere in the configuration file.
 
+\subsection{project}
+Define the project. This is
+used elsewhere within the configuration file, \eg, data filenames.
+
+Default: none.
+
 \subsection{site}
 Define the site code, typically a three letter abbreviation. This is
 used elsewhere within the configuration file, \eg, data filenames.
@@ -146,58 +152,62 @@ of the setting of the \code{acknowledge} option.
 
 Default: \code{false}
 
-\section{\code{[serial]}}
-Options relating to serial data communication between the magnetometer
-and data recording daemon. This section is not used when communication
-uses ethernet.
+\ifdef{\caluniumMagManual}{%
+  \section{\code{[serial]}}
+  Options relating to serial data communication between the
+  magnetometer and data recording daemon. This section is not used
+  when communication uses ethernet.
 
-\subsection{\code{port}}
-The filename of the serial port. For the Ciseco \emph{Slice of Radio} module
-this should be set to \filename{/dev/ttyAMA0}, for the Ciseco
-\emph{URF} module this will probably be \filename{/dev/ttyACM0}.
+  \subsection{\code{port}} 
+  The filename of the serial port. For the Ciseco \emph{Slice of
+    Radio} module this should be set to \filename{/dev/ttyAMA0}, for
+  the Ciseco \emph{URF} module this will probably be
+  \filename{/dev/ttyACM0}.
 
-Default: \filename{/dev/ttyACM0}
+  Default: \filename{/dev/ttyACM0}
 
-\subsection{\code{baudrate}}
-Baud rate used with the serial port. For the Ciseco \emph{Slice of
-  Radio} module this should be set to \code{9600}, for the Ciseco
-\emph{URF} module a higher rate of \code{57600} can be used.
+  \subsection{\code{baudrate}}
+  Baud rate used with the serial port. For the Ciseco \emph{Slice of
+    Radio} module this should be set to \code{9600}, for the Ciseco
+  \emph{URF} module a higher rate of \code{57600} can be used.
 
-Default: \code{9600}
+  Default: \code{9600}
 
-\subsection{\code{setup}}
-The set-up string which should be sent to the serial device, for
-defining the channel number used for communication \etc.
+  \subsection{\code{setup}}
+  The set-up string which should be sent to the serial device, for
+  defining the channel number used for communication \etc.
 
-Default: none.
+  Default: none.
 
-Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
-channel number defined here matches the setting programmed into the
-magnetometer's \eeprom.
+  Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
+  channel number defined here matches the setting programmed into the
+  magnetometer's \eeprom.
 
-\section{\code{[ethernet]}}
+  \section{\code{[ethernet]}}
 
-These configuration options are used by the data recording daemon only
-when an ethernet connection with the magnetometer is in use.
+  These configuration options are used by the data recording daemon
+  only when an ethernet connection with the magnetometer is in use.
 
-\subsection{\code{local_address}}
-The local \ip\ address used for the data recording daemon. By default
-the daemon listens on all available interfaces.
+  \subsection{\code{local_address}}
+  The local \ip\ address used for the data recording daemon. By
+  default the daemon listens on all available interfaces.
 
-Default: empty string.
+  Default: empty string.
 
-\subsection{\code{local_port}}
-The port number of which the recording daemon should listen for
-magnetometer data packets.
+  \subsection{\code{local_port}}
+  The port number of which the recording
+  daemon should listen for magnetometer data packets.
 
-Default: \code{6588}
+  Default: \code{6588}
 
-\subsection{\code{remote_address}}
-The \ip\ address of the magnetometer.
+  \subsection{\code{remote_address}}
+  The \ip\ address of the magnetometer.
 
-\subsection{\code{remote_port}}
-The port on which the magnetometer expects to receive
-acknowledgements.
+  \subsection{\code{remote_port}}
+  The port on which the magnetometer expects to receive
+  acknowledgements.  
+}{}
+
 
 \section{\code{[controlsocket]}}
 
@@ -236,27 +246,35 @@ number in the range 0 to 255 inclusive.
 
 Default: none.
 
-\subsection{\code{key}}
-\label{sec:config-file-mag-key}
-The \hmac-\mdfive\ key used to sign communication messages sent
-between the magnetometer and data recording daemon. \textbf{This key
-  should be kept secret.} The key is a 32 character hexadecimal
-string, without any \code{0x} prefix. The key used here must match
-that described in \secname~\ref{sec:eeprom-hmac-key}.
+%% Magnetometer communication key only relevant for systems using
+%% Calunium microcontroller.
+\ifdef{\caluniumMagManual}{%
+  \subsection{\code{key}}
+  \label{sec:config-file-mag-key}
+  The \hmac-\mdfive\ key used to sign communication messages sent
+  between the magnetometer and data recording daemon. \textbf{This key
+    should be kept secret.} The key is a 32 character hexadecimal
+  string, without any \code{0x} prefix. The key used here must match
+  that described in \secname~\ref{sec:eeprom-hmac-key}.
 
-Default: none.
+  Default: none.
 
-Set to a random value.
+  Set to a random value.
+}{}
 
-\section{\code{[firmware]}}
-Configuration details for firmware upgrades.
-
-\subsection{\code{path}}
-The directory in which the firmware upgrades relevant to the
-magnetometer hardware are stored. 
-
-\warningbox{It is critical that this path is set correctly, otherwise
-  incompatible firmware upgrades could be delivered.}
+%% Firmware settings relevant only for systems using Calunium
+%% microcontroller.
+\ifdef{\caluniumMagManual}{%
+  \section{\code{[firmware]}}
+  Configuration details for firmware upgrades.
+  
+  \subsection{\code{path}}
+  The directory in which the firmware upgrades relevant to the
+  magnetometer hardware are stored. 
+  
+  \warningbox{It is critical that this path is set correctly, otherwise
+    incompatible firmware upgrades could be delivered.}
+}{}
 
 \section{\code{[upload]}}
 Configuration details for the \filename{upload_data.py} program.

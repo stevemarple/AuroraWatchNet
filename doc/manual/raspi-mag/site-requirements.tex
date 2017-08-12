@@ -1,13 +1,11 @@
 \chapter{Site requirements}
 
-\section{Sensor unit requirements}
-The sensor unit should be located outside away from human
-distrubances. The site for the sensor unit should be chosen with
-regard to the following requirements, with the highest priority given
-first.
+\section{Sensor requirements}
+The sensor should be located outside away from human distrubances. The
+site for the sensor should be chosen with regard to the following
+requirements, with the highest priority given first.
 
 \begin{itemize}
-\item Within range of the base unit.
 \item Away from moving metal objects, for example, trains (more than
   \SI{50}{\metre}), cars (more than \SI{20}{\metre}) and garage doors.
 \item Away from static metal objects, in particular those containing
@@ -19,13 +17,12 @@ temperature variations. To ensure correct behaviour a stabilised
 temperature environment is required. This is obtained by burying the
 sensor.
 
-\section{Base unit requirements}
+\section{Raspberry Pi requirements}
 
-The base unit (Raspberry Pi and radio module) requires mains power and
-a wired network connection. Wireless networking is also possible but
-has not been tested; follow the instructions on the Raspberry Pi
-website. The base unit should be located indoors and as close to the
-sensor unit as possible.
+The Raspberry Pi requires power and a network communication. The
+normal mode of operation is to utilise a \ieee\ 802.3af standard \PoE\
+network. Alternatives such as passive \PoE\ are possible but not
+recommended.
 
 \subsection{Network requirements}
 
@@ -35,10 +32,12 @@ operate fully:
 \item \dns\ resolution. This is normally provided
   as standard on most networks.
 \item Outgoing access on port 80 (\http) and 443 (\https). Required
-  for software updates.
+  for software updates and data transfer to AuroraWatch UK and the Met
+  Office Weather Observations Website.
 \item Outgoing access on port 123 (\ntp), or access to a local \ntp\
   server.
-\item Outgoing \ssh\ access (port 22).
+\item Outgoing \ssh\ access (port 22) is required if \code{rsync} or
+  \code{rrsync} data transfers are enabled.
 \end{itemize}
 
 

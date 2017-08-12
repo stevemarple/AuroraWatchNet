@@ -22,17 +22,19 @@ useful for digging the hole.
 Connect the Raspberry Pi to wired ethernet connection. Connect the
 keyboard, mouse and monitor (if using) before powering up the
 Raspberry Pi. Connect the Raspberry Pi to a \volt{5} power supply with
-an output current rating of at least \SI{700}{\milli A}. If you are
-not using a monitor connect to the Raspberry Pi using \ssh, the
-default hostname is \filename{raspberry.local}.
+a suitable output current rating, this depends on which version of
+Raspberry Pi is to be used. If you are not using a monitor connect to
+the Raspberry Pi using \ssh, the default hostname is
+\filename{raspberry.local}.
 
 
 \section{Determining the maximum range for the radio link}
 \label{sec:find-maximum-range}
-Before installing the sensor unit first check the maximum range for
-radio communication. Note that this will vary according to many
-conditions and be sure to position the sensor well within the maximum
-range.
+
+If the sensor unit is to communicate over radio then before installing
+the sensor unit first check the maximum range. Note that this will
+vary according to many conditions and be sure to position the sensor
+well within the maximum range.
 
 The maximum range can be determined with the following procedure:
 \begin{enumerate}

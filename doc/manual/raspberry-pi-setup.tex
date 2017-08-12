@@ -70,13 +70,27 @@ then \code{Change Timezone}. For geographic area select %
 \subsubsection{Interfacing options}
 
 \ifdef{\caluniumMagManual}{%
-  \protect\todo[Systems which use the Calunium microcontroller should disable
-  the login shell and enable the serial interface.]%
+  If you plan to log into the Raspberry Pi remotely you should enable
+  the \ssh\ server. If you will only log in via keyboard and monitor
+  connected directly to the Pi then you can choose to disable the
+  \ssh\ server.
+  
+  If the Raspberry Pi is to be fitted with the Ciseco \emph{Slice of
+    Radio} module then the serial interface must be enabled and the
+  login shell over the serial port must be disabled.
 }{}
-
 \ifdef{\raspiMagManual}{%
-  \protect\todo[For systems where the sensor unit is connected directly to the
-  Raspberry Pi the \protect\itwoc\ interface must be enabled.]%
+  Enable the \ssh\ server so that you can log in remotely.
+
+  Enable the Arm \itwoc\ interface.
+}{}
+\ifdef{\bgsMagManual}{%
+  If you plan to log into the Raspberry Pi remotely you should enable
+  the \ssh\ server. If you will only log in via keyboard and monitor
+  connected directly to the Pi then you can choose to disable the
+  \ssh\ server.
+
+  Enable the Arm \itwoc\ interface.
 }{}
 
 \subsubsection{Memory split}
@@ -261,11 +275,13 @@ ssh-keygen -A
 As user \piUser
 
 \ifdef{\caluniumMagManual}{%
-  \IncludeShellFileVerb{git-clone-cmds-calunium-mag.sh}%
+  \IncludeShellFileVerb{calunium-mag/git-clone-cmds.sh}%
 }{}
-
 \ifdef{\raspiMagManual}{%
-  \IncludeShellFileVerb{git-clone-cmds-raspi-mag.sh}%
+  \IncludeShellFileVerb{raspi-mag/git-clone-cmds.sh}%
+}{}
+\ifdef{\bgsMagManual}{%
+  \IncludeShellFileVerb{raspi-mag/git-clone-cmds.sh}%
 }{}
 
 
@@ -279,13 +295,20 @@ chown pi.pi /data
 \subsection{Create configuration file}
 
 \ifdef{\caluniumMagManual}{%
-  \input{raspberry-pi-setup-config-calunium-mag.tex}%
+  \input{calunium-mag/raspberry-pi-setup-awnet-ini.tex}%
 }{}
-
 \ifdef{\raspiMagManual}{%
-  \input{raspberry-pi-setup-config-raspi-mag.tex}%
+  \input{raspi-mag/raspberry-pi-setup-awnet-ini.tex}%
+}{}
+\ifdef{\bgsMagManual}{%
+  \input{bgs-mag/raspberry-pi-setup-awnet-ini.tex}%
 }{}
 
+In the editor find the \code{[DEFAULT]} section, edit the \code{site}
+to the correct value. Navigate to the \code{[upload]} section and
+enter the correct values for \code{url}, \code{username},
+\code{password} and \code{realm}. Ensure the leading comment character
+(\code{\#}) is removed. 
 
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
@@ -294,10 +317,14 @@ As user \piUser
 %%% Must choose a different crontab based upon the recording daemon to
 %%% be used.
 \ifdef{\caluniumMagManual}{%
-  \IncludeShellFileVerb{use-awnetd-crontab.sh}%
+  \IncludeShellFileVerb{calunium-mag/crontab.sh}%
 }{}%
 \ifdef{\raspiMagManual}{%
-  \IncludeShellFileVerb{use-raspimagd-crontab.sh}%
+  \IncludeShellFileVerb{raspi-mag/crontab.sh}%
+}{}
+\ifdef{\bgsMagManual}{%
+  % Same as the AWN Raspberry Pi version
+  \IncludeShellFileVerb{raspi-mag/crontab.sh}%
 }{}
 
 If you plan to use the FTDI-all-in-one programmer and switch to
