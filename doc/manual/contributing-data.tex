@@ -1,6 +1,8 @@
-\chapter{Contributing data to AuroraWatch UK}
+\chapter{Contributing data}
 
-\section{Use of data by AuroraWatch UK }
+\section{Contributing data to AuroraWatch UK}
+
+\subsection{Use of data by AuroraWatch UK }
 
 Data contributed to AuroraWatch UK will be combined with other
 magnetometer data for the purpose of generating AuroraWatch UK or
@@ -30,7 +32,7 @@ embargo period (24 to 48 hours). If your magnetometer data is also
 licensed as \ccByNcSaFour\ then AuroraWatch UK will share your data in
 the same way.
 
-\section{Methods to upload data}
+\subsection{Methods to upload data}
 Two methods to upload data to AuroraWatch UK are supported, using
 \href{\rsyncUrl}{rsync} through an \ssh\ tunnel, or by \http. Rsync
 contains an algorithm to efficiently transfer only the differences
@@ -43,7 +45,7 @@ rsync; whenever possible only the latest additions to a file are
 uploaded. The upload method is normally defined in \filename{/etc/awnet.ini}
 configuration file, in the \filename{[upload]} section.
 
-\subsection{Rsync uploads}
+\subsubsection{Rsync uploads}
 
 As user \rootUser\ edit \filename{/etc/awnet.ini}. At the end of the
 file add the \filename{[upload]} section if it is missing, it should
@@ -85,7 +87,7 @@ Add the following lines:
 */3 * * * * nice /home/pi/bin/upload_data.py > /dev/null 2>&1
 \end{Code}
 
-\subsection{HTTP uploads}
+\subsubsection{HTTP uploads}
 As user \rootUser\ edit \filename{/etc/awnet.ini}. At the end of the
 file add the \filename{[upload]} section if it is missing, it should
 appear as
@@ -111,4 +113,56 @@ Add the following lines:
 */5 * * * * nice /home/pi/bin/upload_data.py -s today --file-types awnettextdata
 # Make several attempts to upload all files from yesterday
 5 */6 * * * nice /home/pi/bin/upload_data.py -s yesterday > /dev/null 2>&1
+\end{Code}
+
+\section{Contributing data to the Met Office}
+
+Data can be contributed to the Met Office Weather Observations Website
+(WOW). First create a user account in WOW, see
+\url{https://register.metoffice.gov.uk/WaveRegistrationClient/public/register.do?service=weatherobservations}. Then
+register your site (\url{https://wow.metoffice.gov.uk/sites/create})
+to obtain a site ID and 6 digit authorisation key.
+
+The relevant information must be added to the
+\filename{/etc/awnet.ini} file. As user \rootUser:
+\begin{Cmd}
+nano /etc/awnet.ini 
+\end{Cmd}
+
+Add the following lines:
+\begin{Code}
+# Upload to Met Office WOW
+[wow]
+url = <upload URL>
+site_id = <site ID>
+site_auth = <authorisation key>
+\end{Code}
+
+Replace \code{<upload URL>} with the appropriate URL for magnetometer
+data. (This information has not yet been published). Replace
+\code{<site ID>} with the 36 character site indentifier and
+\code{<authorisation key>}) with the 6 digit authorisation key.
+
+Data can be uploaded manually by running the following command as user \piUser:
+\begin{Cmd}[fontsize=\relsize{-1.5}]
+/home/pi/AuroraWatchNet/software/server/bin/upload_wow.py -c /etc/awnet.ini -s yesterday
+\end{Cmd}
+
+\helpbox{The WOW API does not provide a means to check if the data has
+  been uploaded previously, and the WOW site does not check for or
+  remove duplicate data. It is therefore necessary for the user to
+  check if data has been already uploaded. For this reason it is
+  recommended that data is uploaded only data recording to a given
+  file has completed, \ie, avoid uploading data from the current day.}
+
+It is possible to automate the data uploads with a cron job. As user
+\piUser:
+\begin{Cmd}
+crontab -e  
+\end{Cmd}
+
+At the end of the crontab add the following lines:
+\begin{Code}[fontsize=\relsize{-3}]
+# Upload data to Met Office WOW
+5 * * * * /home/pi/AuroraWatchNet/software/server/bin/upload_wow.py -c /etc/awnet.ini -s yesterday > /dev/null 2>&1
 \end{Code}
