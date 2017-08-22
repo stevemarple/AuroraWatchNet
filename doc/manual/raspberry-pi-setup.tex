@@ -114,23 +114,6 @@ Select \code{Advanced Options} and then \code{Expand Filesystem}. Choose
 \code{Finish} and then reboot.
 
 
-\subsection{Force HDMI output (optional)}
-The default operation is to detect if a HDMI nomitor is connected at
-boot time; if one is it will be used otherwise the composite video
-output is selected. For the automatic detection to work the HDMI
-monitor must be switch on when the Raspberry Pi boots up. To force
-HDMI selection edit \filename{/boot/config.txt} as \rootUser
-\begin{Cmd}
-nano /boot/config.txt
-\end{Cmd}
-
-Ensure the following lines are enabled in the file (not commented out
-with a \code{\#} symbol).
-\begin{Cmd}
-hdmi_force_hotplug=1
-hdmi_drive=2  
-\end{Cmd}
-
 \subsection{Configure proxy server}
 Not all networks require a proxy server (or web cache) to be used,
 your network adminstrator should be able to advise. If it is necessary
