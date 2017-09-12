@@ -111,7 +111,7 @@ def main():
     project_list, site_list = ap.parse_project_site_list(args.project_site)
     config = None
     config_section = 'wow'
-    wow_url = ''  # TODO: set production URL
+    wow_url = 'https://apimgmt.www.wow.metoffice.gov.uk/api/bulkimportfiles/aurorawatchnet'
     if args.config_file:
         if len(site_list):
             raise Exception('Cannot specify sites and a config file')
@@ -230,7 +230,7 @@ def main():
             payload = '\n'.join(payload) + '\n'
 
             # Upload to WOW
-            params = (('qqFile', 'test123.txt'),
+            params = (('qqFile', 'test123.txt'),  # TODO: set file name correctly
                       ('siteId', wow_site_id),
                       ('siteAuthenticationKey', wow_site_auth))
             if args.dry_run:
