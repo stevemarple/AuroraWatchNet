@@ -46,13 +46,13 @@ images : calunium-mag/images/FLC100_shield_v1_0_sch.pdf \
 	calunium-mag/images/Calunium_v2_1_sch.pdf \
 	calunium-mag/images/system-overview.pdf
 
-images/FLC100_shield_v1_0_sch.pdf : ../../hardware/FLC100_shield/shield_v1.0/FLC100_shield_v1.0_sch.pdf
+calunium-mag/images/FLC100_shield_v1_0_sch.pdf : ../../hardware/FLC100_shield/shield_v1.0/FLC100_shield_v1.0_sch.pdf
 	$(CP) $< $@
 
-images/FLC100_shield_v2_0_sch.pdf : ../../hardware/FLC100_shield/shield_v2.0/FLC100_shield_v2.0_sch.pdf
+calunium-mag/images/FLC100_shield_v2_0_sch.pdf : ../../hardware/FLC100_shield/shield_v2.0/FLC100_shield_v2.0_sch.pdf
 	$(CP) $< $@
 
-images/Calunium_v2_1_sch.pdf : ../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch.pdf
+calunium-mag/images/Calunium_v2_1_sch.pdf : ../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch.pdf
 	$(CP) $< $@
 
 calunium-mag/images/system-overview.pdf : calunium-mag/images/src/system-overview.odg
