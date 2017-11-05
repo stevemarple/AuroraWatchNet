@@ -10,10 +10,10 @@ the \href{http://www.raspberrypi.org/downloads}{instructions} on the
 Raspberry Pi web site. \textbf{Copying the compressed image to a \fat\
   partition on the \sd\ card will not work}.
 
-These instructions assume Debian 8 (``Jessie'') is used. Most users
+These instructions assume Debian 9 (``Stretch'') is used. Most users
 should probably download the desktop version. Advanced users, and
 those planning to use the Pi without a display connected
-(``headless``) should probably download the minimal version without
+(``headless``), should probably download the minimal version without
 the desktop software.
 
 \section{Configuring Raspbian}
@@ -96,14 +96,6 @@ then \code{Change Timezone}. For geographic area select %
 \subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
   Split}. Set the \gpu\ memory to \code{16} (MB).
-
-\subsubsection{SSH server}
-If you plan to log into the Raspberry Pi remotely you should enable
-the \ssh\ server. If you will only log in via keyboard and monitor
-connected directly to the Pi then you can choose to disable the \ssh\
-server.
-Select \code{Advanced Options} and then \code{SSH}. Choose the
-appropriate option.
 
 \subsubsection{Expand Filesystem}
 The filesystem should be expanded to use all of the (micro)\sd\
@@ -298,7 +290,7 @@ enter the correct values for \code{url}, \code{username},
 \subsection{Configure \protect\filename{cron}}
 \label{sec:cron-configuration}
 
-As user \piUser
+Create the inital crontab file, as user \piUser
 %%% Must choose a different crontab based upon the recording daemon to
 %%% be used.
 \ifdef{\caluniumMagManual}{%
@@ -326,6 +318,13 @@ periodically report that it is operating. This helps the AuroraWatch
 administrators monitor which stations are active. These reporting
 commands can be omitted if you prefer (comment out the command by
 inserting a \code{\#} at the start of the line).
+
+If the \filename{cron} table is to be modified then do with the the
+following command, as \piUser:
+
+\begin{Cmd}
+crontab -e  
+\end{Cmd}
 
 
 \subsection{Configure \protect\filename{ifplugd}}
