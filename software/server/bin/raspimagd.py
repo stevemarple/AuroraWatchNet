@@ -180,7 +180,7 @@ def get_adc_devices(config, bus):
 
             # Some devices were constructed with single-ended ADC
             # boards. Enable a pseudo double-ended mode where IN+ and
-            # IN- are measured by independed single-ended ADC
+            # IN- are measured by independent single-ended ADC
             # channels.
             pseudo_de = False
             if hasattr(address, '__iter__') or hasattr(channel, '__iter__'):
@@ -190,7 +190,7 @@ def get_adc_devices(config, bus):
                     len(channel) != 2):
                     raise Exception('Pseudo double-ended configuration '
                                     + 'requires two values for both '
-                                    + 'address and channe')
+                                    + 'address and channel')
                 if comp == 'sensor_temperature':
                     raise Exception('Pseudo double-ended configuration '
                                     + ' for sensor temperature is '
