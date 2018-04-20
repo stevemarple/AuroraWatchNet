@@ -25,7 +25,7 @@ macro(s), described below.
 
     Enable support for the Wireless Things (formeerly Ciseco) XRF radio
     module. The radio communicates with with Serial1 at 9600
-    baud. 
+    baud.
 
   * `COMMS_W5100`
 
@@ -54,6 +54,12 @@ as described below.
     properly tested. This feature is unlikely to be compatible with
     `FEATURE_AS3935` due to limits on the number of hardware
     interrupts.
+
+  * `FEATURE_DATA_QUALITY`
+
+	Include support for a pin which monitors and reports on possible
+	data quality problems. The pin could be connected to an external
+	switch used to indicate when local site disturbances are expected.
 
   * `FEATURE_FLC100`
 
@@ -129,10 +135,10 @@ Pin numbers refer to the Calunium pin.
     21: SCL (RTC, MCP3424 etc)
     22: Calunium microSD CS
     23: XRF on indicator
-    A0: 
+    A0:
     A1:
     A2: Vin voltage measurement (via jumper)
-    A3: 
+    A3:
     A4: (Reserved, SDA on Arduino Uno)
     A5: (Reserved, SCL on Arduino Uno)
     A6: LM61 power
