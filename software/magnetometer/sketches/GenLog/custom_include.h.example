@@ -1,0 +1,31 @@
+#ifndef CUSTOM_INCLUDE_H
+#define CUSTOM_INCLUDE_H
+
+// This example file is used when compiling from the IDE to define
+// which communication and other hardware to support. It is not used
+// by the Makefile.
+
+// Select the communication hardware (one or more)
+//#define COMMS_XRF
+//#define COMMS_W5100
+#define COMMS_W5500
+
+// If Ethernet2 library is used then have it reset the WDT while doing DHCP
+#define ETHERNET2_USE_WDT
+
+#define FEATURE_FLC100
+
+#define FEATURE_GNSS
+#define FEATURE_VERBOSITY 1
+
+// Displaying memory usage includes malloc().
+//#define FEATURE_MEM_USAGE
+
+#if 1
+// Include cloud detector sensors
+#define FEATURE_HIH61XX
+#define FEATURE_MLX90614
+// #define FEATURE_AS3935
+#endif
+
+#endif
