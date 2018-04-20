@@ -55,6 +55,12 @@ as described below.
     `FEATURE_AS3935` due to limits on the number of hardware
     interrupts.
 
+  * `FEATURE_DATA_QUALITY`
+
+	Include support for a pin which monitors and reports on possible
+	data quality problems. The pin could be connected to an external
+	switch used to indicate when local site disturbances are expected.
+
   * `FEATURE_FLC100`
 
     Include support for FLC100 fluxgate magnetometer sensor(s)
