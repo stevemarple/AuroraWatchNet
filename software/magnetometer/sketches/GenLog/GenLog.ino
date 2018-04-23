@@ -45,6 +45,10 @@
 #include <FLC100_shield.h>
 #endif
 
+#ifdef FEATURE_RIOMETER
+#include <RioLogger.h>
+#endif
+
 #ifdef FEATURE_MLX90614
 #include <SoftWire.h>
 #include <MLX90614.h>
