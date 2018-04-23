@@ -11,8 +11,6 @@
 #include <AwEeprom.h>
 #include "CommandHandler.h"
 
-#include "MagCloud.h"
-
 extern uint8_t sdSelect;
 extern CounterRTC::Time samplingInterval;
 extern const CounterRTC::Time minSamplingInterval;
