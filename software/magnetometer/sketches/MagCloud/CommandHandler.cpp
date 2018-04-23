@@ -56,7 +56,7 @@ bool startsWith_P(const char *match, const char *str, char **ep)
 //   struct RTCx::tm tm;
 //   RTCx::gmtime_r(&t, &tm);
 //   AWPacket::incrementDefaultSequenceId();
-  
+
 //   // Time changing so increment the sequenceId to prevent replay
 //   // attacks. Normally the timestamp is increasing but it is possible
 //   // that it has decreased slightly, giving an attacker a potential
@@ -64,7 +64,7 @@ bool startsWith_P(const char *match, const char *str, char **ep)
 //   // again. By incrementing the sequenceId we guarantee old responses
 //   // will be invalid.
 //   AWPacket::incrementDefaultSequenceId();
-  
+
 //   return rtc.setClock(&tm);
 // }
 
@@ -142,20 +142,20 @@ void CommandHandler::process(Stream &console)
 	  char *ep2;
 	  long s = strtol(ep, &ep2, 0);
 	  if (s > 0 && ep2 != ep && *ep2 == '\0') {
-	    CounterRTC::Time tmp = 
+	    CounterRTC::Time tmp =
 	      CounterRTC::Time((s & 0xFFF0) >> 4,
 			       (s & 0x000F) <<
 			       (CounterRTC::fractionsPerSecondLog2 - 4));
-	    if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval) 
+	    if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval)
 	      samplingInterval = tmp;
-	    
+
 	  }
 	}
 	console << "samplingInterval_16th_s:"
 		<< ((samplingInterval.getSeconds() * 16) +
 		    (samplingInterval.getFraction() >> (CounterRTC::fractionsPerSecondLog2 - 4))) << endl;
-	
-	
+
+
       }
 #if USE_SD_CARD
       else if (startsWith_P(PSTR("useSd"), buffer, &ep)) {
@@ -189,7 +189,7 @@ void CommandHandler::process(Stream &console)
       else {
 	console << F("ERROR: unknown command: '") << buffer << F("'\n");
       }
-      
+
       memset(buffer, 0, sizeof(buffer));
       ptr = buffer;
     }
