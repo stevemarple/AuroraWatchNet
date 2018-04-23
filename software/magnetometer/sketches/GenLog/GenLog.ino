@@ -11,7 +11,7 @@
  * reboots, set EEPROM values for that. For the full list of commands
  * see CommandHandler.cpp. Commands should be terminated with a
  * carriage return or newline character.
- * 
+ *
  * By default a minimal set of information is output to Serial, the
  * verbosity can be increased by sending "verbosity=n" where n is an
  * integer value to Serial.
@@ -126,7 +126,7 @@
 
 #ifdef FEATURE_MEM_USAGE
 #include <MemoryFree.h>
-#endif 
+#endif
 
 
 #define STRINGIFY(a) STRINGIFY2(a)
@@ -228,7 +228,7 @@ CommandHandler commandHandler;
 
 
 // Set if packets should be multiple of some particular length
-uint16_t commsBlockSize = 0; 
+uint16_t commsBlockSize = 0;
 
 const uint16_t commsStackBufferLen = 8192;
 uint8_t commsStackBuffer[commsStackBufferLen];
@@ -259,7 +259,7 @@ CounterRTC::Time maxSamplingInterval(600, 0);
 
 bool enableSleep = true;
 uint8_t hmacKey[EEPROM_HMAC_KEY_SIZE] = {
-  255, 255, 255, 255, 255, 255, 255, 255, 
+  255, 255, 255, 255, 255, 255, 255, 255,
   255, 255, 255, 255, 255, 255, 255, 255};
 
 // Flag indicating if all data samples should be sent, or just the aggregate
@@ -298,7 +298,7 @@ uint16_t eepromContentsLength = 0;
 // /data/YYYY/MM/DD/YYYYMMDD.HH
 // 123456789012345678901234567890
 const uint8_t sdFilenameLen = 29; // Remember to include space for '\0'
-char sdFilename[sdFilenameLen] = "OLD_FILE"; 
+char sdFilename[sdFilenameLen] = "OLD_FILE";
 File sdFile;
 #endif
 
@@ -327,16 +327,16 @@ void setAlarm(void)
 {
   // Request the next alarm
   CounterRTC::Time t;
-    
+
   if (callbackWasLate)
     // Set next alarm relative to current time.
     cRTC.getTime(t);
-  else 
+  else
     // Set next alarm relative to the scheduled time.
     cRTC.getAlarm(0, t, NULL);
 
   t += samplingInterval;
-  
+
   /*
   // --------------------
   if (callbackWasLate) {
@@ -401,7 +401,7 @@ void doSleep(uint8_t mode)
 #endif
 	 ) {
     // TODO: restrict how many times loop can run
-    
+
     /*
      * Now sleep, but see caveat from the data sheet:
      *
@@ -423,16 +423,16 @@ void doSleep(uint8_t mode)
      */
 
     noInterrupts();
-    TIFR2 |= (_BV(OCF2A) | _BV(OCF2B) | _BV(TOV2)); 
+    TIFR2 |= (_BV(OCF2A) | _BV(OCF2B) | _BV(TOV2));
     interrupts();
-    
+
     while (ASSR & _BV(TCR2AUB))
       ;
     TCCR2A = tccr2aCopy;
     //TCCR2A = 0;
     // Memory barrier to ensure the write to OCR2B isn't optimized away
     __asm volatile( "" ::: "memory" );
-    
+
     //OCR2B = ocr2bCopy; // Write
 
     while((ASSR & (1 << TCR2AUB)) != 0)
@@ -450,7 +450,7 @@ void doSleep(uint8_t mode)
     sei();                // Make sure wake up is possible!
     sleep_cpu();          // Now go to sleep
     // Asleep ....
-    
+
     // Now awake again
     sleep_disable();      // Make sure sleep can't happen until we are ready
     sei();
@@ -464,7 +464,7 @@ void doSleep(uint8_t mode)
    * http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&t=22549
    */
   TWCR &= ~(_BV(TWSTO) + _BV(TWEN));
-  TWCR |= _BV(TWEN); 
+  TWCR |= _BV(TWEN);
 }
 
 void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
@@ -481,10 +481,10 @@ void processResponse(const uint8_t* responseBuffer, uint16_t responseBufferLen)
 
   // Cancel previous request for EEPROM contents
   eepromContentsLength = 0;
-  
+
   // Message received, turn off LED
   digitalWrite(ledPin, LOW);
-  
+
   AWPacket::parsePacket(responseBuffer, responseBufferLen,
 			&console,
 			processResponseTags, AWPacket::printUnknownTag);
@@ -514,9 +514,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 #ifdef FEATURE_GNSS
     // When GNSS timing is in operation don't adjust the clock based
     // on time received from the server
-    if (useGnss) 
+    if (useGnss)
       break;
-    
+
 #endif
     {
       uint32_t secs;
@@ -527,17 +527,17 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       AWPacket::networkToAvr(&secs, data, sizeof(secs));
       AWPacket::networkToAvr(&frac, data + sizeof(secs), sizeof(frac));
       CounterRTC::Time serverTime(secs, frac);
-      
+
       CounterRTC::Time timeError = ourTime - serverTime;
       CounterRTC::Time absTimeError = abs_(timeError);
-      
+
       if (absTimeError > maxSystemTimeError) {
       	cRTC.setTime(serverTime);
 	if (absTimeError > samplingInterval)
 	  // Update alarm since it might be a long time in the future
 	  cRTC.setAlarm(0, serverTime + samplingInterval,
 			crtcCallback);
-	
+
       	console << F("Time set from server\n");
       	timeAdjustment = -timeError;
       }
@@ -551,12 +551,12 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       }
     }
     break;
-    
+
   case AWPacket::tagSamplingInterval:
     {
       uint16_t u16;
       AWPacket::networkToAvr(&u16, data, sizeof(u16));
-      samplingInterval = 
+      samplingInterval =
 	CounterRTC::Time((u16 & 0xFFF0) >> 4,
 			 (u16 & 0x000F) <<
 			 (CounterRTC::fractionsPerSecondLog2 - 4));
@@ -564,9 +564,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	samplingInterval = minSamplingInterval;
       else if (samplingInterval > maxSamplingInterval)
 	samplingInterval = maxSamplingInterval;
-      
+
       (*s) << F("SAMPLING INTERVAL CHANGED! ")
-	   << samplingInterval.getSeconds() << sep 
+	   << samplingInterval.getSeconds() << sep
 	   << samplingInterval.getFraction() << endl;
     }
     break;
@@ -615,14 +615,14 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 			   data + AWPacket::firmwareNameLength,
 			   sizeof(responsePageNumber));
     if (strncmp(upgradeFirmwareVersion, (const char*)data,
-		AWPacket::firmwareNameLength) == 0 && 
+		AWPacket::firmwareNameLength) == 0 &&
 	upgradeFirmwareGetBlockNumber == responsePageNumber &&
 	upgradeFirmwareGetBlockNumber < upgradeFirmwareNumBlocks) {
       const uint8_t blocksPerSpmPage = (SPM_PAGESIZE /
 					AWPacket::firmwareBlockSize);
       uint8_t i = upgradeFirmwareGetBlockNumber % blocksPerSpmPage;
       console << F("Processing FW upgrade ") << upgradeFirmwareGetBlockNumber
-	      << ' ' << i << endl; 
+	      << ' ' << i << endl;
       memcpy(spmBuffer + (i * AWPacket::firmwareBlockSize),
 	     data + AWPacket::firmwareNameLength +
 	     AWPacket::sizeOfFirmwarePageNumber,
@@ -633,18 +633,18 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	  console << F("Erased temporary application area in flash ")
 		  << r << endl;
 	}
-	
+
 	// TODO: check if SPM page differs before writing to flash?
 	uint32_t addr = ((upgradeFirmwareGetBlockNumber - i) *
 			 (uint32_t)AWPacket::firmwareBlockSize);
 	uint8_t r = xboot_app_temp_write_page(addr, spmBuffer, 0);
 	console << F("copied spmBuffer to flash: ") << addr << ' ' << r << endl;
       }
-      
+
       if (upgradeFirmwareGetBlockNumber == upgradeFirmwareNumBlocks - 1) {
 	console << F("Firmware download for ") << upgradeFirmwareVersion
 		<< F(" completed\n");
-	
+
 	if (i != blocksPerSpmPage - 1) {
 	  // Ensure partially filled buffer to written to flash
 	  memset(spmBuffer + ((i+1) * AWPacket::firmwareBlockSize), 0xFF,
@@ -657,7 +657,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 	  console << F("copied partial spmBuffer to flash: ") << addr
 		  << ' ' << r << endl;
 	}
-	
+
 	// Disable further upgrades
 	// *upgradeFirmwareVersion = '\0';
 	// TODO: CRC and issue command to upgrade/reboot
@@ -686,7 +686,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 			   data + sizeof(eepromContentsAddress),
 			   sizeof(eepromContentsLength));
     break;
-    
+
   case AWPacket::tagEepromContents:
     {
       uint16_t eepromAddress;
@@ -697,7 +697,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       // Remember values to report back to server
       eepromContentsAddress = eepromAddress;
       eepromContentsLength = dataLen;
-      
+
       while (dataLen--) {
 	if (eepromAddress < EEPROM_HMAC_KEY ||
 	    eepromAddress >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
@@ -724,7 +724,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
     }
     break;
 #endif
-    
+
   case AWPacket::tagAllSamples:
     {
       uint8_t all;
@@ -732,7 +732,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       allSamples = (all != 0);
     }
     break;
-    
+
   } // end of switch
 
   return false;
@@ -743,7 +743,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 void as3935InterruptHandler(void)
 {
   // The AS3935 interrupt handler is inline code
-  as3935.interruptHandler(); 
+  as3935.interruptHandler();
 }
 
 
@@ -805,7 +805,7 @@ void begin_WIZnet_UDP(void)
   uint8_t macAddress[6];
   uint8_t tmp[4];
   wdt_reset(); // This might take a while
-  
+
   // Extract settings from EEPROM
   eeprom_read_block(macAddress, (void*)EEPROM_LOCAL_MAC_ADDRESS,
 		    EEPROM_LOCAL_MAC_ADDRESS_SIZE);
@@ -826,7 +826,7 @@ void begin_WIZnet_UDP(void)
 		      EEPROM_DNS1_SIZE);
     dns[n] = IPAddress(tmp);
   }
-    
+
   eeprom_read_block(tmp, (void*)EEPROM_REMOTE_IP_ADDRESS,
 		    EEPROM_REMOTE_IP_ADDRESS_SIZE);
   IPAddress remoteIP(tmp);
@@ -848,12 +848,12 @@ void begin_WIZnet_UDP(void)
     console << _HEX(macAddress[i]);
   }
   console << endl;
-  
+
   printEthernetSettings(console, localIP, localPort,
 			netmask, gateway, dns,
 			remoteIP, remotePort);
   console << F("  Remote hostname: ") << remoteHostname << endl;
-    
+
   wdt_reset();
   if (uint32_t(localIP)) {
     // Static IP
@@ -876,7 +876,7 @@ void begin_WIZnet_UDP(void)
 	;
     }
     wdt_enable(WDTO_8S);
-    
+
     dns[0] = Ethernet.dnsServerIP(); // Primary IP from DHCP
     // Disable sleeping. It prevents millis() from working correctly
     // which breaks the DHCP lease maintenance.
@@ -888,7 +888,7 @@ void begin_WIZnet_UDP(void)
     // Lookup IP address of remote hostname.
     IPAddress ip;
     bool found = false;
-    for (uint8_t t = 0; t < 3; ++t) 
+    for (uint8_t t = 0; t < 3; ++t)
       for (uint8_t n = 0; n < EEPROM_NUM_DNS; ++n) {
 	wdt_reset();
 	// Attempt lookup only if DNS server IP non-zero. Check also
@@ -903,10 +903,10 @@ void begin_WIZnet_UDP(void)
       console << remoteHostname << F(" resolves to ") << ip;
       remoteIP = ip;
     }
-    else 
+    else
       // Fall back to EEPROM setting for IP address
       console << F("Cannot resolve ") << remoteHostname;
-    
+
     console.println();
   }
 
@@ -915,7 +915,7 @@ void begin_WIZnet_UDP(void)
     // IP. Try broadcasting on local subnet in the hope of finding a
     // server.
     IPAddress broadcastIP(uint32_t(Ethernet.localIP()) |
-			  ~uint32_t(Ethernet.subnetMask()));  
+			  ~uint32_t(Ethernet.subnetMask()));
     remoteIP = broadcastIP;
 
     // Override the value of maxTimeNoAck to force a reboot to occur
@@ -935,10 +935,10 @@ void begin_WIZnet_UDP(void)
 			Ethernet.subnetMask(), Ethernet.gatewayIP(),
 			dns, remoteIP, remotePort);
   console.println();
-  console.flush();  
+  console.flush();
 
 
-  
+
   wiz_udp.begin(localPort, remoteIP, remotePort, 10, 4);
 }
 #endif
@@ -951,7 +951,7 @@ void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
     useGnss = false;
     return;
   }
-  
+
   if (useGnss)
     if (ppsTimeout.isExpired()) {
       // Don't use this pulse, nor the next one.
@@ -964,7 +964,7 @@ void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
     // Don't use this pulse but accept the next one if it occurs
     // within the expected time interval
     useGnss = true;
-  
+
   // Allow for some delay in responding to the the PPS interrupt and
   // for timing errors by millis() as the system clock frequency may
   // not be accurate.
@@ -1032,14 +1032,14 @@ void setup(void)
     pinMode(heaterPin, OUTPUT);
     digitalWrite(heaterPin, LOW);
   }
-  
+
 #ifdef FEATURE_FLC100
   uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
   uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
   uint8_t adcGainList[FLC100::numAxes] = {1, 1, 1};
 #endif
-  
+
   uint32_t consoleBaudRate;
   eeprom_read_block(&consoleBaudRate, (void*)EEPROM_CONSOLE_BAUD_RATE,
 		    EEPROM_CONSOLE_BAUD_RATE_SIZE);
@@ -1052,13 +1052,13 @@ void setup(void)
       console.begin(9600);
   else
     console.begin(consoleBaudRate);
-  
+
   // Explicitly set the pull-ups for the serial port in case the
   // Arduino IDE disables them.
 #if defined (__AVR_ATmega644__) || defined (__AVR_ATmega644P__) \
   || defined (__AVR_ATmega1284__) || defined (__AVR_ATmega1284P__)
   MCUSR &= ~(1 << PUD); // Allow pull-ups on UARTS
-  PORTD |= ((1 << PORTD0) | (1 << PORTD2)); 
+  PORTD |= ((1 << PORTD0) | (1 << PORTD2));
 #else
 #error No pull-ups enabled for serial ports
 #endif
@@ -1078,7 +1078,7 @@ void setup(void)
 		  ((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
   console << F("RC osc.: ") << isRcOsc
 	  << F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
-	  << F("\nMCUSR: ") << _HEX(mcusrCopy) << endl; 
+	  << F("\nMCUSR: ") << _HEX(mcusrCopy) << endl;
 
 #if F_CPU == 8000000UL
 #define F_CPU_STR "8MHz"
@@ -1128,16 +1128,16 @@ void setup(void)
 	       " DATA_QUALITY"
 #endif
 	       "\n");
-  
+
   // Only use the LED following a reset initiated by user action
   // (JTAG, external reset and power on). Exclude brown-out and
   // watchdog resets.
   if (mcusrCopy & (JTRF | EXTRF | PORF))
     useLed = true;
-  
+
   // Ensure all SPI devices are inactive
   pinMode(4, OUTPUT);     // SD card if ethernet shield in use
-  digitalWrite(4, HIGH); 
+  digitalWrite(4, HIGH);
   pinMode(10, OUTPUT);    // WizNet on Ethernet shield
   digitalWrite(10, HIGH);
 
@@ -1155,7 +1155,7 @@ void setup(void)
 					  EEPROM_FAN_HYSTERESIS))
 	    << endl;
   }
-  
+
 #ifdef FEATURE_SD_CARD
   uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
   useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
@@ -1203,7 +1203,7 @@ void setup(void)
   pinMode(FLC100_POWER, OUTPUT);
   digitalWrite(FLC100_POWER, HIGH);
   delay(FLC100::powerUpDelay_ms);
-  
+
   // Get ADC addresses
   for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
     if (i < EEPROM_ADC_ADDRESS_LIST_SIZE) {
@@ -1216,21 +1216,21 @@ void setup(void)
       uint8_t chan =
 	eeprom_read_byte((uint8_t*)(EEPROM_ADC_CHANNEL_LIST + i));
       if (chan && chan <= MCP342x::numChannels)
-	adcChannelList[i] = chan; 
+	adcChannelList[i] = chan;
     }
 
     if (i < EEPROM_ADC_RESOLUTION_LIST_SIZE) {
       uint8_t res =
 	eeprom_read_byte((uint8_t*)(EEPROM_ADC_RESOLUTION_LIST + i));
       if (res && res <= MCP342x::maxResolution)
-	adcResolutionList[i] = res; 
+	adcResolutionList[i] = res;
     }
 
     if (i < EEPROM_ADC_GAIN_LIST_SIZE) {
       uint8_t gain =
 	eeprom_read_byte((uint8_t*)(EEPROM_ADC_GAIN_LIST + i));
       if (gain && gain <= MCP342x::maxGain)
-	adcGainList[i] = gain; 
+	adcGainList[i] = gain;
     }
   }
 
@@ -1249,10 +1249,10 @@ void setup(void)
 
     flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList,
 		      adcResolutionList, adcGainList);
-    flc100.setNumSamples(numSamples, 
+    flc100.setNumSamples(numSamples,
 			 aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
 			 aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
-    
+
     for (int i = 0; i < FLC100::numAxes; ++i)
       console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
 	      << F(" ch. ") << (adcChannelList[i])
@@ -1264,7 +1264,7 @@ void setup(void)
       console << F("trimmed ");
     console << (aggregate & EEPROM_AGGREGATE_USE_MEDIAN ? F("median\n")
 		: F("mean\n"));
-    
+
     console.flush();
   }
 
@@ -1280,7 +1280,7 @@ void setup(void)
 #endif
 
 #ifdef FEATURE_MLX90614
-  __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");   
+  __FlashStringHelper* mlx90614Str = (__FlashStringHelper*)PSTR("MLX90614");
   if (mlx90614Present) {
     console.print(initialisingStr);
     console.println(mlx90614Str);
@@ -1310,7 +1310,7 @@ void setup(void)
     console.print(notStr);
   console.println(presentStr);
 #endif
-  
+
 #ifdef FEATURE_AS3935
   __FlashStringHelper* as3935Str = (__FlashStringHelper*)PSTR("AS3935");
   if (as3935Present) {
@@ -1330,7 +1330,7 @@ void setup(void)
       d.start(1000, AsyncDelay::MILLIS);
       while (!d.isExpired())
 	as3935.process();
-      
+
       as3935.setNoiseFloor(0);
       as3935.setSpikeRejection(0);
     }
@@ -1342,7 +1342,7 @@ void setup(void)
   console.println(presentStr);
 #endif
 
-  
+
   // Identify communications method to be used.
   radioType = eeprom_read_byte((const uint8_t*)EEPROM_COMMS_TYPE);
 #ifdef COMMS_XRF
@@ -1361,7 +1361,7 @@ void setup(void)
 
   // Compatibility mode off
   MicroNMEA::sendSentence(gnssSerial, "$PNVGNME,2,7,1");
-  
+
    // Clear the list of messages which are sent.
   MicroNMEA::sendSentence(gnssSerial, "$PORZB");
 
@@ -1377,32 +1377,32 @@ void setup(void)
 		    dataQualityISR, CHANGE);
   }
 #endif
-  
+
   uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
   if (VinDivider == 0xFF)
     VinDivider = 1; // For compatibility with older firmware
   houseKeeping.initialise(2, 7, A6, VinDivider,
 			  (radioType != EEPROM_COMMS_TYPE_XRF &&
 			   radioType != EEPROM_COMMS_TYPE_RFM12B));
-			  
+
   // Autoprobe to find RTC
   // TODO: avoid clash with known ADCs
   console << F("Autoprobing to find RTC\n");
   console.flush();
-  
+
   if (rtc.autoprobe(rtcAddressList, sizeof(rtcAddressList)))
     console << F("Found RTC at address 0x") << _HEX(rtc.getAddress()) << endl;
   else
     console << F("No RTC found\n");
   console.flush();
-  
+
   // Enable the battery backup. This happens by default on the DS1307
   // but needs to be enabled on the MCP7941x.
   rtc.enableBatteryBackup();
 
   // Set the calibration register (ignored if not MCP7941x).
   rtc.setCalibration(eeprom_read_byte((uint8_t*)EEPROM_MCP7941X_CAL));
-  
+
   // Ensure the oscillator is running.
   rtc.startClock();
 
@@ -1424,20 +1424,20 @@ void setup(void)
   // Assume battery-powered operation. Efficient sleep cycles are
   // required. Have the counter RTC ticking at 16Hz, giving maximum
   // sleep time of 16s.
-  
+
   // Ensure square-wave output is enabled.
   rtc.setSQW(RTCx::freq4096Hz);
-  
+
   // Input: 4096Hz, prescaler is divide by 256, clock tick is 16Hz
-  cRTC.begin(16, true, (_BV(CS22) | _BV(CS21))); 
+  cRTC.begin(16, true, (_BV(CS22) | _BV(CS21)));
   counter2Frequency = 16;
-  
+
 #else
   // XRF communications are not compiled in, or the clock speed is
   // wrong for battery operation. Assume efficient sleeping is not
   // important so optimize the counter RTC for high resolution
   // measurements instead.
-  
+
   // Ensure square-wave output is enabled. Set the highest input
   // frequency possible so that register changes which rely upon
   // transtions of TOSC1 happen fastest.
@@ -1446,12 +1446,12 @@ void setup(void)
   // Input: 32768Hz, prescaler is divide by 1, clock tick is 32768Hz
   cRTC.begin(32768, true, _BV(CS20));
   counter2Frequency = 32768;
-    
+
 #endif /* Matches #if defined(COMMS_XRF) && (F_CPU) == 8000000L */
 
   console << F("System clock: ") << counter2Frequency << "Hz\n";
 
- 
+
   // Set counter RTC time from the hardware RTC
   struct RTCx::tm tm;
   if (rtc.readClock(&tm)) {
@@ -1469,7 +1469,7 @@ void setup(void)
 #if defined(COMMS_W5100) || defined(COMMS_W5500)
   if (radioType == EEPROM_COMMS_TYPE_W5100_UDP) {
     begin_WIZnet_UDP();
-    
+
     disableJTAG();
     ledPin = 17; // JTAG TDO
     commsHandler.setCommsInterface(&wiz_udp);
@@ -1479,7 +1479,7 @@ void setup(void)
     minSamplingInterval.setSeconds(1);
   }
 #endif
-  
+
 #ifdef COMMS_XRF
   if (radioType == EEPROM_COMMS_TYPE_XRF) {
     console.println("Initialising XRF");
@@ -1510,19 +1510,19 @@ void setup(void)
 	  << sep << samplingInterval.getFraction() << endl;
   console.flush();
 
-  
+
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
-  
+
   commsHandler.setKey(hmacKey, sizeof(hmacKey));
 
 #ifdef FEATURE_GNSS
   gnss_clock.set1ppsCallback(gnssPpsCallback);
 #endif
-  
+
   console.println(F("Setup complete"));
   console.flush();
-  
+
   setAlarm();
 }
 
@@ -1542,7 +1542,7 @@ void loop(void)
   bool gnssNowOk = false;
   if (ppsTriggered)
     gnssNowOk = gnss_clock.readClock(gnssNow);
-    
+
   if (useGnss && samplingInterval.getFraction() == 0) {
     if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0))
       startSampling = true;
@@ -1561,7 +1561,7 @@ void loop(void)
   if (dataQualityChanged)
     startSampling = true;
 #endif
-  
+
 #ifdef FEATURE_GNSS
   if (ppsTriggered) {
     // Set CounterRTC clock from GNSS
@@ -1573,14 +1573,14 @@ void loop(void)
       CounterRTC::Time gnssTime(gnssNow, 0);
       CounterRTC::Time timeError = ourTime - gnssTime;
       CounterRTC::Time absTimeError = abs_(timeError);
-      
+
       // Update clock
       cRTC.setTime(gnssTime);
       if (absTimeError > samplingInterval)
 	// Update alarm since it might be a long time in the future
 	cRTC.setAlarm(0, gnssTime + samplingInterval,
 		      crtcCallback);
-      
+
       if (verbosity > 1) {
 	console << F("Time error (our-GNSS): ")
 		<< timeError.getSeconds() << sep
@@ -1589,9 +1589,9 @@ void loop(void)
     }
   }
 #endif
-  
 
-  
+
+
   if (startSampling) {
     cRTC.getTime(sampleStartTime);
 #ifdef FEATURE_FLC100
@@ -1599,20 +1599,20 @@ void loop(void)
       flc100.start();
 #endif
 #ifdef FEATURE_MLX90614
-    if (!mlx90614.isSampling()) 
+    if (!mlx90614.isSampling())
       mlx90614.start();
 #endif
-    
-#ifdef FEATURE_HIH61XX    
+
+#ifdef FEATURE_HIH61XX
     if (!hih61xx.isSampling())
       hih61xx.start();
 #endif
-    
+
     // AS3935 does not need starting here. It is kept powered.
-    
+
     if (!houseKeeping.isSampling())
       houseKeeping.start();
-     
+
     startSampling = false;
     resultsProcessed = false;
 
@@ -1630,7 +1630,7 @@ void loop(void)
 #ifdef FEATURE_DATA_QUALITY
     dataQualityWarning = false;
 #endif
-    
+
     if (verbosity)
       console << F("--\nSampling started\n");
   }
@@ -1644,7 +1644,7 @@ void loop(void)
     crtcTriggered = false;
     setAlarm();
   }
-  
+
 #ifdef FEATURE_FLC100
   if (flc100Present)
     flc100.process();
@@ -1682,11 +1682,11 @@ void loop(void)
     dataQualityWarning |= i;
   }
 #endif
-  
-  
+
+
   if (commsHandler.process(responseBuffer, responseBufferLen))
     processResponse(responseBuffer, responseBufferLen);
-  
+
   commandHandler.process(console);
 
   // console << F("I2C state: ") << (flc100.getI2CState()) << endl;
@@ -1703,13 +1703,13 @@ void loop(void)
       && houseKeeping.isFinished()) {
     // Process SD card when normal sampling is not running; SD card
     // access can be slow and block.
-    
+
     if (resultsProcessed == false) {
       resultsProcessed = true;
       // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
       // 	console << '\t' << (flc100.getMagData()[i]);
       // console << endl;
-      
+
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
 	      << sep << sampleStartTime.getFraction()
 	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
@@ -1730,16 +1730,16 @@ void loop(void)
 	console.println();
       }
 #endif
-      
+
 #ifdef FEATURE_HIH61XX
-      if (hih61xxPresent) 
+      if (hih61xxPresent)
 	console << F("Humidity: ") << hih61xx.getRelHumidity()
 		<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
 #endif
 #ifdef FEATURE_FLC100
       if (flc100Present)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	  if (flc100.getAdcPresent(i)) 
+	  if (flc100.getAdcPresent(i))
 	    console << F("magData[") << i << F("]: ")
 		    << (flc100.getMagData()[i]) << endl;
   if (verbosity == 11 && flc100Present) {
@@ -1754,7 +1754,7 @@ void loop(void)
 
   }
 #endif
-      
+
 #ifdef FEATURE_GNSS
       if (verbosity) {
 	console << F("GNSS valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
@@ -1769,7 +1769,7 @@ void loop(void)
 	}
       }
 #endif
-      
+
       // Buffer for storing the binary AW packet. Will also be used
       // when writing to SD card.
       const uint16_t bufferLength = SD_SECTOR_SIZE;
@@ -1788,8 +1788,8 @@ void loop(void)
 	    (fanTemperature - (int16_t)(fanHysteresis/2)))
 	  digitalWrite(fanPin, LOW);
       }
-	    
-      
+
+
 #ifdef FEATURE_SD_CARD
       if (useSd) {
 	// Check if the SD card circular buffer should be written to disk
@@ -1808,9 +1808,9 @@ void loop(void)
 	    sdFile.flush();
 	    console << F("Wrote to ") << bytesRead
 		    << F(" to ") << sdFilename << endl;
-	  } 
+	  }
 	}
-	
+
 	if (strcmp(sdFilename, newFilename) != 0) {
 	  if (sdFile) {
 	    console << F("Closing ") << sdFilename << endl;
@@ -1832,7 +1832,7 @@ void loop(void)
       }
 #endif
 
-      
+
       AWPacket packet;
       packet.setKey(hmacKey, sizeof(hmacKey));
       packet.setFlagBit(AWPacket::flagsSampleTimingErrorBit, callbackWasLate);
@@ -1842,13 +1842,13 @@ void loop(void)
 #endif
       packet.setTimestamp(sampleStartTime.getSeconds(),
 			  sampleStartTime.getFraction());
-      
+
       packet.putHeader(buffer, sizeof(buffer));
 #ifdef PRINT_BINARY_BUFFER
       // printBinaryBuffer(console, buffer, 20);
       // console << endl;
 #endif
-      
+
       console << F("Header length: ") << AWPacket::getPacketLength(buffer)
 	      << endl;
 
@@ -1858,7 +1858,7 @@ void loop(void)
 	bool median;
 	bool trimmed;
 	flc100.getNumSamples(numSamples, median, trimmed);
-	
+
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
 	  if (flc100.getAdcPresent(i)) {
 	    packet.putMagData(buffer, sizeof(buffer),
@@ -1872,19 +1872,19 @@ void loop(void)
 				  AWPacket::tagMagDataAllX + i, 4,
 				  numSamples, flc100.getMagDataSamples(i));
 	  }
-            
+
 	packet.putDataInt16(buffer, sizeof(buffer),
 			    AWPacket::tagSensorTemperature,
 			    flc100.getSensorTemperature());
 	packet.putDataUint16(buffer, sizeof(buffer),
-			     AWPacket::tagNumSamples, 
-			     (uint16_t(numSamples) << 8) | 
-			     (uint16_t(trimmed) << 1) | 
+			     AWPacket::tagNumSamples,
+			     (uint16_t(numSamples) << 8) |
+			     (uint16_t(trimmed) << 1) |
 			     median);
 
       }
 #endif
-      
+
       packet.putDataInt16(buffer, sizeof(buffer),
 			  AWPacket::tagMCUTemperature,
 			  houseKeeping.getSystemTemperature());
@@ -1913,7 +1913,7 @@ void loop(void)
 			       mlx90614.getObject2());
       }
 #endif
-      
+
 #ifdef FEATURE_HIH61XX
       if (hih61xxPresent) {
 	packet.putDataInt16(buffer, sizeof(buffer),
@@ -1939,7 +1939,7 @@ void loop(void)
 	packet.putTimeAdjustment(buffer, sizeof(buffer),
 				 timeAdjustment.getSeconds(),
 				 timeAdjustment.getFraction());
-      
+
       if (eepromContentsLength) {
 	console << F("EEPROM contents length: ") << eepromContentsLength
 		<< endl;
@@ -1954,9 +1954,9 @@ void loop(void)
 	packet.putDataArray(buffer, sizeof(buffer),
 			    AWPacket::tagGnssLocation, 4,
 			    (altitudeValid ? 3 : 2), gnssLocation);
-      
+
 #endif
-      
+
       // Add the signature
       packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
 
@@ -1965,11 +1965,11 @@ void loop(void)
       if (useSd)
 	sdCircularBuffer.write(buffer, AWPacket::getPacketLength(buffer));
 #endif
-      
+
       // Send the message
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       ++messageCount;
-      
+
       // Message queued, turn on LED
       if (useLed) {
 	uint8_t maxMessages
@@ -1978,7 +1978,7 @@ void loop(void)
 	  useLed = false;
 	digitalWrite(ledPin, useLed);
       }
- 
+
       // Set RTC only if necessary. It will slightly upset the timing
       // as it stops the hardware clock briefly.
       struct RTCx::tm tm;
@@ -1994,7 +1994,7 @@ void loop(void)
       }
 
       // Check how long since last acknowledgement was received
-      int32_t ackAge = now.getSeconds() - lastAcknowledgement.getSeconds(); 
+      int32_t ackAge = now.getSeconds() - lastAcknowledgement.getSeconds();
       if (ackAge > maxTimeNoAck) {
 	console << F("Gone ") << maxTimeNoAck;
 	console.println(F("s without mesg ack, rebooting\n"));
@@ -2010,13 +2010,13 @@ void loop(void)
 #if defined(COMMS_W5100) || defined(COMMS_W5500)
       maintainDhcpLease();
 #endif
-      
+
 #ifdef FEATURE_MEM_USAGE
       console << F("Free mem: ") << freeMemory() << endl;
 #endif
 
     }
-    
+
     if (startSampling == false &&
 	*upgradeFirmwareVersion != '\0' &&
 	upgradeFirmwareGetBlockNumber < upgradeFirmwareNumBlocks &&
@@ -2041,14 +2041,14 @@ void loop(void)
       CounterRTC::Time now;
       cRTC.getTime(now);
       packet.setTimestamp(now.getSeconds(), now.getFraction());
-      
+
       packet.putHeader(buffer, sizeof(buffer));
       packet.putGetFirmwarePage(buffer, sizeof(buffer),
 				upgradeFirmwareVersion,
 				upgradeFirmwareGetBlockNumber);
-      
+
       // Add the signature and send by radio
-      packet.putSignature(buffer, sizeof(buffer), commsBlockSize); 
+      packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
 
       commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
       ++messageCount;
@@ -2060,14 +2060,14 @@ void loop(void)
 	  useLed = false;
 	digitalWrite(ledPin, useLed);
       }
-      
+
     }
-    
+
     // Test if can go to sleep
     if (startSampling == false &&
 	commsHandler.isFinished() &&
 	commsHandler.getCommsInterface()->powerOff()) {
-      
+
       if (enableSleep && samplingInterval >= minSleepInterval) {
 	console << F("SLEEP!\n");
 	console.flush();
@@ -2077,8 +2077,8 @@ void loop(void)
       }
     }
   }
-  
+
 }
-  
+
 
 
