@@ -38,7 +38,7 @@ BUILD_DIR = /tmp/build-$(SKETCH_NAME).$(PPID)/$(SKETCH_NAME)-$(SPEED)-$(HW_IDENT
 SPEED = 8MHz_RC
 WARN_PERCENTAGE = 45
 FIRMWARE_DIR = $(SKETCH_DIR)/firmware/ATmega1284P/$(SPEED)/$(HW_IDENT)
-FIRMWARE_NAME := $(shell awk '(match($$0, /^\#define\s+FIRMWARE_VERSION\s+"(.*)"/,a)){print a[1]}' GenLog.ino)
+FIRMWARE_NAME := $(shell awk '(match($$0, /^\#define\s+FIRMWARE_VERSION\s+"(.*)"/,a)){print a[1]}' RioLog.ino)
 COPY = cp
 MKDIR = mkdir
 
