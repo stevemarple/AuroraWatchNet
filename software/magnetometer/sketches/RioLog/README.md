@@ -1,6 +1,6 @@
-# GenLog firmware
+# RioLog firmware
 
-Arduino sketch for generic logger,  based on `MagCloud` skwtch. Due to
+Arduino sketch for riometer logger,  based on `MagCloud` sketch. Due to
 RAM and flash memory requirements an ATmega1284, ATmega1280 or better
 is required. It uses `CommsInterface` to support the Ciseco XRF radio
 module and the W5100 Ethernet module. `RTCx` is used to support common
