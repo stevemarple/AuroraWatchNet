@@ -640,7 +640,7 @@ def tidy_pending_tags(pending_tags, message_tags):
                 print('Firmware already at version ' + upgrade_firmware)
                 del_list.append(tag_name)
         
-        elif tag_name == 'all_samples' and bool(ord(pending_tags[tag][0])) == \
+        elif tag_name == 'all_samples' and bool(ord(pending_tags[tag_name][0])) == \
             any(t in message_tags for t in ['mag_data_all_x', 'mag_data_all_y',
                                             'mag_data_all_z']):
             # pending_tags[all_samples][0] must match whether
