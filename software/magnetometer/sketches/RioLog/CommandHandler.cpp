@@ -106,20 +106,34 @@ void CommandHandler::process(Stream &console)
 	long address = strtol(ep, &ep2, 0);
 	uint16_t size = 0;
 	if (ep2 != ep && *ep2 == ',') {
-	  while(address >= 0 && address <= E2END) {
-	    ep = ++ep2;
-	    long val = strtol(ep, &ep2, 0);
-	    if (val >= 0 && val <= 255 && ep2 != ep &&
-		(*ep2 == ',' || *ep2 == '\0')) {
-	      //if (address < EEPROM_HMAC_KEY ||
-	      //address >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
-	      // // Do not allow key to be updated
+	  if (*(ep2+1) == '\'') {
+	    // Parse string data
+	    ep = ep2 + 2;
+	    while(address >= 0 && address <= E2END) {
+	      uint8_t val = *ep++;
 	      eeprom_update_byte((uint8_t*)address, val);
 	      ++size;
 	      ++address;
+	      if (val == 0)
+		break;
 	    }
-	    else
-	      break;
+	  }
+	  else {
+	    while(address >= 0 && address <= E2END) {
+	      ep = ++ep2;
+	      long val = strtol(ep, &ep2, 0);
+	      if (val >= 0 && val <= 255 && ep2 != ep &&
+		  (*ep2 == ',' || *ep2 == '\0')) {
+		//if (address < EEPROM_HMAC_KEY ||
+		//address >= (EEPROM_HMAC_KEY + EEPROM_HMAC_KEY_SIZE))
+		// // Do not allow key to be updated
+		eeprom_update_byte((uint8_t*)address, val);
+		++size;
+		++address;
+	      }
+	      else
+		break;
+	    }
 	  }
 	  printEepromContents(console, (uint16_t)(address-size),
 			      (uint16_t)size);
