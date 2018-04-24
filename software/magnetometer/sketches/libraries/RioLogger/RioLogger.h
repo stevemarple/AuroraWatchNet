@@ -15,7 +15,7 @@ class RioLogger;
 
 class RioLogger {
 public:
-  static const uint8_t numAxes = 3;
+  static const uint8_t numAxes = 8;
   static const unsigned long defaultPowerUpDelay_ms = 1000;
   static unsigned long powerUpDelay_ms;
   static const uint8_t maxSamples = 16;
