@@ -271,7 +271,7 @@ CounterRTC::Time timeAdjustment(0, 0);
 uint16_t counter2Frequency = 0;
 CounterRTC::Time minSleepInterval(2, 0);
 CounterRTC::Time samplingInterval(30, 0);
-CounterRTC::Time minSamplingInterval(5, 0);
+CounterRTC::Time minSamplingInterval(5, 0); // Overridden later for Ethernet
 CounterRTC::Time maxSamplingInterval(600, 0);
 
 bool enableSleep = true;
@@ -1003,11 +1003,23 @@ void maintainDhcpLease(void)
   if (radioType == EEPROM_COMMS_TYPE_XRF)
     return;
   uint8_t m = Ethernet.maintain();
-  console << F("DHCP lease ");
+
+  __FlashStringHelper* dhcpStr = (__FlashStringHelper*)PSTR("DHCP lease ");
+  
+  if (m == DHCP_CHECK_NONE) {
+    if (verbosity == 1) {
+      console.print(dhcpStr);
+      console.println(F("ok"));
+    }
+    return;
+  }
+
+  // Always print all remaining conditions, even with verbosity == 0
+  console.print(dhcpStr);
   switch (m) {
-  case DHCP_CHECK_NONE:
-    console.println(F("ok"));
-    break;
+    //  case DHCP_CHECK_NONE:
+    // Already processed above
+    // break;
   case DHCP_CHECK_RENEW_FAIL:
   case DHCP_CHECK_REBIND_FAIL:
     console.println(F("failed, rebooting"));
@@ -1050,11 +1062,21 @@ void setup(void)
     digitalWrite(heaterPin, LOW);
   }
 
-#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+#if defined (FEATURE_FLC100)
   uint8_t adcAddressList[SensorShield_t::numAxes] = {0x6E, 0x6A, 0x6C};
   uint8_t adcChannelList[SensorShield_t::numAxes] = {1, 1, 1};
   uint8_t adcResolutionList[SensorShield_t::numAxes] = {18, 18, 18};
   uint8_t adcGainList[SensorShield_t::numAxes] = {1, 1, 1};
+#elif defined (FEATURE_RIOMETER)
+  uint8_t adcAddressList[SensorShield_t::numAxes] = {
+    // TODO: update with correct value
+    0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E}; 
+  uint8_t adcChannelList[SensorShield_t::numAxes] = {
+    1, 1, 1, 1, 1, 1, 1, 1 };
+  uint8_t adcResolutionList[SensorShield_t::numAxes] = {
+    14, 14, 14, 14, 14, 14, 14, 14};
+  uint8_t adcGainList[SensorShield_t::numAxes] = {
+    1, 1, 1, 1, 1, 1, 1, 1 };
 #endif
 
   uint32_t consoleBaudRate;
@@ -1225,33 +1247,63 @@ void setup(void)
   delay(SensorShield_t::powerUpDelay_ms);
 
   // Get ADC addresses
+  uint16_t eepromAddress;
+  uint8_t sz;
   for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
-    if (i < EEPROM_ADC_ADDRESS_LIST_SIZE) {
-      uint8_t customAddress =
-	eeprom_read_byte((uint8_t*)(EEPROM_ADC_ADDRESS_LIST + i));
-      if (customAddress > 0 && customAddress <= 127)
-	adcAddressList[i] = customAddress;
+#if defined (FEATURE_FLC100)
+    eepromAddress = EEPROM_ADC_ADDRESS_LIST;
+    sz =  EEPROM_ADC_ADDRESS_LIST_SIZE;
+#elif defined (FEATURE_RIOMETER)
+    eepromAddress = EEPROM_RIO_ADC_ADDRESS_LIST;
+    sz =  EEPROM_RIO_ADC_ADDRESS_LIST_SIZE;
+#endif    
+    if (i < sz) {
+      uint8_t i2cAddress =
+	eeprom_read_byte((uint8_t*)(eepromAddress + i));
+      if (i2cAddress > 0 && i2cAddress <= 127)
+	adcAddressList[i] = i2cAddress;
     }
-    if (i < EEPROM_ADC_CHANNEL_LIST_SIZE) {
+
+#if defined (FEATURE_FLC100)
+    eepromAddress = EEPROM_ADC_CHANNEL_LIST;
+    sz =  EEPROM_ADC_CHANNEL_LIST_SIZE;
+#elif defined (FEATURE_RIOMETER)
+    eepromAddress = EEPROM_RIO_ADC_CHANNEL_LIST;
+    sz =  EEPROM_RIO_ADC_CHANNEL_LIST_SIZE;
+#endif    
+    if (i < sz) {
       uint8_t chan =
-	eeprom_read_byte((uint8_t*)(EEPROM_ADC_CHANNEL_LIST + i));
+	eeprom_read_byte((uint8_t*)(eepromAddress + i));
       if (chan && chan <= MCP342x::numChannels)
 	adcChannelList[i] = chan;
     }
 
-    if (i < EEPROM_ADC_RESOLUTION_LIST_SIZE) {
-      uint8_t res =
-	eeprom_read_byte((uint8_t*)(EEPROM_ADC_RESOLUTION_LIST + i));
-      if (res && res <= MCP342x::maxResolution)
-	adcResolutionList[i] = res;
-    }
-
-    if (i < EEPROM_ADC_GAIN_LIST_SIZE) {
-      uint8_t gain =
-	eeprom_read_byte((uint8_t*)(EEPROM_ADC_GAIN_LIST + i));
-      if (gain && gain <= MCP342x::maxGain)
-	adcGainList[i] = gain;
-    }
+    uint8_t res = 0;
+#if defined (FEATURE_FLC100)
+    if (i < EEPROM_ADC_RESOLUTION_LIST_SIZE)
+      res = eeprom_read_byte((uint8_t*)(EEPROM_ADC_RESOLUTION_LIST + i));
+#elif defined (FEATURE_RIOMETER)
+    // Same for all
+    res = eeprom_read_byte((uint8_t*)(EEPROM_RIO_ADC_RESOLUTION));
+#else
+#error Bad logic
+#endif
+    if (res && res <= MCP342x::maxResolution)
+      adcResolutionList[i] = res;
+    
+    uint8_t gain = 0;
+#if defined (FEATURE_FLC100)
+    if (i < EEPROM_ADC_GAIN_LIST_SIZE)
+      gain = eeprom_read_byte((uint8_t*)(EEPROM_ADC_GAIN_LIST + i));
+#elif defined (FEATURE_RIOMETER)
+    // Same for all
+    gain = eeprom_read_byte((uint8_t*)(EEPROM_RIO_ADC_GAIN));
+#else
+#error Bad logic
+#endif
+    if (gain && gain <= MCP342x::maxGain)
+      adcGainList[i] = gain;
+    
   }
 
   uint8_t numSamples = eeprom_read_byte((uint8_t*)EEPROM_NUM_SAMPLES);
@@ -1496,7 +1548,8 @@ void setup(void)
     useLed = true;
 
     // Enable faster sampling rates for Ethernet communication
-    minSamplingInterval.setSeconds(1);
+    // minSamplingInterval.setSeconds(1);
+    minSamplingInterval = CounterRTC::Time(0, CounterRTC::fractionsPerSecond / 16);
   }
 #endif
 
@@ -1730,15 +1783,16 @@ void loop(void)
       // 	console << '\t' << (sensorShield.getData()[i]);
       // console << endl;
 
-      console << F("Timestamp: ") << sampleStartTime.getSeconds()
-	      << sep << sampleStartTime.getFraction()
-	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
+      if (verbosity)
+	console << F("Timestamp: ") << sampleStartTime.getSeconds()
+		<< sep << sampleStartTime.getFraction()
+		<< F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
-      if (sensorShieldPresent)
-	console << F("\n" SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature();
+      if (verbosity && sensorShieldPresent)
+	console << F("\n" SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature() << endl;
 #endif
-      console.println();
-      if (houseKeeping.getVinDivider())
+
+      if (verbosity && houseKeeping.getVinDivider())
 	console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
 
 #ifdef FEATURE_MLX90614
@@ -1758,7 +1812,7 @@ void loop(void)
 #endif
 
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
-      if (sensorShieldPresent)
+      if (sensorShieldPresent && verbosity > 0)
 	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
 	  if (sensorShield.getAdcPresent(i))
 	    console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
@@ -1870,8 +1924,9 @@ void loop(void)
       // console << endl;
 #endif
 
-      console << F("Header length: ") << AWPacket::getPacketLength(buffer)
-	      << endl;
+      if (verbosity)
+	console << F("Header length: ") << AWPacket::getPacketLength(buffer)
+		<< endl;
 
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
       if (sensorShieldPresent) {
@@ -1880,6 +1935,7 @@ void loop(void)
 	bool trimmed;
 	sensorShield.getNumSamples(numSamples, median, trimmed);
 
+#if defined (FEATURE_FLC100)
 	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
 	  if (sensorShield.getAdcPresent(i)) {
 	    packet.putMagData(buffer, sizeof(buffer),
@@ -1893,6 +1949,13 @@ void loop(void)
 				  AWPacket::tagMagDataAllX + i, 4,
 				  numSamples, sensorShield.getDataSamples(i));
 	  }
+#elif defined (FEATURE_RIOMETER)
+	packet.putAdcData(buffer, sizeof(buffer),
+			  AWPacket::tagGenData, sensorShield.getResGain(0),
+			  SensorShield_t::numAxes, sensorShield.getData());
+#else
+#error Bad logic
+#endif
 
 	packet.putDataInt16(buffer, sizeof(buffer),
 			    AWPacket::tagSensorTemperature,
@@ -2033,8 +2096,15 @@ void loop(void)
 #endif
 
 #ifdef FEATURE_MEM_USAGE
-      console << F("Free mem: ") << freeMemory() << endl;
+      if (verbosity)
+	console << F("Free mem: ") << freeMemory() << endl;
 #endif
+
+      static uint8_t verbosityCharState = 0;
+      if (verbosity == 0) {
+	verbosityCharState = ((verbosityCharState + 1) % 8);
+	console.println(char('!' + verbosityCharState));
+      }
 
     }
 
