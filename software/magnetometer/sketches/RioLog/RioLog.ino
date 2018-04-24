@@ -879,7 +879,8 @@ void begin_WIZnet_UDP(void)
   }
   else {
     // Use DHCP to obtain dynamic IP
-    console << F("Requesting IP\n");
+    console << F("Requesting IP... ");
+    console.flush();
 #if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
     // Temporarily disable watchdog timer because slow DHCP requests
     // can force an endless reboot cycle.
@@ -898,11 +899,13 @@ void begin_WIZnet_UDP(void)
     // Disable sleeping. It prevents millis() from working correctly
     // which breaks the DHCP lease maintenance.
     enableSleep = false;
+    console.println(F("done"));
   }
   wdt_reset();
 
   if (isprint(remoteHostname[0])) {
     // Lookup IP address of remote hostname.
+    console << F("Looking up ") << remoteHostname << endl;
     IPAddress ip;
     bool found = false;
     for (uint8_t t = 0; t < 3; ++t)
@@ -1218,6 +1221,10 @@ void setup(void)
     }
   }
 #endif
+
+  console << F("Site ID: ")
+	  << eeprom_read_word((const uint16_t*)EEPROM_SITE_ID)
+	  << endl;
 
   // Copy key from EEPROM
   console << F("HMAC key: ");
