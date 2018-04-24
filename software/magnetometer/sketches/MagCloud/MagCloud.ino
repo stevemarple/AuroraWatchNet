@@ -1707,7 +1707,7 @@ void loop(void)
     if (resultsProcessed == false) {
       resultsProcessed = true;
       // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-      // 	console << '\t' << (flc100.getMagData()[i]);
+      // 	console << '\t' << (flc100.getData()[i]);
       // console << endl;
       
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
@@ -1741,13 +1741,13 @@ void loop(void)
 	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
 	  if (flc100.getAdcPresent(i)) 
 	    console << F("magData[") << i << F("]: ")
-		    << (flc100.getMagData()[i]) << endl;
+		    << (flc100.getData()[i]) << endl;
   if (verbosity == 11 && flc100Present) {
     for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
       if (flc100.getAdcPresent(i)) {
 	console << char('X' + i) << ':';
 	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
-	  console << ' ' << flc100.getMagDataSamples(i, j);
+	  console << ' ' << flc100.getDataSamples(i, j);
 	console << '\n';
       }
     }
@@ -1863,14 +1863,14 @@ void loop(void)
 	  if (flc100.getAdcPresent(i)) {
 	    packet.putMagData(buffer, sizeof(buffer),
 			      AWPacket::tagMagDataX + i,
-			      flc100.getMagResGain(i),
-			      flc100.getMagData()[i]);
+			      flc100.getResGain(i),
+			      flc100.getData()[i]);
 	    // Put all samples only if requested, and only when no
 	    // messages are waiting for retransmission.
 	    if (allSamples && commsHandler.isBufferEmpty())
 	      packet.putDataArray(buffer, sizeof(buffer),
 				  AWPacket::tagMagDataAllX + i, 4,
-				  numSamples, flc100.getMagDataSamples(i));
+				  numSamples, flc100.getDataSamples(i));
 	  }
             
 	packet.putDataInt16(buffer, sizeof(buffer),
