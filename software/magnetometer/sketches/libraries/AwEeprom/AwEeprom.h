@@ -261,7 +261,12 @@
 #define EEPROM_RIO_ROW_SCAN_INTERVAL_MS 0x117
 #define EEPROM_RIO_ROW_SCAN_INTERVAL_MS_SIZE 2
 
-#define EEPROM_RIO_ADC_BITS 0x119
-#define EEPROM_RIO_ADC_BITS_SIZE 1
+// MCP3424 ADC resolution. Same for all riometer channels.
+#define EEPROM_RIO_ADC_RESOLUTION 0x119
+#define EEPROM_RIO_ADC_RESOLUTION_SIZE 1
+
+// MCP3424 ADC gain. Same for all riometer channels.
+#define EEPROM_RIO_ADC_GAIN 0x11A
+#define EEPROM_RIO_ADC_GAIN_SIZE 1
 
 #endif
