@@ -41,6 +41,10 @@
 
 #include <AWPacket.h>
 
+#if defined (FEATURE_FLC100) && defined (FEATURE_RIOMETER)
+#error Cannot include FEATURE_FLC100 and FEATURE_RIOMETER simultaneously
+#endif
+
 #ifdef FEATURE_FLC100
 #include <FLC100_shield.h>
 #endif
@@ -136,7 +140,7 @@
 #define STRINGIFY(a) STRINGIFY2(a)
 #define STRINGIFY2(a) #a
 
-#define FIRMWARE_VERSION "RioLog-0.32a"
+#define FIRMWARE_VERSION "RioLog-0.01a"
 //                        1234567890123456
 // Firmware version limited to 16 characters
 
@@ -182,8 +186,17 @@ uint8_t verbosity = 0;
 uint16_t maxTimeNoAck = eeprom_read_word((const uint16_t*)EEPROM_MAX_TIME_NO_ACK);
 
 #ifdef FEATURE_FLC100
-FLC100 flc100;
-bool flc100Present = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
+#define SENSOR_FLASH_STRING "Mag"
+typedef FLC100 SensorShield_t;
+FLC100 sensorShield;
+bool sensorShieldPresent = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
+#endif
+
+#ifdef FEATURE_RIOMETER
+#define SENSOR_FLASH_STRING "Rio"
+typedef RioLogger SensorShield_t;
+RioLogger sensorShield;
+bool sensorShieldPresent = eeprom_read_byte((uint8_t*)EEPROM_RIO_PRESENT);
 #endif
 
 #ifdef FEATURE_MLX90614
@@ -713,7 +726,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
     }
     break;
 
-#ifdef FEATURE_FLC100
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
   case AWPacket::tagNumSamples:
     {
       uint8_t numSamples, control;
@@ -721,7 +734,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
       data += sizeof(numSamples);
       if (numSamples) {
 	AWPacket::networkToAvr(&control, data, sizeof(control));
-	flc100.setNumSamples(numSamples,
+	sensorShield.setNumSamples(numSamples,
 			     control & EEPROM_AGGREGATE_USE_MEDIAN,
 			     control & EEPROM_AGGREGATE_TRIM_SAMPLES);
       }
@@ -1037,11 +1050,11 @@ void setup(void)
     digitalWrite(heaterPin, LOW);
   }
 
-#ifdef FEATURE_FLC100
-  uint8_t adcAddressList[FLC100::numAxes] = {0x6E, 0x6A, 0x6C};
-  uint8_t adcChannelList[FLC100::numAxes] = {1, 1, 1};
-  uint8_t adcResolutionList[FLC100::numAxes] = {18, 18, 18};
-  uint8_t adcGainList[FLC100::numAxes] = {1, 1, 1};
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+  uint8_t adcAddressList[SensorShield_t::numAxes] = {0x6E, 0x6A, 0x6C};
+  uint8_t adcChannelList[SensorShield_t::numAxes] = {1, 1, 1};
+  uint8_t adcResolutionList[SensorShield_t::numAxes] = {18, 18, 18};
+  uint8_t adcGainList[SensorShield_t::numAxes] = {1, 1, 1};
 #endif
 
   uint32_t consoleBaudRate;
@@ -1118,6 +1131,9 @@ void setup(void)
 	       "Features:"
 #ifdef FEATURE_FLC100
 	       " FLC100"
+#endif
+#ifdef FEATURE_RIOMETER
+	       " RIOMETER"
 #endif
 #ifdef FEATURE_HIH61XX
 	       " HIH61XX"
@@ -1202,14 +1218,14 @@ void setup(void)
   __FlashStringHelper* powerUpDelayStr
     = (__FlashStringHelper*)PSTR(" power-up delay (ms): ");
 
-#ifdef FEATURE_FLC100
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
   // Turn on 5V supply
   pinMode(FLC100_POWER, OUTPUT);
   digitalWrite(FLC100_POWER, HIGH);
-  delay(FLC100::powerUpDelay_ms);
+  delay(SensorShield_t::powerUpDelay_ms);
 
   // Get ADC addresses
-  for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
+  for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
     if (i < EEPROM_ADC_ADDRESS_LIST_SIZE) {
       uint8_t customAddress =
 	eeprom_read_byte((uint8_t*)(EEPROM_ADC_ADDRESS_LIST + i));
@@ -1239,28 +1255,28 @@ void setup(void)
   }
 
   uint8_t numSamples = eeprom_read_byte((uint8_t*)EEPROM_NUM_SAMPLES);
-  if (numSamples == 0 || numSamples > FLC100::maxSamples)
+  if (numSamples == 0 || numSamples > SensorShield_t::maxSamples)
     numSamples = 1;
   uint8_t aggregate = eeprom_read_byte((uint8_t*)EEPROM_AGGREGATE);
   if (aggregate == 255)
     aggregate = EEPROM_AGGREGATE_USE_MEDIAN; // Not set in EEPROM
   allSamples = eeprom_read_byte((uint8_t*)EEPROM_ALL_SAMPLES);
 
-  __FlashStringHelper* flc100Str = (__FlashStringHelper*)PSTR("FLC100");
-  if (flc100Present) {
+  __FlashStringHelper* sensorFlashStr = (__FlashStringHelper*)PSTR(SENSOR_FLASH_STRING);
+  if (sensorShieldPresent) {
     console.print(initialisingStr);
-    console.println(flc100Str);
+    console.println(sensorFlashStr);
 
-    flc100.initialise(FLC100_POWER, adcAddressList, adcChannelList,
+    sensorShield.initialise(FLC100_POWER, adcAddressList, adcChannelList,
 		      adcResolutionList, adcGainList);
-    flc100.setNumSamples(numSamples,
+    sensorShield.setNumSamples(numSamples,
 			 aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
 			 aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
 
-    for (int i = 0; i < FLC100::numAxes; ++i)
+    for (int i = 0; i < SensorShield_t::numAxes; ++i)
       console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
 	      << F(" ch. ") << (adcChannelList[i])
-	      << (flc100.getAdcPresent(i) ? F(" present\n") : F(" missing\n"));
+	      << (sensorShield.getAdcPresent(i) ? F(" present\n") : F(" missing\n"));
 
     console << F("numSamples: ") << numSamples
 	    << F("\naggregate: ");
@@ -1272,14 +1288,14 @@ void setup(void)
     console.flush();
   }
 
-  console.print(flc100Str);
-  if (!flc100Present)
+  console.print(sensorFlashStr);
+  if (!sensorShieldPresent)
     console.print(notStr);
   console.println(presentStr);
-  if (flc100Present) {
-    console.print(flc100Str);
+  if (sensorShieldPresent) {
+    console.print(sensorFlashStr);
     console.print(powerUpDelayStr);
-    console.println(FLC100::powerUpDelay_ms);
+    console.println(SensorShield_t::powerUpDelay_ms);
   }
 #endif
 
@@ -1598,9 +1614,9 @@ void loop(void)
 
   if (startSampling) {
     cRTC.getTime(sampleStartTime);
-#ifdef FEATURE_FLC100
-    if (flc100Present && !flc100.isSampling())
-      flc100.start();
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+    if (sensorShieldPresent && !sensorShield.isSampling())
+      sensorShield.start();
 #endif
 #ifdef FEATURE_MLX90614
     if (!mlx90614.isSampling())
@@ -1649,9 +1665,9 @@ void loop(void)
     setAlarm();
   }
 
-#ifdef FEATURE_FLC100
-  if (flc100Present)
-    flc100.process();
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+  if (sensorShieldPresent)
+    sensorShield.process();
 #endif
 #ifdef FEATURE_MLX90614
   if (mlx90614Present)
@@ -1693,10 +1709,10 @@ void loop(void)
 
   commandHandler.process(console);
 
-  // console << F("I2C state: ") << (flc100.getI2CState()) << endl;
+  // console << F("I2C state: ") << (sensorShield.getI2CState()) << endl;
   if (1
-#ifdef FEATURE_FLC100
-      && (flc100Present == false || flc100.isFinished())
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+      && (sensorShieldPresent == false || sensorShield.isFinished())
 #endif
 #ifdef FEATURE_MLX90614
       && (mlx90614Present == false || mlx90614.isFinished())
@@ -1711,15 +1727,15 @@ void loop(void)
     if (resultsProcessed == false) {
       resultsProcessed = true;
       // for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-      // 	console << '\t' << (flc100.getMagData()[i]);
+      // 	console << '\t' << (sensorShield.getData()[i]);
       // console << endl;
 
       console << F("Timestamp: ") << sampleStartTime.getSeconds()
 	      << sep << sampleStartTime.getFraction()
 	      << F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
-#ifdef FEATURE_FLC100
-      if (flc100Present)
-	console << F("\nFLC100 temp.: ") << flc100.getSensorTemperature();
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+      if (sensorShieldPresent)
+	console << F("\n" SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature();
 #endif
       console.println();
       if (houseKeeping.getVinDivider())
@@ -1740,23 +1756,24 @@ void loop(void)
 	console << F("Humidity: ") << hih61xx.getRelHumidity()
 		<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
 #endif
-#ifdef FEATURE_FLC100
-      if (flc100Present)
-	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	  if (flc100.getAdcPresent(i))
-	    console << F("magData[") << i << F("]: ")
-		    << (flc100.getMagData()[i]) << endl;
-  if (verbosity == 11 && flc100Present) {
-    for (uint8_t i = 0; i < FLC100::numAxes; ++i) {
-      if (flc100.getAdcPresent(i)) {
-	console << char('X' + i) << ':';
-	for (uint8_t j = 0; j < FLC100::maxSamples; ++j)
-	  console << ' ' << flc100.getMagDataSamples(i, j);
-	console << '\n';
-      }
-    }
 
-  }
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+      if (sensorShieldPresent)
+	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
+	  if (sensorShield.getAdcPresent(i))
+	    console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
+		    << (sensorShield.getData()[i]) << endl;
+      if (verbosity == 11 && sensorShieldPresent) {
+	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
+	  if (sensorShield.getAdcPresent(i)) {
+	    console << char('X' + i) << ':';
+	    for (uint8_t j = 0; j < SensorShield_t::maxSamples; ++j)
+	      console << ' ' << sensorShield.getDataSamples(i, j);
+	    console << '\n';
+	  }
+	}
+
+      }
 #endif
 
 #ifdef FEATURE_GNSS
@@ -1856,30 +1873,30 @@ void loop(void)
       console << F("Header length: ") << AWPacket::getPacketLength(buffer)
 	      << endl;
 
-#ifdef FEATURE_FLC100
-      if (flc100Present) {
+#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+      if (sensorShieldPresent) {
 	uint8_t numSamples;
 	bool median;
 	bool trimmed;
-	flc100.getNumSamples(numSamples, median, trimmed);
+	sensorShield.getNumSamples(numSamples, median, trimmed);
 
-	for (uint8_t i = 0; i < FLC100::numAxes; ++i)
-	  if (flc100.getAdcPresent(i)) {
+	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
+	  if (sensorShield.getAdcPresent(i)) {
 	    packet.putMagData(buffer, sizeof(buffer),
 			      AWPacket::tagMagDataX + i,
-			      flc100.getMagResGain(i),
-			      flc100.getMagData()[i]);
+			      sensorShield.getResGain(i),
+			      sensorShield.getData()[i]);
 	    // Put all samples only if requested, and only when no
 	    // messages are waiting for retransmission.
 	    if (allSamples && commsHandler.isBufferEmpty())
 	      packet.putDataArray(buffer, sizeof(buffer),
 				  AWPacket::tagMagDataAllX + i, 4,
-				  numSamples, flc100.getMagDataSamples(i));
+				  numSamples, sensorShield.getDataSamples(i));
 	  }
 
 	packet.putDataInt16(buffer, sizeof(buffer),
 			    AWPacket::tagSensorTemperature,
-			    flc100.getSensorTemperature());
+			    sensorShield.getSensorTemperature());
 	packet.putDataUint16(buffer, sizeof(buffer),
 			     AWPacket::tagNumSamples,
 			     (uint16_t(numSamples) << 8) |
