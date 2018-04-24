@@ -438,6 +438,34 @@ bool AWPacket::putDataArray(uint8_t* buffer, size_t bufferLength,
 }
 
 
+bool AWPacket::putAdcData(uint8_t* buffer, size_t bufferLength,
+			  uint8_t tag, uint8_t resGain, uint8_t numElems,
+			  const int32_t* data) const
+{
+  const uint8_t elemSize = sizeof(int32_t);
+  uint16_t payloadLength = (elemSize * numElems) + 1;
+  uint16_t tagLen = payloadLength + sizeOfTag + sizeOfPacketLength; 
+  uint16_t len = getPacketLength(buffer);
+  if (len + tagLen > bufferLength)
+    return false;
+  
+  setPacketLength(buffer, len + tagLen);
+  uint8_t *p = buffer + len;
+  *p++ = tag;
+  avrToNetwork(p, &payloadLength, sizeof(payloadLength));
+  p += sizeof(payloadLength);
+
+  *p++ = resGain;
+  const uint8_t *dp = (const uint8_t*)data;
+  for (uint8_t i = 0; i < numElems; ++i) {
+    avrToNetwork(p, dp, elemSize);
+    p += elemSize;
+    dp += elemSize;
+  }
+  return true;
+}
+
+
 bool AWPacket::putGnssStatus(uint8_t* buffer, size_t bufferLength,
 			     int32_t timestamp, bool isValid, char navSystem,
 			     uint8_t numSat, uint8_t hdop) const

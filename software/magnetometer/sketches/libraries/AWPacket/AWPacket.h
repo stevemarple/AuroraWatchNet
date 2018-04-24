@@ -72,6 +72,7 @@ public:
     tagRelHumidity = 28,
     tagGnssStatus = 29,
     tagGnssLocation = 30,
+    tagGenData = 31,
   };
   
   static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
@@ -165,6 +166,9 @@ public:
   bool putDataArray(uint8_t* buffer, size_t bufferLength,
 		    uint8_t tag, uint8_t elemSize, uint8_t numElems,
 		    const void* data) const;
+  bool putAdcData(uint8_t* buffer, size_t bufferLength,
+		  uint8_t tag, uint8_t resGain, uint8_t numElems,
+		  const int32_t* data) const;
   bool putPadding(uint8_t* buffer, size_t bufferLength,
 		  uint16_t paddingLength) const;
   bool putSignature(uint8_t* buffer, size_t bufferLength,

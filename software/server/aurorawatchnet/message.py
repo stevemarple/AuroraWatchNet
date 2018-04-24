@@ -158,6 +158,18 @@ def format_gnss_location(tag_name, data_len, payload):
     return '{lat:.6f}{ns}, {lon:.6f}{ew}, {alt}'.format(**d)
 
 
+def format_adc_data(tag_name, data_len, payload):
+    fmt = '!B' + str((data_len - 1) / 4) + 'l'
+    data = list(struct.unpack(fmt, str(payload)))
+    res_gain = decode_res_gain(data.pop(0))
+    return ('%db, x%d ' % res_gain) + repr(data)
+
+
+def decode_res_gain(res_gain):
+    res = ((res_gain & 0b1100) / 2) + 12
+    gain = 2**(res_gain & 0b0011)
+    return res, gain
+
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
 # protocol but elsewhere referred to by name. In tag_data the keys are
@@ -180,176 +192,181 @@ tag_data = {
         'id': 0,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     'mag_data_y': {
         'id': 1,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     'mag_data_z': {
         'id': 2,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     # Temperatures, hundredths of Celsius (signed).
     'magnetometer_temperature': {
         'id': 3,
         'length': 3,
         'format': '!h',
-        },
+    },
     'system_temperature': {
         'id': 4,
         'length': 3,
         'format': '!h',
-        },
+    },
     # Voltage, millivolts.
     'supply_voltage': {
         'id': 5,
         'length': 3,
         'format': '!H',
-        },
+    },
     'time_adjustment': {
         'id': 6,
         'length': 7,
         'format': '!ih',
-        },
+    },
     'reboot_flags': {
         'id': 7,
         'length': 2,
         # 'format': '!B',
-        },
+    },
     'sampling_interval': {
         'id': 8,
         'length': 3,
         'format': '!H',
-        },
+    },
     'padding_byte': {
         'id': 9,
         'length': 1,
         'formatter': format_padding,
-        },
+    },
     'padding': {
         'id': 10,
         'length': 0,
         'formatter': format_padding,
-        },
+    },
     'current_epoch_time': {
         'id': 11,
         'length': 7,
         # 'format': '!LH',
         'format': '!ih',
         'formatter': format_unix_epoch_32678,
-        },
+    },
     'reboot': {
         'id': 12,
         'length': 1,
         # 'format': '',
-        },
+    },
     'current_firmware': {
         'id': 13,
         'length': (size_of_tag + firmware_version_max_length),
         'format': ('!' + str(firmware_version_max_length) + 'c'),
         'formatter': format_null_terminated_string,
-        },
+    },
     'upgrade_firmware': {
         'id': 14,
         'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number + size_of_crc),
         'format': ('!' + str(firmware_version_max_length) + 'cHH'),
         'formatter': format_upgrade_firmware,
-        },
+    },
     'get_firmware_page': {
         'id': 15,
-        'length': (size_of_tag + firmware_version_max_length + 
+        'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number),
         'format': ('!' + str(firmware_version_max_length) + 'cH'),
         'formatter': format_get_firmware_page,
-        },
+    },
     'firmware_page': {
         'id': 16,
-        'length': (size_of_tag + firmware_version_max_length + 
+        'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number + firmware_block_size),
-        'format': ('!' + str(firmware_version_max_length) + 'cH' + 
+        'format': ('!' + str(firmware_version_max_length) + 'cH' +
                    str(firmware_block_size) + 'c'),
         'formatter': format_get_firmware_page,
         # 'formatter': format_tag_blank,
-        },
+    },
     'read_eeprom': {
         'id': 17,
         'length': 5,
         'format': '!HH',
         'formatter': format_read_eeprom,
-        },
+    },
     'eeprom_contents': {
         'id': 18,
         'length': 0,
         # 'format': None,
         'formatter': format_eeprom_contents,
-        },
+    },
     'num_samples': {
         'id': 19,
         'length': 3,
         'format': '!BB',
-        },
+    },
     'all_samples': {
         'id': 20,
         'length': 2,
         # 'format': '!?',
-        },
+    },
     'mag_data_all_x': {
         'id': 21,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     'mag_data_all_y': {
         'id': 22,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     'mag_data_all_z': {
         'id': 23,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     # Temperatures, hundredths of Celsius (signed).
     'cloud_ambient_temperature': {
         'id': 24,
         'length': 3,
         'format': '!h',
-        },
+    },
     'cloud_object1_temperature': {
         'id': 25,
         'length': 3,
         'format': '!h',
-        },
+    },
     'cloud_object2_temperature': {
         'id': 26,
         'length': 3,
         'format': '!h',
-        },
+    },
     'ambient_temperature': {
         'id': 27,
         'length': 3,
         'format': '!h',
-        },
+    },
     # Relative humidity, hundredths of percent.
     'relative_humidity': {
         'id': 28,
         'length': 3,
         'format': '!H',
-        },
+    },
     'gnss_status': {
         'id': 29,
         'length': 8,
         'format': '!lBBB',
         'formatter': format_gnss_status,
-        },
+    },
     'gnss_location': {
         'id': 30,
         'length': 0,
         'formatter': format_gnss_location,
-        },
+    },
+    'adc_data': {
+        'id': 31,
+        'length': 0,
+        'formatter': format_adc_data,
     }
+}
 
 tag_id_to_name = dict()
 for tag_name in tag_data.keys():
