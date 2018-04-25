@@ -113,12 +113,12 @@ Pin numbers refer to the Calunium pin.
 
     0: RX0 XRF RX (via jumper) or console
     1: TX0 XRF TX (via jumper) or console
-    2: RX1 XRF RX (via jumper)
-    3: TX1 XRF TX (via jumper)
+    2: RX1 XRF RX (via jumper) or GNSS RX
+    3: TX1 XRF TX (via jumper) or GNSS TX
     4: (Reserved for Ethernet shield microSD CS)
     5: XRF /reset (via jumper)
-    6: (Reserved for AS3935 lightning detector interrupt)
-    7: XRF sleep (via jumper)
+    6: (Reserved for AS3935 lightning detector interrupt) or GNSS PPS (via jumper)
+    7: XRF sleep (via jumper) or GNSS PPS (via jumper)
     8: Fan control
     9: MAX619 shutdown
     10: SS (Reserved for Ethernet shield WIZ5100 CS)
@@ -135,7 +135,7 @@ Pin numbers refer to the Calunium pin.
     21: SCL (RTC, MCP3424 etc)
     22: Calunium microSD CS
     23: XRF on indicator
-    A0:
+    A0: GNSS reset (via jumper)
     A1:
     A2: Vin voltage measurement (via jumper)
     A3:
