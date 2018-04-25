@@ -8,8 +8,12 @@
 #include "median.h"
 
 unsigned long RioLogger::powerUpDelay_ms = RioLogger::defaultPowerUpDelay_ms;
+uint16_t RioLogger::presampleDelay_ms = 10;
 
-RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1),
+// Gray code
+const uint8_t RioLogger::scanMapping[numScanStates] = {0, 1, 3, 2, 6, 7, 5, 4};
+
+RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1), scanState(0),
 							 useMedian(false), trimSamples(false)
 {
 
@@ -23,6 +27,17 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
 {
 	powerPin = pp;
 	pinMode(powerPin, OUTPUT);
+
+    scanState = 0;
+    // 5, 9 available; 7 possibly available if not needed for PPS.
+    scanPins[0] = 23;
+    scanPins[1] = 22;
+    scanPins[2] = 14;
+
+    for (uint8_t i = 0; i < numScanPins; ++i)
+        pinMode(scanPins[i], OUTPUT);
+
+    setScanPins();
 
 	uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
 	if (pud_50ms != 0xFF)
@@ -92,6 +107,15 @@ void RioLogger::process(void)
 			cRTC.getTime(now);
 			timestamp = now.getSeconds();
 		}
+		state = advanceScan;
+		break;
+
+    case advanceScan:
+        // TODO: Advance scan step
+        setScanPins();
+        presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
+        Serial.print("Advance scan: ");
+        Serial.println(scanState);
 		state = convertingTemp;
 		break;
 
@@ -154,7 +178,7 @@ void RioLogger::process(void)
 		// failed configuration attempt (and therefore to use the timeout
 		// delay).
 		if (magNum >= numAxes) {
-			state = convertingRioADCs;
+			state = presampleHold;
 			magNum = 0;
 			tmp = 0;
 			sampleNum = 0;
@@ -179,6 +203,12 @@ void RioLogger::process(void)
 			// configured. Don't do anything, it will be checked later.
 			++magNum;
 		break;
+
+    case presampleHold:
+        if (presampleDelay.isExpired()) {
+            state = convertingRioADCs;
+        }
+        break;
 
 	case convertingRioADCs:
 		// Start conversions
@@ -217,7 +247,13 @@ void RioLogger::process(void)
 			// Calculate final result
 			aggregate();
 
-			state = poweringDown;
+            ++scanState;
+            if (scanState >= numScanStates) {
+                scanState = 0;
+			    state = poweringDown;
+            }
+            else
+			    state = advanceScan;
 			break;
 		}
 
@@ -311,4 +347,16 @@ void RioLogger::aggregate(void)
 		}
 	}
 
+}
+
+
+void RioLogger::setScanPins() const
+{
+    const uint8_t val = scanMapping[scanState];
+    uint8_t mask = 1;
+
+    for (uint8_t i = 0; i < numScanPins; ++i) {
+        digitalWrite(scanPins[i], val & mask);
+        mask <<= 1;
+    }
 }

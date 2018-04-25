@@ -16,9 +16,15 @@ class RioLogger;
 class RioLogger {
 public:
 	static const uint8_t numAxes = 8;
+	static const uint8_t maxRows = 8;
+	static const uint8_t maxColumns = 8;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
+	static uint16_t presampleDelay_ms;
 	static const uint8_t maxSamples = 16;
+    static const uint8_t numScanPins = 3;
+    static const uint8_t numScanStates = 8; // pow(2, numScanPins)
+    static const uint8_t scanMapping[numScanStates];
 
 	RioLogger(void);
 
@@ -100,8 +106,10 @@ private:
 		off,
 		poweringUp,
 		readingTime,
+		advanceScan,
 		convertingTemp,
 		readingTemp,
+		presampleHold,
 		configuringRioADCs,
 		convertingRioADCs,
 		readingRioADCs,
@@ -112,6 +120,8 @@ private:
 	state_t state;
 	uint8_t axis;
 	uint8_t powerPin;
+	uint8_t scanState;
+    uint8_t scanPins[numScanPins];
 
 	MCP342x adc[numAxes]; // X, Y, Z
 	MCP342x::Config adcConfig[numAxes];
@@ -120,6 +130,7 @@ private:
 
 	AsyncDelay delay;
 	AsyncDelay timeout;
+	AsyncDelay presampleDelay;
 
 	// Data fields
 	CounterRTC::time_t timestamp;
@@ -132,6 +143,7 @@ private:
 	bool trimSamples;
 
 	void aggregate(void);
+    void setScanPins() const;
 
 };
 
