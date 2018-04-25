@@ -7,128 +7,128 @@
 
 class CommsHandler {
 public:
-  enum error_t {
-    errorNoError = 0,
-    errorBufferTooSmall,
-    errorResponseTimeout,
-    errorNotReady,
-    errorCommsNotSet,
-  };
+	enum error_t {
+		errorNoError = 0,
+		errorBufferTooSmall,
+		errorResponseTimeout,
+		errorNotReady,
+		errorCommsNotSet,
+	};
 
-  static const uint8_t maxRetries = 2;
-  static const char* errorMessages[4];
-  
-  inline CommsHandler(void* stackBuffer, uint16_t stackBufferLen);
+	static const uint8_t maxRetries = 2;
+	static const char* errorMessages[4];
 
-  void setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin); 
+	inline CommsHandler(void* stackBuffer, uint16_t stackBufferLen);
 
-  inline void setKey(uint8_t *k, uint8_t len);
-  void addMessage(void *buffer, uint16_t len);
+	void setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin);
 
-  // Returns number of bytes written to buffer. Powers up XRF when
-  // needed, does not power off.
-  int process(uint8_t *responseBuffer, uint16_t responseBufferLen);
-  
-  bool validateResponse(uint8_t *responseBuffer, uint16_t &responseLen) const;
+	inline void setKey(uint8_t *k, uint8_t len);
+	void addMessage(void *buffer, uint16_t len);
 
-  
-  inline bool isFinished(void) const;
-  inline bool isWaitingForMessages(void) const;
-  inline error_t getError(void) const;
+	// Returns number of bytes written to buffer. Powers up XRF when
+	// needed, does not power off.
+	int process(uint8_t *responseBuffer, uint16_t responseBufferLen);
 
-  inline uint16_t getBytesSent(void) const;
-  inline uint8_t getState(void) const;
-  inline bool isBufferEmpty(void) const;
-  inline CommsInterface* getCommsInterface(void) const;
-  inline void setCommsInterface(CommsInterface* cip);
-  
+	bool validateResponse(uint8_t *responseBuffer, uint16_t &responseLen) const;
+
+
+	inline bool isFinished(void) const;
+	inline bool isWaitingForMessages(void) const;
+	inline error_t getError(void) const;
+
+	inline uint16_t getBytesSent(void) const;
+	inline uint8_t getState(void) const;
+	inline bool isBufferEmpty(void) const;
+	inline CommsInterface* getCommsInterface(void) const;
+	inline void setCommsInterface(CommsInterface* cip);
+
 private:
-  enum state_t {
-    stateWaitingForMessages = 0,
-    statePowerUp = 1,
-    sendingData = 2,
-    stateWaitingForResponse = 3,
-    // Used when a message didn't get a response
-    stateTimedOut = 4,
-  };
+	enum state_t {
+		stateWaitingForMessages = 0,
+		statePowerUp = 1,
+		sendingData = 2,
+		stateWaitingForResponse = 3,
+		// Used when a message didn't get a response
+		stateTimedOut = 4,
+	};
 
-  static const uint16_t messageBufferLen = 512;
-  // static const int powerUpDelay_ms = 250;
-  // static const int resetDelay_us = 250;
-  static const int responseTimeout_ms = 2000;
-  
-  error_t errno;
-  uint8_t messageBuffer[messageBufferLen];
-  uint16_t messageLen;
-  uint16_t bytesSent;
-  uint16_t responseLen; // Length of the response so far
-  uint16_t responsePacketLen; // Length of the packet, read from incoming data
-  state_t state;
-  CommsInterface* commsPtr;
-  AsyncDelay responseTimeout;
-  AsyncDelay resetTimer;
-  CircularStackBlock stack;
-  uint8_t keyLen; // In bytes
-  uint8_t *key;
+	static const uint16_t messageBufferLen = 512;
+	// static const int powerUpDelay_ms = 250;
+	// static const int resetDelay_us = 250;
+	static const int responseTimeout_ms = 2000;
+
+	error_t errno;
+	uint8_t messageBuffer[messageBufferLen];
+	uint16_t messageLen;
+	uint16_t bytesSent;
+	uint16_t responseLen; // Length of the response so far
+	uint16_t responsePacketLen; // Length of the packet, read from incoming data
+	state_t state;
+	CommsInterface* commsPtr;
+	AsyncDelay responseTimeout;
+	AsyncDelay resetTimer;
+	CircularStackBlock stack;
+	uint8_t keyLen; // In bytes
+	uint8_t *key;
 
 };
 
 
 CommsHandler::CommsHandler(void* stackBuffer, uint16_t stackBufferLen) :
-  messageLen(0),
-  state(stateWaitingForMessages),
-  commsPtr(NULL),
-  stack(stackBuffer, stackBufferLen)
+	messageLen(0),
+	state(stateWaitingForMessages),
+	commsPtr(NULL),
+	stack(stackBuffer, stackBufferLen)
 {
-  ;
+	;
 }
 
 void CommsHandler::setKey(uint8_t *k, uint8_t len)
 {
-  key = k;
-  keyLen = len;
+	key = k;
+	keyLen = len;
 }
 
 bool CommsHandler::isFinished(void) const
 {
-  return ((stack.isEmpty() && state == stateWaitingForMessages) ||
-	  state == stateTimedOut);
+	return ((stack.isEmpty() && state == stateWaitingForMessages) ||
+			state == stateTimedOut);
 }
 
 bool CommsHandler::isWaitingForMessages(void) const
 {
-  return (stack.isEmpty() && state == stateWaitingForMessages);
+	return (stack.isEmpty() && state == stateWaitingForMessages);
 }
 
 CommsHandler::error_t CommsHandler::getError(void) const
 {
-  return errno;
+	return errno;
 }
 
 uint16_t CommsHandler::getBytesSent(void) const
 {
-  return bytesSent;
+	return bytesSent;
 }
 
 uint8_t CommsHandler::getState(void) const
 {
-  return state;
+	return state;
 }
 
 bool CommsHandler::isBufferEmpty(void) const
 {
-  return stack.isEmpty();
+	return stack.isEmpty();
 }
 
 CommsInterface* CommsHandler::getCommsInterface(void) const
 {
-  return commsPtr;
+	return commsPtr;
 }
 
 void CommsHandler::setCommsInterface(CommsInterface* cip)
 {
-  commsPtr = cip;
+	commsPtr = cip;
 }
-  
+
 
 #endif

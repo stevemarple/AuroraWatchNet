@@ -5,7 +5,7 @@
 #include <SD.h>
 
 class SDHandler {
-  public SDHandler(void);
+	public SDHandler(void);
 
 };
 
