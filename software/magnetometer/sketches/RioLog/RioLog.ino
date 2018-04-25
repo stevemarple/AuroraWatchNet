@@ -1827,7 +1827,13 @@ void loop(void)
 			if (verbosity == 11 && sensorShieldPresent) {
 				for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
 					if (sensorShield.getAdcPresent(i)) {
+#if defined (FEATURE_FLC100)
 						console << char('X' + i) << ':';
+#elif defined (FEATURE_RIOMETER)
+						console << int(i) << ':';
+#else
+#error Bad logic
+#endif
 						for (uint8_t j = 0; j < SensorShield_t::maxSamples; ++j)
 							console << ' ' << sensorShield.getDataSamples(i, j);
 						console << '\n';
