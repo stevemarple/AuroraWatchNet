@@ -1219,27 +1219,27 @@ void setup(void)
 			<< ((int16_t)eeprom_read_word((const uint16_t*)
 		EEPROM_FAN_HYSTERESIS))
 			<< endl;
-}
+    }
 
 #ifdef FEATURE_SD_CARD
 	uint8_t sdSelect = eeprom_read_byte((uint8_t*)EEPROM_SD_SELECT);
 	useSd = (eeprom_read_byte((uint8_t*)EEPROM_USE_SD) == 1);
 	if (sdSelect < NUM_DIGITAL_PINS) {
-    pinMode(sdSelect, OUTPUT); // Onboard SD card
-    digitalWrite(sdSelect, HIGH);
-    if (useSd) {
-	if (!SD.begin(sdSelect)) {
-	console << F("Cannot initialise SD card on #") << sdSelect << endl;
-	useSd = false;
-}
-	else
-		console << F("SD configured on #") << sdSelect << endl;
-}
-    else {
-	digitalWrite(sdSelect, HIGH);
-	console << F("SD disabled on #") << sdSelect << endl;
-}
-}
+        pinMode(sdSelect, OUTPUT); // Onboard SD card
+        digitalWrite(sdSelect, HIGH);
+        if (useSd) {
+        if (!SD.begin(sdSelect)) {
+        console << F("Cannot initialise SD card on #") << sdSelect << endl;
+        useSd = false;
+        }
+        else
+            console << F("SD configured on #") << sdSelect << endl;
+        }
+        else {
+        digitalWrite(sdSelect, HIGH);
+        console << F("SD disabled on #") << sdSelect << endl;
+        }
+    }
 #endif
 
 	console << F("Site ID: ")
@@ -1249,9 +1249,9 @@ void setup(void)
 	// Copy key from EEPROM
 	console << F("HMAC key: ");
 	for (uint8_t i = 0; i < EEPROM_HMAC_KEY_SIZE; ++i) {
-    hmacKey[i] = eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i));
-    console << ' ' << _HEX(hmacKey[i]);
-}
+        hmacKey[i] = eeprom_read_byte((const uint8_t*)(EEPROM_HMAC_KEY + i));
+        console << ' ' << _HEX(hmacKey[i]);
+    }
 	console.println();
 
 	Wire.begin();
