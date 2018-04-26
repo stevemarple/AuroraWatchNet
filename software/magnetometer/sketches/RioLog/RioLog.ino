@@ -21,7 +21,7 @@
  *  1: extended output
  *  2: differences between system and server or GNSS clock
  *  10: print message and response
- *  11: print all magnetometer data samples
+ *  11: print all magnetometer data samples, print riometer data samples
  *  12: print GNSS messages
  */
 
@@ -1838,29 +1838,37 @@ void loop(void)
 						<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
 #endif
 
-#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
-			if (sensorShieldPresent && verbosity > 0)
-				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i)
-					if (sensorShield.getAdcPresent(i))
-						console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
-								<< (sensorShield.getData()[i]) << endl;
-			if (verbosity == 11 && sensorShieldPresent) {
-				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i) {
-					if (sensorShield.getAdcPresent(i)) {
-#if defined (FEATURE_FLC100)
-						console << char('X' + i) << ':';
-#elif defined (FEATURE_RIOMETER)
-						console << int(i) << ':';
-#else
-#error Bad logic
-#endif
-						for (uint8_t j = 0; j < SensorShield_t::maxSamples; ++j)
-							console << ' ' << sensorShield.getDataSamples(i, j);
-						console << '\n';
-					}
-				}
+#ifdef FEATURE_FLC100
+			if (sensorShieldPresent) {
+			    if (verbosity > 0) {
+			        // Print data values
+                    for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i)
+                        if (sensorShield.getAdcPresent(i))
+                            console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
+                                    << (sensorShield.getData()[i]) << endl;
+                }
 
+                if (verbosity == 11) {
+                    // Print the raw data values used to obtain the average values
+                    for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i) {
+                        if (sensorShield.getAdcPresent(i)) {
+                            console << char('X' + i) << ':';
+                            for (uint8_t j = 0; j < SensorShield_t::maxSamples; ++j)
+                                console << ' ' << sensorShield.getDataSamples(i, j);
+                            console << '\n';
+                        }
+                    }
+                }
 			}
+#endif
+
+#ifdef FEATURE_RIOMETER
+            // Too many samples to print all during normal output
+			if (sensorShieldPresent && verbosity == 11) {
+				for (uint8_t i = 0; i < sensorShield.getNumBeams(); ++i)
+                    console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
+                            << (sensorShield.getData()[i]) << endl;
+            }
 #endif
 
 #ifdef FEATURE_GNSS
@@ -1985,7 +1993,7 @@ void loop(void)
 #elif defined (FEATURE_RIOMETER)
 				packet.putAdcData(buffer, sizeof(buffer),
 								  AWPacket::tagGenData, sensorShield.getResGain(0),
-								  SensorShield_t::maxNumAdcs, sensorShield.getData());
+								  sensorShield.getNumBeams(), sensorShield.getData());
 #else
 #error Bad logic
 #endif
