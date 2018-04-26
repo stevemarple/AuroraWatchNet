@@ -10,13 +10,27 @@
 unsigned long RioLogger::powerUpDelay_ms = RioLogger::defaultPowerUpDelay_ms;
 uint16_t RioLogger::presampleDelay_ms = 10;
 
-// Gray code
-const uint8_t RioLogger::scanMapping[numScanStates] = {0, 1, 3, 2, 6, 7, 5, 4};
+const uint8_t RioLogger::scanMapping7[7] = {0, 1, 3, 2, 6, 4, 5}; // Almost a Gray code
+const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray code
 
 RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1), scanState(0),
 							 useMedian(false), trimSamples(false)
 {
+    numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
+    if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
+        numRows = EEPROM_RIO_NUM_ROWS_MAX;
 
+    numCols = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLS);
+    if (numCols > EEPROM_RIO_NUM_COLS_MAX)
+        numCols = EEPROM_RIO_NUM_COLS_MAX;
+
+    if (numRows == 7)
+        // Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
+        // wraps around, which is hopefully when it matters least.
+        scanMapping = scanMapping7;
+    else
+        // Will only be a Gray code if numRows == 4 or numRows == 8. Any other value will need its own sequence.
+        scanMapping = scanMapping8;
 }
 
 
@@ -27,7 +41,6 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 {
 	powerPin = pp;
 	pinMode(powerPin, OUTPUT);
-
     scanState = 0;
     // 5, 9 available; 7 possibly available if not needed for PPS.
     scanPins[0] = 23;
@@ -67,10 +80,6 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 	}
 
 	tempConfig = MCP342x::Config(FLC100_TEMPERATURE_CHANNEL, false, 16, 1);
-
-
-
-
 	return r;
 }
 
@@ -177,7 +186,7 @@ void RioLogger::process(void)
 		// Write configuration to each ADC. Use tmp as flag to indicate a
 		// failed configuration attempt (and therefore to use the timeout
 		// delay).
-		if (magNum >= maxNumAdcs) {
+		if (magNum >= numCols) {
 			state = presampleHold;
 			magNum = 0;
 			tmp = 0;
@@ -248,7 +257,7 @@ void RioLogger::process(void)
 			aggregate();
 
             ++scanState;
-            if (scanState >= numScanStates) {
+            if (scanState >= numRows) {
                 scanState = 0;
 			    state = poweringDown;
             }
@@ -257,7 +266,7 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (magNum >= maxNumAdcs) {
+		if (magNum >= numCols) {
 			++sampleNum;
 			state = convertingRioADCs;
 			magNum = 0;
@@ -289,6 +298,9 @@ void RioLogger::process(void)
 		break;
 
 	case poweringDown:
+	    // If numRows is odd there will be a glitch when wrapping around scanMapping (it cannot be a Gray code).
+	    // Set the scan pins now when it matters least.
+	    setScanPins();
 		if (powerUpDelay_ms)
 			digitalWrite(powerPin, LOW);
 		state = finished;
@@ -311,7 +323,7 @@ void RioLogger::finish(void)
 
 void RioLogger::aggregate(void)
 {
-	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
+	for (uint8_t i = 0; i < numCols; ++i) {
 		if (!adcPresent[i])
 			continue;
 

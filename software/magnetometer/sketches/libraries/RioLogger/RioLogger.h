@@ -5,6 +5,7 @@
 #include <AsyncDelay.h>
 #include <MCP342x.h>
 #include <CounterRTC.h>
+#include <AwEeprom.h>
 
 #define FLC100_POWER 9
 #define FLC100_TEMPERATURE_CHANNEL 4
@@ -15,16 +16,17 @@ class RioLogger;
 
 class RioLogger {
 public:
-	static const uint8_t maxRows = 8;
-	static const uint8_t maxColumns = 8;
+	static const uint8_t maxRows = EEPROM_RIO_NUM_ROWS_MAX;
+	static const uint8_t maxColumns = EEPROM_RIO_NUM_COLS_MAX;
 	static const uint8_t maxNumAdcs = maxRows;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
 	static uint16_t presampleDelay_ms;
 	static const uint8_t maxSamples = 16;
-    static const uint8_t numScanPins = 3;
-    static const uint8_t numScanStates = 8; // pow(2, numScanPins)
-    static const uint8_t scanMapping[numScanStates];
+    static const uint8_t numScanPins = 3; // ceil(log2(EEPROM_RIO_NUM_ROWS_MAX))
+    // static const uint8_t numScanStates = 8; // pow(2, numScanPins)
+    static const uint8_t scanMapping7[7];
+    static const uint8_t scanMapping8[8];
 
 	RioLogger(void);
 
@@ -119,9 +121,12 @@ private:
 
 	state_t state;
 	uint8_t axis;
+	uint8_t numRows;
+	uint8_t numCols;
 	uint8_t powerPin;
 	uint8_t scanState;
     uint8_t scanPins[numScanPins];
+    const uint8_t *scanMapping;
 
 	MCP342x adc[maxNumAdcs]; // X, Y, Z
 	MCP342x::Config adcConfig[maxNumAdcs];
