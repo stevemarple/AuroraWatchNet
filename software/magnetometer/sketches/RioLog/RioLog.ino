@@ -41,6 +41,22 @@
 
 #include <AWPacket.h>
 
+
+// Fix up #defines for the ATmega1284 (non-P) to be more similar to the ATmega1284P #defines.
+#if defined(FUSE_SUT_CKSEL0) && ! defined(FUSE_CKSEL0)
+#define FUSE_CKSEL0 FUSE_SUT_CKSEL0
+#endif
+#if defined(FUSE_SUT_CKSEL1) && ! defined(FUSE_CKSEL1)
+#define FUSE_CKSEL1 FUSE_SUT_CKSEL1
+#endif
+#if defined(FUSE_SUT_CKSEL2) && ! defined(FUSE_CKSEL2)
+#define FUSE_CKSEL2 FUSE_SUT_CKSEL2
+#endif
+#if defined(FUSE_SUT_CKSEL3) && ! defined(FUSE_CKSEL3)
+#define FUSE_CKSEL3 FUSE_SUT_CKSEL3
+#endif
+
+
 #if defined (FEATURE_FLC100) && defined (FEATURE_RIOMETER)
 #error Cannot include FEATURE_FLC100 and FEATURE_RIOMETER simultaneously
 #endif
@@ -462,7 +478,11 @@ void doSleep(uint8_t mode)
 		set_sleep_mode(mode); // Set the mode
 		sleep_enable();       // Make sleeping possible
 		wdt_disable();
+#if defined(BODS) && defined(BODSE)
 		sleep_bod_disable();  // Disable brown-out detection for sleeping
+#else
+#warning Brownout cannot be disabled in sleep mode for this MCU
+#endif
 		// TIFR2 |= (1 << OCF2A); // Ensure any pending interrupt is cleared
 		sei();                // Make sure wake up is possible!
 		sleep_cpu();          // Now go to sleep
