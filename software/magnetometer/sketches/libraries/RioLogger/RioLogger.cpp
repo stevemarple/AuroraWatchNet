@@ -95,15 +95,16 @@ void RioLogger::process(void)
 		break;
 
 	case poweringUp:
-		if (delay.isExpired()) {
-			timestamp = 0;
-			sensorTemperature = INT_MIN; // Clear previous reading
-			for (uint8_t i = 0; i < maxNumAdcs; ++i) {
-				magData[i] = LONG_MIN;
-				for (uint8_t j = 0; j < maxSamples; ++j)
-					magDataSamples[i][j] = LONG_MIN;
-			}
+        timestamp = 0;
+        sensorTemperature = INT_MIN; // Clear previous readings
+        for (uint8_t i = 0; i < getNumBeams(); ++i)
+            magData[i] = LONG_MIN;
 
+        state = powerUpHold;
+		break;
+
+	case powerUpHold:
+        if (delay.isExpired()) {
 			// Ensure ADC has latched its address correctly
 			MCP342x::generalCallReset();
 			state = readingTime;
@@ -125,6 +126,12 @@ void RioLogger::process(void)
         presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
         Serial.print("Advance scan: ");
         Serial.println(scanState);
+
+        for (uint8_t i = 0; i < numColumns; ++i) {
+            for (uint8_t j = 0; j < maxSamples; ++j)
+                magDataSamples[i][j] = LONG_MIN;
+        }
+
 		state = convertingTemp;
 		break;
 
@@ -328,7 +335,7 @@ void RioLogger::aggregate(void)
 			continue;
 
 		if (useMedian)
-			magData[i] = median<long>(magDataSamples[i], numSamples);
+			magData[calcBeamNum(scanState, i)] = median<long>(magDataSamples[i], numSamples);
 		else {
 			// Mean. Ignore any values which are LONG_MIN since they
 			// represent sampling errors.
@@ -354,7 +361,7 @@ void RioLogger::aggregate(void)
 					tmp = tmp - largest - smallest;
 					count -= 2;
 				}
-				magData[i] = tmp / count;
+				magData[calcBeamNum(scanState, i)] = tmp / count;
 			}
 		}
 	}

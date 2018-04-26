@@ -19,6 +19,7 @@ public:
 	static const uint8_t maxRows = EEPROM_RIO_NUM_ROWS_MAX;
 	static const uint8_t maxColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
 	static const uint8_t maxNumAdcs = maxRows;
+	static const uint8_t maxNumBeams = maxRows * maxColumns;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
 	static uint16_t presampleDelay_ms;
@@ -44,6 +45,17 @@ public:
 		delay.start(powerUpDelay_ms, AsyncDelay::MILLIS);
 	}
 
+    inline uint8_t getNumRows(void) const {
+        return numRows;
+    }
+
+    inline uint8_t getNumColumns(void) const {
+        return numColumns;
+    }
+
+    inline uint8_t getNumBeams(void) const {
+        return numRows * numColumns;
+    }
 
 	inline CounterRTC::time_t getTimestamp(void) const {
 		return timestamp;
@@ -94,6 +106,10 @@ public:
 		}
 	}
 
+    inline uint8_t calcBeamNum(uint8_t r, uint8_t c) const
+    {
+        return (r * numColumns) + c;
+    }
 
 	bool initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 					uint8_t adcChannelList[maxNumAdcs],
@@ -107,6 +123,7 @@ private:
 	enum state_t {
 		off,
 		poweringUp,
+		powerUpHold,
 		readingTime,
 		advanceScan,
 		convertingTemp,
@@ -140,8 +157,8 @@ private:
 	// Data fields
 	CounterRTC::time_t timestamp;
 	int16_t sensorTemperature; // hundredths of degrees Celsius
-	int32_t magData[maxNumAdcs];  // averaged from a number of samples
-	int32_t magDataSamples[maxNumAdcs][maxSamples]; // individual results
+	int32_t magData[maxNumBeams];  // averaged from a number of samples
+	int32_t magDataSamples[maxNumAdcs][maxSamples]; // individual results from one row
 
 	uint8_t numSamples;
 	bool useMedian;
