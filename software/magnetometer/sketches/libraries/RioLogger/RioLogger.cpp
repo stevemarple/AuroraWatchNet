@@ -20,9 +20,9 @@ RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1), scanState(0),
     if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
         numRows = EEPROM_RIO_NUM_ROWS_MAX;
 
-    numCols = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLS);
-    if (numCols > EEPROM_RIO_NUM_COLS_MAX)
-        numCols = EEPROM_RIO_NUM_COLS_MAX;
+    numColumns = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLUMNS);
+    if (numColumns > EEPROM_RIO_NUM_COLUMNS_MAX)
+        numColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
 
     if (numRows == 7)
         // Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
@@ -186,7 +186,7 @@ void RioLogger::process(void)
 		// Write configuration to each ADC. Use tmp as flag to indicate a
 		// failed configuration attempt (and therefore to use the timeout
 		// delay).
-		if (magNum >= numCols) {
+		if (magNum >= numColumns) {
 			state = presampleHold;
 			magNum = 0;
 			tmp = 0;
@@ -266,7 +266,7 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (magNum >= numCols) {
+		if (magNum >= numColumns) {
 			++sampleNum;
 			state = convertingRioADCs;
 			magNum = 0;
@@ -323,7 +323,7 @@ void RioLogger::finish(void)
 
 void RioLogger::aggregate(void)
 {
-	for (uint8_t i = 0; i < numCols; ++i) {
+	for (uint8_t i = 0; i < numColumns; ++i) {
 		if (!adcPresent[i])
 			continue;
 

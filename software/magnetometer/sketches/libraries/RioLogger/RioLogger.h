@@ -17,7 +17,7 @@ class RioLogger;
 class RioLogger {
 public:
 	static const uint8_t maxRows = EEPROM_RIO_NUM_ROWS_MAX;
-	static const uint8_t maxColumns = EEPROM_RIO_NUM_COLS_MAX;
+	static const uint8_t maxColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
 	static const uint8_t maxNumAdcs = maxRows;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
@@ -122,7 +122,7 @@ private:
 	state_t state;
 	uint8_t axis;
 	uint8_t numRows;
-	uint8_t numCols;
+	uint8_t numColumns;
 	uint8_t powerPin;
 	uint8_t scanState;
     uint8_t scanPins[numScanPins];
