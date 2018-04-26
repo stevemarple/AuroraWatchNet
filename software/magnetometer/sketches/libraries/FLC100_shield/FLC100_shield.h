@@ -25,6 +25,7 @@ class FLC100;
 class FLC100 {
 public:
   static const uint8_t numAxes = 3;
+  static const uint8_t maxNumAdcs = numAxes;
   static const unsigned long defaultPowerUpDelay_ms = 1000;
   static unsigned long powerUpDelay_ms;
   static const uint8_t maxSamples = 16;

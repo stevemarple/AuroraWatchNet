@@ -1086,19 +1086,19 @@ void setup(void)
 	}
 
 #if defined (FEATURE_FLC100)
-	uint8_t adcAddressList[SensorShield_t::numAxes] = {0x6E, 0x6A, 0x6C};
-	uint8_t adcChannelList[SensorShield_t::numAxes] = {1, 1, 1};
-	uint8_t adcResolutionList[SensorShield_t::numAxes] = {18, 18, 18};
-	uint8_t adcGainList[SensorShield_t::numAxes] = {1, 1, 1};
+	uint8_t adcAddressList[SensorShield_t::maxNumAdcs] = {0x6E, 0x6A, 0x6C};
+	uint8_t adcChannelList[SensorShield_t::maxNumAdcs] = {1, 1, 1};
+	uint8_t adcResolutionList[SensorShield_t::maxNumAdcs] = {18, 18, 18};
+	uint8_t adcGainList[SensorShield_t::maxNumAdcs] = {1, 1, 1};
 #elif defined (FEATURE_RIOMETER)
-	uint8_t adcAddressList[SensorShield_t::numAxes] = {
+	uint8_t adcAddressList[SensorShield_t::maxNumAdcs] = {
 		// TODO: update with correct value
 		0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E}; 
-	uint8_t adcChannelList[SensorShield_t::numAxes] = {
+	uint8_t adcChannelList[SensorShield_t::maxNumAdcs] = {
 		1, 1, 1, 1, 1, 1, 1, 1 };
-	uint8_t adcResolutionList[SensorShield_t::numAxes] = {
+	uint8_t adcResolutionList[SensorShield_t::maxNumAdcs] = {
 		14, 14, 14, 14, 14, 14, 14, 14};
-	uint8_t adcGainList[SensorShield_t::numAxes] = {
+	uint8_t adcGainList[SensorShield_t::maxNumAdcs] = {
 		1, 1, 1, 1, 1, 1, 1, 1 };
 #endif
 
@@ -1276,7 +1276,7 @@ void setup(void)
 	// Get ADC addresses
 	uint16_t eepromAddress;
 	uint8_t sz;
-	for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
+	for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i) {
 #if defined (FEATURE_FLC100)
 		eepromAddress = EEPROM_ADC_ADDRESS_LIST;
 		sz =  EEPROM_ADC_ADDRESS_LIST_SIZE;
@@ -1352,7 +1352,7 @@ void setup(void)
 								   aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
 								   aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
 
-		for (int i = 0; i < SensorShield_t::numAxes; ++i)
+		for (int i = 0; i < SensorShield_t::maxNumAdcs; ++i)
 			console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
 					<< F(" ch. ") << (adcChannelList[i])
 					<< (sensorShield.getAdcPresent(i) ? F(" present\n") : F(" missing\n"));
@@ -1806,7 +1806,7 @@ void loop(void)
 
 		if (resultsProcessed == false) {
 			resultsProcessed = true;
-			// for (uint8_t i = 0; i < FLC100::numAxes; ++i)
+			// for (uint8_t i = 0; i < FLC100::maxNumAdcs; ++i)
 			// 	console << '\t' << (sensorShield.getData()[i]);
 			// console << endl;
 
@@ -1840,12 +1840,12 @@ void loop(void)
 
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
 			if (sensorShieldPresent && verbosity > 0)
-				for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
+				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i)
 					if (sensorShield.getAdcPresent(i))
 						console << F(SENSOR_FLASH_STRING " data[") << i << F("]: ")
 								<< (sensorShield.getData()[i]) << endl;
 			if (verbosity == 11 && sensorShieldPresent) {
-				for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i) {
+				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i) {
 					if (sensorShield.getAdcPresent(i)) {
 #if defined (FEATURE_FLC100)
 						console << char('X' + i) << ':';
@@ -1969,7 +1969,7 @@ void loop(void)
 				sensorShield.getNumSamples(numSamples, median, trimmed);
 
 #if defined (FEATURE_FLC100)
-				for (uint8_t i = 0; i < SensorShield_t::numAxes; ++i)
+				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i)
 					if (sensorShield.getAdcPresent(i)) {
 						packet.putMagData(buffer, sizeof(buffer),
 										  AWPacket::tagMagDataX + i,
@@ -1985,7 +1985,7 @@ void loop(void)
 #elif defined (FEATURE_RIOMETER)
 				packet.putAdcData(buffer, sizeof(buffer),
 								  AWPacket::tagGenData, sensorShield.getResGain(0),
-								  SensorShield_t::numAxes, sensorShield.getData());
+								  SensorShield_t::maxNumAdcs, sensorShield.getData());
 #else
 #error Bad logic
 #endif

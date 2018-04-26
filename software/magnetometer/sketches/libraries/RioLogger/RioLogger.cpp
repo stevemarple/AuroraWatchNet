@@ -20,10 +20,10 @@ RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1), scanState(0),
 }
 
 
-bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
-						   uint8_t adcChannelList[numAxes],
-						   uint8_t adcResolutionList[numAxes],
-						   uint8_t adcGainList[numAxes])
+bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
+						   uint8_t adcChannelList[maxNumAdcs],
+						   uint8_t adcResolutionList[maxNumAdcs],
+						   uint8_t adcGainList[maxNumAdcs])
 {
 	powerPin = pp;
 	pinMode(powerPin, OUTPUT);
@@ -54,7 +54,7 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
 
 	bool r = true;
 	// Autoprobe to check ADCs are actually present
-	for (int i = 0; i < numAxes; ++i) {
+	for (int i = 0; i < maxNumAdcs; ++i) {
 		adc[i] = MCP342x(adcAddressList[i]);
 		adcConfig[i] = MCP342x::Config(adcChannelList[i], false,
 									   adcResolutionList[i], adcGainList[i]);
@@ -89,7 +89,7 @@ void RioLogger::process(void)
 		if (delay.isExpired()) {
 			timestamp = 0;
 			sensorTemperature = INT_MIN; // Clear previous reading
-			for (uint8_t i = 0; i < numAxes; ++i) {
+			for (uint8_t i = 0; i < maxNumAdcs; ++i) {
 				magData[i] = LONG_MIN;
 				for (uint8_t j = 0; j < maxSamples; ++j)
 					magDataSamples[i][j] = LONG_MIN;
@@ -177,7 +177,7 @@ void RioLogger::process(void)
 		// Write configuration to each ADC. Use tmp as flag to indicate a
 		// failed configuration attempt (and therefore to use the timeout
 		// delay).
-		if (magNum >= numAxes) {
+		if (magNum >= maxNumAdcs) {
 			state = presampleHold;
 			magNum = 0;
 			tmp = 0;
@@ -257,7 +257,7 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (magNum >= numAxes) {
+		if (magNum >= maxNumAdcs) {
 			++sampleNum;
 			state = convertingRioADCs;
 			magNum = 0;
@@ -311,7 +311,7 @@ void RioLogger::finish(void)
 
 void RioLogger::aggregate(void)
 {
-	for (uint8_t i = 0; i < numAxes; ++i) {
+	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
 		if (!adcPresent[i])
 			continue;
 

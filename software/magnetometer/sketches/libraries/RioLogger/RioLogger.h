@@ -15,9 +15,9 @@ class RioLogger;
 
 class RioLogger {
 public:
-	static const uint8_t numAxes = 8;
 	static const uint8_t maxRows = 8;
 	static const uint8_t maxColumns = 8;
+	static const uint8_t maxNumAdcs = maxRows;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
 	static uint16_t presampleDelay_ms;
@@ -52,7 +52,7 @@ public:
 	}
 
 	inline bool getAdcPresent(uint8_t n) const {
-		if (n >= numAxes)
+		if (n >= maxNumAdcs)
 			return false;
 		return adcPresent[n];
 	}
@@ -70,7 +70,7 @@ public:
 	}
 
 	inline uint8_t getResGain(uint8_t mag) const {
-		return (mag < numAxes) ? (adcConfig[mag] & 0x0F) : 0;
+		return (mag < maxNumAdcs) ? (adcConfig[mag] & 0x0F) : 0;
 	}
 
 	inline int getState(void) const {
@@ -93,10 +93,10 @@ public:
 	}
 
 
-	bool initialise(uint8_t pp, uint8_t adcAddressList[numAxes],
-					uint8_t adcChannelList[numAxes],
-					uint8_t adcResolutionList[numAxes],
-					uint8_t adcGainList[numAxes]);
+	bool initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
+					uint8_t adcChannelList[maxNumAdcs],
+					uint8_t adcResolutionList[maxNumAdcs],
+					uint8_t adcGainList[maxNumAdcs]);
 	void process(void);
 	void finish(void);
 
@@ -123,10 +123,10 @@ private:
 	uint8_t scanState;
     uint8_t scanPins[numScanPins];
 
-	MCP342x adc[numAxes]; // X, Y, Z
-	MCP342x::Config adcConfig[numAxes];
+	MCP342x adc[maxNumAdcs]; // X, Y, Z
+	MCP342x::Config adcConfig[maxNumAdcs];
 	MCP342x::Config tempConfig;
-	bool adcPresent[numAxes];
+	bool adcPresent[maxNumAdcs];
 
 	AsyncDelay delay;
 	AsyncDelay timeout;
@@ -135,8 +135,8 @@ private:
 	// Data fields
 	CounterRTC::time_t timestamp;
 	int16_t sensorTemperature; // hundredths of degrees Celsius
-	int32_t magData[numAxes];  // averaged from a number of samples
-	int32_t magDataSamples[numAxes][maxSamples]; // individual results
+	int32_t magData[maxNumAdcs];  // averaged from a number of samples
+	int32_t magDataSamples[maxNumAdcs][maxSamples]; // individual results
 
 	uint8_t numSamples;
 	bool useMedian;
