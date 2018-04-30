@@ -383,7 +383,7 @@ def log_message_events(t, message_tags, is_response=False):
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
                 tag_repr, data_repr, data_len = \
-                    awn.message.decode_tag_payload(tag_name, tag_payload)
+                    awn.message.format_tag_payload(tag_name, tag_payload)
                 if data_len:
                     lines.append(prefix + tag_name + ' ' + data_repr + '\n')
                 else:

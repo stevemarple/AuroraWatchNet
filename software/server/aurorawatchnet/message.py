@@ -742,7 +742,7 @@ def print_tags(buf):
         i += data_len
 
 
-def decode_tag_payload(tag_name, tag_payload):
+def format_tag_payload(tag_name, tag_payload):
     if 'formatter' in tag_data[tag_name]:
         data_repr = tag_data[tag_name]['formatter'](tag_name, 
                                                     len(tag_payload),
