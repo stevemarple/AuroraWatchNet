@@ -197,7 +197,7 @@ def write_cloud_data(t, message_tags, fstr, extension):
         tag_names = ['cloud_ambient_temperature',
                      'cloud_object1_temperature']
         if config.getboolean('cloud', 'dual_sensor'):
-            tags.append('cloud_object2_temperature')
+            tag_names.append('cloud_object2_temperature')
         tag_names.extend(['ambient_temperature', 'relative_humidity'])
         data = {}
         found = False
