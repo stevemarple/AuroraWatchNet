@@ -92,6 +92,8 @@ def write_message_to_file(t, message, fstr, savekey=None, extension=None):
         global close_after_write
         if close_after_write:
             aw_message_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Could not save message: ' + str(e))
 
@@ -125,6 +127,8 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr, extension):
         global close_after_write
         if close_after_write:
             realtime_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Could not write realtime format data: ' + str(e))
 
@@ -177,6 +181,8 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
             global close_after_write
             if close_after_write:
                 awnet_text_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Could not write aurorawatchnet format data: ' + str(e))
 
@@ -221,6 +227,8 @@ def write_cloud_data(t, message_tags, fstr, extension):
             global close_after_write
             if close_after_write:
                 cloud_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Could not save cloud data: ' + str(e))
 
@@ -307,6 +315,8 @@ def write_gnss_data(message_tags, fstr):
             global close_after_write
             if close_after_write:
                 gnss_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Could not save GNSS data: ' + str(e))
 
@@ -339,6 +349,8 @@ def write_to_log_file(t, s):
         global close_after_write
         if close_after_write:
             aw_log_file.close()
+    except KeyboardInterrupt:
+        raise
     except Exception:
         logger.exception('Could not write to log file')
 
@@ -476,6 +488,8 @@ def handle_control_message(buf, pending_tags):
             try:
                 handle_cmd_upgrade_firmware(version)
                 r.append('upgrade_firmware:' + version)
+            except KeyboardInterrupt:
+                raise
             except Exception as e:
                 r.append('ERROR: ' + str(e))
 
@@ -630,6 +644,8 @@ def packet_req_get_firmware_page(data):
                                   version_str + '.bin')
     try:
         image_file = open(image_filename)
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         logger.error('Could not open ' + image_filename + ': ' + str(e))
         raise
@@ -638,6 +654,8 @@ def packet_req_get_firmware_page(data):
     try:
         image_file.seek(awn.message.firmware_block_size * page_number)
         fw_page = image_file.read(awn.message.firmware_block_size)
+    except KeyboardInterrupt:
+        raise
     except Exception:
         print('SOME ERROR')
         # Some error, so don't try adding to requested_tags
@@ -1014,6 +1032,8 @@ while running:
                     # Any file/directory counts as a warning
                     try:
                         data_quality_warning = bool(os.listdir(config.get('dataqualitymonitor', 'directory')))
+                    except KeyboardInterrupt:
+                        raise
                     except Exception:
                         pass
                 elif config.has_option('dataqualitymonitor', 'filename'):
@@ -1187,6 +1207,8 @@ while running:
             if control_socket_conn is not None:
                 try:
                     control_socket_conn.shutdown(socket.SHUT_RDWR)
+                except KeyboardInterrupt:
+                    raise
                 except Exception:
                     pass
             control_socket_conn = None
@@ -1194,6 +1216,8 @@ while running:
                 (control_socket_conn, client_address) = control_socket.accept()
                 control_socket_conn.settimeout(10)
                 control_buffer = bytearray()
+            except KeyboardInterrupt:
+                raise
             except Exception as e:
                 print('ERROR: ' + str(e))
                 control_socket_conn = None
@@ -1210,6 +1234,8 @@ while running:
                     control_socket_conn.shutdown(socket.SHUT_RDWR)
                     control_socket_conn.close()
                     control_socket_conn = None
+            except KeyboardInterrupt:
+                raise
             except Exception as e:
                 print('ERROR: ' + str(e))
                 control_socket_conn = None
