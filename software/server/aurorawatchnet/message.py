@@ -158,11 +158,18 @@ def format_gnss_location(tag_name, data_len, payload):
     return '{lat:.6f}{ns}, {lon:.6f}{ew}, {alt}'.format(**d)
 
 
-def format_adc_data(tag_name, data_len, payload):
+def decode_adc_data(tag_name, data_len, payload):
     fmt = '!B' + str((data_len - 1) / 4) + 'l'
     data = list(struct.unpack(fmt, str(payload)))
     res_gain = decode_res_gain(data.pop(0))
-    return ('%db, x%d ' % res_gain) + repr(data)
+    return list(res_gain) + data
+
+
+def format_adc_data(tag_name, data_len, payload):
+    data = decode_adc_data(tag_name, data_len, payload)
+    res = data.pop(0)
+    gain = data.pop(0)
+    return ('%db, x%d ' % (res, gain)) + repr(data)
 
 
 def decode_res_gain(res_gain):
@@ -364,6 +371,7 @@ tag_data = {
     'adc_data': {
         'id': 31,
         'length': 0,
+        'decoder': decode_adc_data,
         'formatter': format_adc_data,
     }
 }
@@ -755,6 +763,16 @@ def format_tag_payload(tag_name, tag_payload):
     
     return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
         data_repr, len(tag_payload)
+
+
+def decode_tag(tag_name, tag_payload):
+    if 'decoder' in tag_data[tag_name]:
+        data = tag_data[tag_name]['decoder'](tag_name, len(tag_payload), tag_payload)
+    elif 'format' in tag_data[tag_name]:
+        data = list(struct.unpack(tag_data[tag_name]['format'], str(tag_payload)))
+    else:
+        data = tag_payload
+    return data
 
 
 def print_signature(buf):

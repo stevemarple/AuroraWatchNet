@@ -30,6 +30,16 @@ else:
     from six.moves.configparser import SafeConfigParser
 
 
+class DataMappingException(Exception):
+    def __init__(self, message):
+        super(DataMappingException, self).__init__(message)
+
+
+class DuplicatedTagException(Exception):
+    def __init__(self, message):
+        super(DuplicatedTagException, self).__init__(message)
+
+
 def log_uncaught_exception(ex_cls, ex, tb):
     logger.critical(''.join(traceback.format_tb(tb)))
     t = time.time()
@@ -317,6 +327,65 @@ def write_gnss_data(message_tags, fstr):
         raise
     except Exception as e:
         print('Could not save GNSS data: ' + str(e))
+
+
+generic_adc_data_file = None
+
+
+def write_generic_adc_data(t, message_tags, fstr, extension, config=None):
+    global generic_adc_data_file
+    try:
+        generic_adc_data_file = get_file_for_time(t, generic_adc_data_file, fstr, extension=extension)
+        if config and config.has_option('genericadcdata', 'mapping'):
+            mapping = config.get('genericadcdata', 'mapping')
+        else:
+            mapping = None
+        if config and config.has_option('genericadcdata', 'scale_factor'):
+            scale_factor = awn.safe_eval(config.get('genericadcdata', 'scale_factor'))
+        else:
+            scale_factor = 1.0
+        if config and config.has_option('genericadcdata', 'offset'):
+            offset = awn.safe_eval(config.get('genericadcdata', 'offset'))
+        else:
+            offset = 0.0
+        if config and config.has_option('genericadcdata', 'format'):
+            format = config.get('genericadcdata', 'format')
+        else:
+            format = '%f'
+
+        tag_name = 'adc_data'
+        sep = '\t'
+        eol = '\n'
+        if tag_name in message_tags:
+            if len(message_tags[tag_name]) != 1:
+                raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
+            data = awn.message.decode_tag(tag_name, message_tags[tag_name][0])
+
+            res = data.pop(0)  # ADC resolution (bits)
+            gain = data.pop(0)  # ADC gain
+            if mapping is not None:
+                if len(data) != len(mapping):
+                    raise DataMappingException('Incorrect mapping size')
+                data = [data[i] for i in mapping]
+            a = []
+            a.append('%.06f' % t)
+            a.append('%d' % res)
+            a.append('%d' % gain)
+            for d in  data:
+                a.append(format % ((d * scale_factor) + offset))
+
+            generic_adc_data_file.write(sep.join(a))
+            generic_adc_data_file.write(eol)
+
+        global close_after_write
+        if close_after_write:
+            generic_adc_data_file.close()
+
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        print(e)
+        pass
 
 
 def iso_timestamp(t):
@@ -1190,6 +1259,11 @@ while running:
                 if config.has_option('gnss', 'filename') and not awn.message.is_response_message(message):
                     write_gnss_data(message_tags,
                                     config.get('gnss', 'filename'))
+
+                if config.has_option('genericadcdata', 'filename') and not awn.message.is_response_message(message):
+                    write_generic_adc_data(timestamp_s, message_tags,
+                                           config.get('genericadcdata', 'filename'),
+                                           data_quality_extension, config)
 
                 # Realtime transfer must be last since it alters the
                 # message and response signature. Don't forward any
