@@ -978,6 +978,7 @@ while running:
             if fd == device:
                 # Serial/file device, read and process one byte at a time
                 s = device.read(1)
+                remote_addr = None
             else:
                 # Network device. Read all data from the packet. Don't
                 # carry over data from old packets because
