@@ -25,11 +25,9 @@ import aurorawatchnet.message
 logger = logging.getLogger(__name__)
 
 if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
+    from six.moves.configparser import ConfigParser as SafeConfigParser
 else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
+    from six.moves.configparser import SafeConfigParser
 
 
 def log_uncaught_exception(ex_cls, ex, tb):
