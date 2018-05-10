@@ -13,7 +13,7 @@ uint16_t RioLogger::presampleDelay_ms = 10;
 const uint8_t RioLogger::scanMapping7[7] = {0, 1, 3, 2, 6, 4, 5}; // Almost a Gray code
 const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray code
 
-RioLogger::RioLogger(void) : state(off), axis(0), numSamples(1), scanState(0),
+RioLogger::RioLogger(void) : state(off), axis(0), scanState(0), numSamples(1),
 							 useMedian(false), trimSamples(false)
 {
     numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
