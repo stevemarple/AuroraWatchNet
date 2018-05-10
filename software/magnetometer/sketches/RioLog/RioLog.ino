@@ -161,9 +161,6 @@
 // Firmware version limited to 16 characters
 
 const char firmwareVersion[AWPacket::firmwareNameLength] = FIRMWARE_VERSION;
-uint8_t rtcAddressList[] = {RTCx::MCP7941xAddress,
-							RTCx::DS1307Address};
-
 const char *sep = ", ";
 
 uint8_t ledPin = LED_BUILTIN;
@@ -1489,25 +1486,24 @@ void setup(void)
 	console << F("Autoprobing to find RTC\n");
 	console.flush();
 
-	if (rtc.autoprobe(rtcAddressList, sizeof(rtcAddressList)))
-		console << F("Found RTC at address 0x") << _HEX(rtc.getAddress()) << endl;
+	if (rtc.autoprobe())
+		console << F("Found ") << rtc.getDeviceName() << F(" at address 0x") << _HEX(rtc.getAddress()) << endl;
 	else
 		console << F("No RTC found\n");
 	console.flush();
 
-	// Enable the battery backup. This happens by default on the DS1307
-	// but needs to be enabled on the MCP7941x.
-	rtc.enableBatteryBackup();
+	// Initialise the RTC to get some sensible settings, such as
+	// ensuring the battery backup is enabled. This also zeros the
+	// calibration.
+	rtc.init();
 
-	// Set the calibration register (ignored if not MCP7941x).
-	rtc.setCalibration(eeprom_read_byte((uint8_t*)EEPROM_MCP7941X_CAL));
-
-	// Ensure the oscillator is running.
-	rtc.startClock();
-
-	if (rtc.getDevice() == RTCx::MCP7941x) {
-		console << F("MCP7941x calibration: ") << _DEC(rtc.getCalibration())
-				<< endl;
+	// Set the calibration register
+	uint8_t rtcCal = eeprom_read_byte((uint8_t*)EEPROM_MCP7941X_CAL);
+	if (rtcCal == 0xFF)
+		rtcCal = 0; // EEPROM location probably not programmed.
+	if (rtc.setCalibration(rtcCal == 0XFF ? 0 : rtcCal)) {
+		// Calibration is supported so display the value set.
+		console << F("RTC calibration: ") << _DEC(rtcCal) << endl;
 		console.flush();
 	}
 
@@ -1558,7 +1554,7 @@ void setup(void)
 		t.setSeconds(RTCx::mktime(tm));
 		cRTC.setTime(t);
 		lastAcknowledgement = t;
-		console << F("Set system clock from hardware RTC\n");
+		console << F("System clock set from hardware RTC\n");
 	}
 	else
 		console << F("Could not get time from hardware RTC\n");
