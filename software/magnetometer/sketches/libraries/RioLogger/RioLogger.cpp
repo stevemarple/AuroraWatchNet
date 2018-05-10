@@ -16,21 +16,21 @@ const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray cod
 RioLogger::RioLogger(void) : state(off), axis(0), scanState(0), numSamples(1),
 							 useMedian(false), trimSamples(false)
 {
-    numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
-    if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
-        numRows = EEPROM_RIO_NUM_ROWS_MAX;
+	numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
+	if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
+		numRows = EEPROM_RIO_NUM_ROWS_MAX;
 
-    numColumns = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLUMNS);
-    if (numColumns > EEPROM_RIO_NUM_COLUMNS_MAX)
-        numColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
+	numColumns = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLUMNS);
+	if (numColumns > EEPROM_RIO_NUM_COLUMNS_MAX)
+		numColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
 
-    if (numRows == 7)
-        // Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
-        // wraps around, which is hopefully when it matters least.
-        scanMapping = scanMapping7;
-    else
-        // Will only be a Gray code if numRows == 4 or numRows == 8. Any other value will need its own sequence.
-        scanMapping = scanMapping8;
+	if (numRows == 7)
+		// Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
+		// wraps around, which is hopefully when it matters least.
+		scanMapping = scanMapping7;
+	else
+		// Will only be a Gray code if numRows == 4 or numRows == 8. Any other value will need its own sequence.
+		scanMapping = scanMapping8;
 }
 
 
@@ -41,16 +41,16 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 {
 	powerPin = pp;
 	pinMode(powerPin, OUTPUT);
-    scanState = 0;
-    // 5, 9 available; 7 possibly available if not needed for PPS.
-    scanPins[0] = 23;
-    scanPins[1] = 22;
-    scanPins[2] = 14;
+	scanState = 0;
+	// 5, 9 available; 7 possibly available if not needed for PPS.
+	scanPins[0] = 23;
+	scanPins[1] = 22;
+	scanPins[2] = 14;
 
-    for (uint8_t i = 0; i < numScanPins; ++i)
-        pinMode(scanPins[i], OUTPUT);
+	for (uint8_t i = 0; i < numScanPins; ++i)
+		pinMode(scanPins[i], OUTPUT);
 
-    setScanPins();
+	setScanPins();
 
 	uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
 	if (pud_50ms != 0xFF)
@@ -95,16 +95,16 @@ void RioLogger::process(void)
 		break;
 
 	case poweringUp:
-        timestamp = 0;
-        sensorTemperature = INT_MIN; // Clear previous readings
-        for (uint8_t i = 0; i < getNumBeams(); ++i)
-            magData[i] = LONG_MIN;
+		timestamp = 0;
+		sensorTemperature = INT_MIN; // Clear previous readings
+		for (uint8_t i = 0; i < getNumBeams(); ++i)
+			magData[i] = LONG_MIN;
 
-        state = powerUpHold;
+		state = powerUpHold;
 		break;
 
 	case powerUpHold:
-        if (delay.isExpired()) {
+		if (delay.isExpired()) {
 			// Ensure ADC has latched its address correctly
 			MCP342x::generalCallReset();
 			state = readingTime;
@@ -120,17 +120,17 @@ void RioLogger::process(void)
 		state = advanceScan;
 		break;
 
-    case advanceScan:
-        // TODO: Advance scan step
-        setScanPins();
-        presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
-        Serial.print("Advance scan: ");
-        Serial.println(scanState);
+	case advanceScan:
+		// TODO: Advance scan step
+		setScanPins();
+		presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
+		Serial.print("Advance scan: ");
+		Serial.println(scanState);
 
-        for (uint8_t i = 0; i < numColumns; ++i) {
-            for (uint8_t j = 0; j < maxSamples; ++j)
-                magDataSamples[i][j] = LONG_MIN;
-        }
+		for (uint8_t i = 0; i < numColumns; ++i) {
+			for (uint8_t j = 0; j < maxSamples; ++j)
+				magDataSamples[i][j] = LONG_MIN;
+		}
 
 		state = convertingTemp;
 		break;
@@ -220,11 +220,11 @@ void RioLogger::process(void)
 			++magNum;
 		break;
 
-    case presampleHold:
-        if (presampleDelay.isExpired()) {
-            state = convertingRioADCs;
-        }
-        break;
+	case presampleHold:
+		if (presampleDelay.isExpired()) {
+			state = convertingRioADCs;
+		}
+		break;
 
 	case convertingRioADCs:
 		// Start conversions
@@ -263,13 +263,13 @@ void RioLogger::process(void)
 			// Calculate final result
 			aggregate();
 
-            ++scanState;
-            if (scanState >= numRows) {
-                scanState = 0;
-			    state = poweringDown;
-            }
-            else
-			    state = advanceScan;
+			++scanState;
+			if (scanState >= numRows) {
+				scanState = 0;
+				state = poweringDown;
+			}
+			else
+				state = advanceScan;
 			break;
 		}
 
@@ -305,9 +305,9 @@ void RioLogger::process(void)
 		break;
 
 	case poweringDown:
-	    // If numRows is odd there will be a glitch when wrapping around scanMapping (it cannot be a Gray code).
-	    // Set the scan pins now when it matters least.
-	    setScanPins();
+		// If numRows is odd there will be a glitch when wrapping around scanMapping (it cannot be a Gray code).
+		// Set the scan pins now when it matters least.
+		setScanPins();
 		if (powerUpDelay_ms)
 			digitalWrite(powerPin, LOW);
 		state = finished;
@@ -371,11 +371,11 @@ void RioLogger::aggregate(void)
 
 void RioLogger::setScanPins() const
 {
-    const uint8_t val = scanMapping[scanState];
-    uint8_t mask = 1;
+	const uint8_t val = scanMapping[scanState];
+	uint8_t mask = 1;
 
-    for (uint8_t i = 0; i < numScanPins; ++i) {
-        digitalWrite(scanPins[i], val & mask);
-        mask <<= 1;
-    }
+	for (uint8_t i = 0; i < numScanPins; ++i) {
+		digitalWrite(scanPins[i], val & mask);
+		mask <<= 1;
+	}
 }
