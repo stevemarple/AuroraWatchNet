@@ -553,8 +553,8 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 
 #endif
 		{
-			uint32_t secs;
-			uint16_t frac;
+			int32_t secs;
+			int16_t frac;
 			CounterRTC::Time ourTime;
 			cRTC.getTime(ourTime);
 

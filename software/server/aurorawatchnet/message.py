@@ -3,6 +3,7 @@
 # import datetime
 from datetime import datetime
 import hmac
+import math
 import struct
 import time
 
@@ -456,10 +457,8 @@ def get_site_id(buf):
 
 
 def get_timestamp(buf):
-    seconds = get_header_field(buf, timestamp_seconds_offset,
-                               timestamp_seconds_size)
-    fraction = get_header_field(buf, timestamp_fraction_offset,
-                                timestamp_fraction_size)
+    seconds, = struct.unpack('!l' ,buf[timestamp_seconds_offset:(timestamp_seconds_offset+timestamp_seconds_size)])
+    fraction, = struct.unpack('!h' ,buf[timestamp_fraction_offset:(timestamp_fraction_offset+timestamp_fraction_size)])
     return [seconds, fraction]
 
 
@@ -576,12 +575,15 @@ def put_current_epoch_time(buf):
     i = packet_length 
     now = time.time() - ((get_epoch(buf) - 1970) * SECONDS_PER_AVG_YEAR)
     seconds = long(now)
-    frac = int(round((now % 1) * 32768.0))
+    frac = int(round((math.modf(now)[0]) * 32768.0))
     if frac >= 32768:
         # Almost start of next second, resulting in a rounding to an
         # improper fraction
         frac = 0
         seconds += 1
+    elif frac <= -32768:
+        frac = 0
+        seconds -= 1
 
     buf[i] = tag_data['current_epoch_time']['id']
     i += 1

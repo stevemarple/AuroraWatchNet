@@ -100,10 +100,10 @@ public:
 	static inline void setSiteId(uint8_t* buffer, uint16_t siteId);
 	//static inline uint32_t getTimestamp(const uint8_t* buffer);
 	static inline void getTimestamp(const uint8_t* buffer,
-									uint32_t& t_s, uint16_t& t_32768th);
+									int32_t& t_s, int16_t& t_32768th);
 	//static inline void setTimestamp(uint8_t* buffer, uint32_t timestamp);
-	static inline void setTimestamp(uint8_t* buffer, uint32_t seconds,
-									uint16_t fraction);
+	static inline void setTimestamp(uint8_t* buffer, int32_t seconds,
+									int16_t fraction);
 	static inline uint8_t getSequenceId(const uint8_t* buffer);
 	static inline uint8_t getRetries(const uint8_t* buffer);
 
@@ -131,7 +131,7 @@ public:
 
 	inline void setSiteId(uint16_t s);
 	//inline void setTimestamp(uint32_t t);
-	inline void setTimestamp(uint32_t seconds, uint16_t fraction);
+	inline void setTimestamp(int32_t seconds, int16_t fraction);
 	inline uint8_t getRetries(void);
 	inline void incrementRetries(void);
 	inline void clearRetries(void);
@@ -195,8 +195,8 @@ private:
 	uint8_t version;
 	uint8_t flags;
 	uint16_t siteId;
-	uint32_t timestamp_s;
-	uint16_t timestamp_32768th;
+	int32_t timestamp_s;
+	int16_t timestamp_32768th;
 	uint8_t sequenceId;
 	uint8_t retries;
 
@@ -278,14 +278,14 @@ void AWPacket::setSiteId(uint8_t* buffer, uint16_t siteId)
 // }
 
 void AWPacket::getTimestamp(const uint8_t* buffer,
-							uint32_t& t_s, uint16_t& t_32768th)
+							int32_t& t_s, int16_t& t_32768th)
 {
 	networkToAvr(&t_s, buffer + timestampOffset, sizeof(t_s));
 	networkToAvr(&t_32768th, buffer + timestampOffset + sizeof(t_s),
 				 sizeof(t_32768th));
 }
 
-void AWPacket::setTimestamp(uint8_t* buffer, uint32_t t_s, uint16_t t_32768th)
+void AWPacket::setTimestamp(uint8_t* buffer, int32_t t_s, int16_t t_32768th)
 {
 	avrToNetwork(buffer + timestampOffset, &t_s, sizeof(t_s));
 	avrToNetwork(buffer + timestampOffset + sizeof(t_s),
@@ -319,7 +319,7 @@ void AWPacket::setSiteId(uint16_t s)
 //   timestamp_32768th = 0;
 // }
 
-void AWPacket::setTimestamp(uint32_t seconds, uint16_t fraction)
+void AWPacket::setTimestamp(int32_t seconds, int16_t fraction)
 {
 	timestamp_s = seconds;
 	timestamp_32768th = fraction;

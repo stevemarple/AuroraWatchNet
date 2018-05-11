@@ -191,8 +191,8 @@ Stream& AWPacket::printPacket(const uint8_t* buffer, uint16_t bufferLength,
 	s.print("Flags: "); s.println(buffer[flagsOffset], DEC);
 	s.print("Packet length: "); s.println(getPacketLength(buffer));
 	s.print("Site ID: "); s.println(getSiteId(buffer));
-	uint32_t t_s;
-	uint16_t t_32768th;
+	int32_t t_s;
+	int16_t t_32768th;
 	getTimestamp(buffer, t_s, t_32768th);
 	s.print("Timestamp: "); s.print(t_s); s.print(',');s.println(t_32768th);
 

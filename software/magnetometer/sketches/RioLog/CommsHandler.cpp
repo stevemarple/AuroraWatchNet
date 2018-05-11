@@ -160,8 +160,8 @@ int CommsHandler::process(uint8_t *responseBuffer, uint16_t responseBufferLen)
 			if (validateResponse(responseBuffer, responseLen)) {
 				// The response in the buffer is valid, but is it a response
 				// to our last message?
-				uint32_t messageSeconds, responseSeconds;
-				uint16_t messageFraction, responseFraction;
+				int32_t messageSeconds, responseSeconds;
+				int16_t messageFraction, responseFraction;
 				AWPacket::getTimestamp(messageBuffer, messageSeconds,
 									   messageFraction);
 				AWPacket::getTimestamp(responseBuffer, responseSeconds,
