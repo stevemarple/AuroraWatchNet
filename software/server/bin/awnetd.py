@@ -422,10 +422,11 @@ def write_to_log_file(t, s):
         logger.exception('Could not write to log file')
 
 
-def log_message_events(t, message_tags, is_response=False):
+def log_message_events(message, t, message_tags, is_response=False):
     """
     Write important events in a message or its response to a log file.
 
+    :param message:
     :param t:
     :param message_tags:
     :param is_response:
@@ -452,7 +453,7 @@ def log_message_events(t, message_tags, is_response=False):
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
                 tag_repr, data_repr, data_len = \
-                    awn.message.format_tag_payload(tag_name, tag_payload)
+                    awn.message.format_tag_payload(message, tag_name, tag_payload)
                 if data_len:
                     lines.append(prefix + tag_name + ' ' + data_repr + '\n')
                 else:
@@ -1160,7 +1161,7 @@ while running:
                     awn.message.put_header(response,
                                            site_id=awn.message.get_site_id(message),
                                            timestamp=timestamp,
-                                           flags=(1 << awn.message.flags_response_bit))
+                                           flags=awn.message.flags['response'] | awn.message.epoch_flags[awn.message.get_epoch(message)])
                     # awn.message.put_current_epoch_time(response)
                     # Add current time, subject to NTP running
                     add_current_time_tag(response)
@@ -1229,11 +1230,11 @@ while running:
 
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
-                    log_message_events(timestamp_s, message_tags,
+                    log_message_events(message, timestamp_s, message_tags,
                                        is_response=awn.message.is_response_message(message))
                     if response is not None:
                         response_tags = awn.message.parse_packet(response)
-                        log_message_events(timestamp_s, response_tags,
+                        log_message_events(message, timestamp_s, response_tags,
                                            is_response=True)
 
                 if (config.has_option('cloud', 'filename') and

@@ -10,6 +10,7 @@ import aurorawatchnet.eeprom as eeprom
 
 __all__ = ['validate_packet']
 
+SECONDS_PER_AVG_YEAR = (365 * 86400) + (86400/4)  # 365.25 days
 default_magic = 'AW'
 default_version = 1
 
@@ -47,6 +48,21 @@ flags_signed_message_bit = 0
 flags_sample_timing_error_bit = 1
 flags_response_bit = 2
 flags_data_quality_warning_bit = 3
+flags_epoch_bit = 4
+
+flags = {
+    'signed_message': 1 << flags_signed_message_bit,
+    'sample_timing_error': 1 << flags_sample_timing_error_bit,
+    'response': 1 << flags_response_bit,
+    'data_quality_warning': 1 << flags_data_quality_warning_bit,
+    'epoch': 1 << flags_epoch_bit,
+}
+
+epoch_flags = {
+    1970: 0,
+    1998: flags['epoch'],
+}
+
 
 size_of_tag = 1
 size_of_packet_length = 2
@@ -59,37 +75,38 @@ firmware_version_max_length = 16
 firmware_block_size = 128
 
 
-def decode_tag_array_of_longs(tag_name, data_len, payload):
+def decode_tag_array_of_longs(tag_name, data_len, payload, epoch):
     return list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
 
 
-def format_tag_array_of_longs(tag_name, data_len, payload):
+def format_tag_array_of_longs(tag_name, data_len, payload, epoch):
     return repr(list(struct.unpack('!' + str(data_len/4) + 'l', str(payload))))
 
 
-def format_padding(tag_name, data_len, payload):
+def format_padding(tag_name, data_len, payload, epoch):
     return str([0] * data_len)
 
 
-def format_tag_blank(tag_name, data_len, payload):
+def format_tag_blank(tag_name, data_len, payload, epoch):
     return ''
 
 
-def format_null_terminated_string(tag_name, data_len, payload):
+def format_null_terminated_string(tag_name, data_len, payload, epoch):
     return "'" + str(payload.split('\0')[0]) + "'"
 
 
-def format_unix_epoch_32678(tag_name, data_len, payload):
+def format_unix_epoch_32678(tag_name, data_len, payload, epoch):
     """
     Format a timestamp based on seconds since Unix epoch plus
     32768th second.
     """
     t = struct.unpack('!ih', str(payload))
-    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0) + epoch_adjustment)
     return str(t[0]) + ',' + str(t[1]) + ' (' + dt.isoformat() + ')'
 
 
-def format_read_eeprom(tag_name, data_len, payload):
+def format_read_eeprom(tag_name, data_len, payload, epoch):
     if data_len == 4:
         return 'address=0x{addr:03x} length={length:d}'\
             .format(addr=256 * payload[0] + payload[1],
@@ -98,7 +115,7 @@ def format_read_eeprom(tag_name, data_len, payload):
         return 'Data wrong length'
 
 
-def format_eeprom_contents(tag_name, data_len, payload):
+def format_eeprom_contents(tag_name, data_len, payload, epoch):
     if data_len < 3:
         return 'Data too short'
     address = 256 * payload[0] + payload[1]
@@ -119,23 +136,24 @@ def format_eeprom_contents(tag_name, data_len, payload):
     return r
 
 
-def format_upgrade_firmware(tag_name, data_len, payload):
+def format_upgrade_firmware(tag_name, data_len, payload, epoch):
     return "'{version:s}' pages={pages:d} crc=0x{crc:04x}".\
         format(version=payload[0:16].split('\0')[0],
                pages=payload[16]*256 + payload[17],
                crc=payload[18]*256 + payload[19])
 
 
-def format_get_firmware_page(tag_name, data_len, payload):
+def format_get_firmware_page(tag_name, data_len, payload, epoch):
     return "'{version:s}' page={page:d}".\
         format(version=payload[0:16].split('\0')[0],
                page=payload[16]*256 + payload[17])
 
 
-def format_gnss_status(tag_name, data_len, payload):
+def format_gnss_status(tag_name, data_len, payload, epoch):
     fix_datetime, fix_status, num_sat, hdop_tenths = \
         struct.unpack(tag_data[tag_name]['format'], str(payload))
-    dt = datetime.utcfromtimestamp(fix_datetime)
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
+    dt = datetime.utcfromtimestamp(fix_datetime + epoch_adjustment)
     fix_valid = (fix_status & 0x80) != 0
     nav_system = chr(fix_status & 0x7f)
     return dt.isoformat() + ', valid=' + \
@@ -143,7 +161,7 @@ def format_gnss_status(tag_name, data_len, payload):
         ', sat=' + str(num_sat) + ', HDOP=' + str(hdop_tenths / 10.0)
 
 
-def format_gnss_location(tag_name, data_len, payload):
+def format_gnss_location(tag_name, data_len, payload, epoch):
     data = list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
     if len(data) == 2:
         alt = '?'
@@ -158,15 +176,15 @@ def format_gnss_location(tag_name, data_len, payload):
     return '{lat:.6f}{ns}, {lon:.6f}{ew}, {alt}'.format(**d)
 
 
-def decode_adc_data(tag_name, data_len, payload):
+def decode_adc_data(tag_name, data_len, payload, epoch):
     fmt = '!B' + str((data_len - 1) / 4) + 'l'
     data = list(struct.unpack(fmt, str(payload)))
     res_gain = decode_res_gain(data.pop(0))
     return list(res_gain) + data
 
 
-def format_adc_data(tag_name, data_len, payload):
-    data = decode_adc_data(tag_name, data_len, payload)
+def format_adc_data(tag_name, data_len, payload, epoch):
+    data = decode_adc_data(tag_name, data_len, payload, epoch)
     res = data.pop(0)
     gain = data.pop(0)
     return ('%db, x%d ' % (res, gain)) + repr(data)
@@ -400,7 +418,7 @@ def decode_cloud_temp(tag_name, payload):
     return temp
 
 
-def format_tag_cloud_temp(tag_name, data_len, payload):
+def format_tag_cloud_temp(tag_name, data_len, payload, epoch):
     return str(decode_cloud_temp(tag_name, payload)) + 'C'
 
 
@@ -477,6 +495,13 @@ def get_retries(buf):
         return buf[get_packet_length(buf) - signature_block_length + retries_offset]
 
 
+def get_epoch(buf):
+    if buf[flags_offset] & (1 << flags_epoch_bit):
+        return 1970
+    else:
+        return 1998
+
+
 def set_header_field(buf, val, offset, size):
     tmp = val
     for i in range(size-1, -1, -1):
@@ -549,7 +574,7 @@ def put_current_epoch_time(buf):
     packet_length = get_packet_length(buf)
     tag_len = tag_data['current_epoch_time']['length']
     i = packet_length 
-    now = time.time()
+    now = time.time() - ((get_epoch(buf) - 1970) * SECONDS_PER_AVG_YEAR)
     seconds = long(now)
     frac = int(round((now % 1) * 32768.0))
     if frac >= 32768:
@@ -701,10 +726,12 @@ def print_buffer(buf, length=None):
 
 def header_to_str_array(buf):
     t = get_timestamp(buf)
-    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    epoch = get_epoch(buf)
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0) + epoch_adjustment)
     return ['Magic: ' + ''.join(map(chr, get_magic(buf))),
             'Version: ' + str(get_version(buf)),
-            'Flags: ' + hex(get_flags(buf)),
+            'Flags: ' + hex(get_flags(buf)) + '  (epoch=' + str(epoch) + ')',
             'Packet length: ' + str(get_packet_length(buf)),
             'Site ID: ' + str(get_site_id(buf)),
             ('Timestamp: ' + str(t[0]) + ',' + str(t[1]) 
@@ -720,6 +747,7 @@ def print_tags(buf):
     end_of_data = get_packet_length(buf)
     if is_signed_message(buf):
         end_of_data -= signature_block_length
+    epoch = get_epoch(buf)
     while i < end_of_data:
         tag_id = buf[i]
         i += 1
@@ -738,8 +766,7 @@ def print_tags(buf):
             data_len = tag_len - 1    
           
         if 'formatter' in tag:
-            data_repr = tag['formatter'](tag_name, data_len, 
-                                         buf[i:(i+data_len)])
+            data_repr = tag['formatter'](tag_name, data_len, buf[i:(i+data_len)], epoch)
         elif 'format' in tag:
             data_repr = repr(list(struct.unpack(tag['format'],
                                                 str(buf[i:(i+data_len)]))))
@@ -750,17 +777,19 @@ def print_tags(buf):
         i += data_len
 
 
-def format_tag_payload(tag_name, tag_payload):
+def format_tag_payload(buffer, tag_name, tag_payload):
     if 'formatter' in tag_data[tag_name]:
-        data_repr = tag_data[tag_name]['formatter'](tag_name, 
+        epoch = get_epoch(buffer)
+        data_repr = tag_data[tag_name]['formatter'](tag_name,
                                                     len(tag_payload),
-                                                    tag_payload)
+                                                    tag_payload,
+                                                    epoch)
     elif 'format' in tag_data[tag_name]:
         data_repr = repr(list(struct.unpack(tag_data[tag_name]['format'],
                                             str(tag_payload))))
     else:
         data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload))
-    
+
     return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
         data_repr, len(tag_payload)
 

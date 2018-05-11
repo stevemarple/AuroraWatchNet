@@ -9,6 +9,10 @@
 /* Class to handle AuroraWatch packets
  */
 
+// Meaning of the epoch flag bit
+#define AWPACKET_EPOCH_FLAG_0 1970
+#define AWPACKET_EPOCH_FLAG_1 1998
+
 class AWPacket {
 public:
 	// magic (2), version, flags, packetLength(2), siteId(2) and timestamp(4)
@@ -38,6 +42,9 @@ public:
 		flagsSampleTimingErrorBit = 1, // Sampled late
 		flagsResponseBit = 2,          // An acknowledgement message
 		flagsDataQualityWarningBit = 3,
+
+		// See AWPACKET_EPOCH_FLAG_0 and AWPACKET_EPOCH_FLAG_1 #defines
+		flagsEpochBit = 4,
 	};
 
 	enum tags_t {

@@ -8,6 +8,15 @@ extern "C" {
 #include "hmac-md5.h"
 }
 
+
+#ifndef AWPACKET_EPOCH
+#error AWPACKET_EPOCH must be defined
+#endif
+
+#if AWPACKET_EPOCH != 1970 && AWPACKET_EPOCH != 1998
+#error Bad value for AWPACKET_EPOCH
+#endif
+
 const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
 
 /* Array of total lengths for each tag. A zero length indicates that
@@ -216,7 +225,14 @@ AWPacket::AWPacket(void) : version(1), flags(0),
 						   sequenceId(defaultSequenceId),
 						   retries(0), keyLen(0), key(NULL)
 {
+ #if AWPACKET_EPOCH == AWPACKET_EPOCH_FLAG_0
 	;
+#elif AWPACKET_EPOCH == AWPACKET_EPOCH_FLAG_1
+	flags |= (1 << flagsEpochBit);
+#else
+	// Fix me!
+#error Bad value for AWPACKET_EPOCH
+#endif
 }
 
 // Construct the packet header and footer information from the binary

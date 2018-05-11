@@ -1156,6 +1156,7 @@ void setup(void)
 	// flash usage.
 	console << F("\nFirmware: " FIRMWARE_VERSION "\n"
 				 "F_CPU: " F_CPU_STR "\n"
+				 "Epoch: " STRINGIFY(RTCX_EPOCH) "\n"
 				 "Comms:"
 #ifdef COMMS_XRF
 				 " XRF"
