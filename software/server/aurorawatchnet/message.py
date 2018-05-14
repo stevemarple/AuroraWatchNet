@@ -496,9 +496,9 @@ def get_retries(buf):
 
 def get_epoch(buf):
     if buf[flags_offset] & (1 << flags_epoch_bit):
-        return 1970
-    else:
         return 1998
+    else:
+        return 1970
 
 
 def set_header_field(buf, val, offset, size):
