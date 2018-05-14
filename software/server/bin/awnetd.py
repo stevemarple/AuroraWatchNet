@@ -1156,7 +1156,7 @@ while running:
                 awn.message.tidy_pending_tags(pending_tags, message_tags)
 
                 if acknowledge:
-                    # Not a file, so send a acknowledgement                     
+                    # Not a file, so send a acknowledgement
                     response = bytearray(1024)
                     awn.message.put_header(response,
                                            site_id=awn.message.get_site_id(message),

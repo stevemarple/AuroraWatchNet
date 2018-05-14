@@ -572,7 +572,7 @@ def put_data(buf, tag_id, data):
 def put_current_epoch_time(buf):
     packet_length = get_packet_length(buf)
     tag_len = tag_data['current_epoch_time']['length']
-    i = packet_length 
+    i = packet_length
     now = time.time() - ((get_epoch(buf) - 1970) * SECONDS_PER_AVG_YEAR)
     seconds = long(now)
     frac = int(round((math.modf(now)[0]) * 32768.0))
