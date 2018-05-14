@@ -332,9 +332,10 @@ def write_gnss_data(message_tags, fstr):
 generic_adc_data_file = None
 
 
-def write_generic_adc_data(t, message_tags, fstr, extension, config=None):
+def write_generic_adc_data(t, message_tags, fstr, extension, message, config=None):
     global generic_adc_data_file
     try:
+        epoch = awn.message.get_epoch(message)
         generic_adc_data_file = get_file_for_time(t, generic_adc_data_file, fstr, extension=extension)
         if config and config.has_option('genericadcdata', 'mapping'):
             mapping = config.get('genericadcdata', 'mapping')
@@ -359,7 +360,7 @@ def write_generic_adc_data(t, message_tags, fstr, extension, config=None):
         if tag_name in message_tags:
             if len(message_tags[tag_name]) != 1:
                 raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
-            data = awn.message.decode_tag(tag_name, message_tags[tag_name][0])
+            data = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
 
             res = data.pop(0)  # ADC resolution (bits)
             gain = data.pop(0)  # ADC gain
@@ -1157,11 +1158,12 @@ while running:
 
                 if acknowledge:
                     # Not a file, so send a acknowledgement
+                    flags = awn.message.flags['response'] | awn.message.epoch_flags[awn.message.get_epoch(message)]
                     response = bytearray(1024)
                     awn.message.put_header(response,
                                            site_id=awn.message.get_site_id(message),
                                            timestamp=timestamp,
-                                           flags=awn.message.flags['response'] | awn.message.epoch_flags[awn.message.get_epoch(message)])
+                                           flags=flags)
                     # awn.message.put_current_epoch_time(response)
                     # Add current time, subject to NTP running
                     add_current_time_tag(response)
@@ -1264,7 +1266,7 @@ while running:
                 if config.has_option('genericadcdata', 'filename') and not awn.message.is_response_message(message):
                     write_generic_adc_data(timestamp_s, message_tags,
                                            config.get('genericadcdata', 'filename'),
-                                           data_quality_extension, config)
+                                           data_quality_extension, message, config)
 
                 # Realtime transfer must be last since it alters the
                 # message and response signature. Don't forward any

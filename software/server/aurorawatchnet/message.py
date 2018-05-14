@@ -796,11 +796,11 @@ def format_tag_payload(buffer, tag_name, tag_payload):
         data_repr, len(tag_payload)
 
 
-def decode_tag(tag_name, tag_payload):
+def decode_tag(tag_name, tag_payload, epoch):
     if 'decoder' in tag_data[tag_name]:
-        data = tag_data[tag_name]['decoder'](tag_name, len(tag_payload), tag_payload)
+        data = tag_data[tag_name]['decoder'](tag_name, len(tag_payload), tag_payload, epoch)
     elif 'format' in tag_data[tag_name]:
-        data = list(struct.unpack(tag_data[tag_name]['format'], str(tag_payload)))
+        data = list(struct.unpack(tag_data[tag_name]['format'], str(tag_payload)), epoch)
     else:
         data = tag_payload
     return data
