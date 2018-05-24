@@ -477,7 +477,15 @@ void doSleep(uint8_t mode)
 		sleep_enable();       // Make sleeping possible
 		wdt_disable();
 #if defined(BODS) && defined(BODSE)
-		sleep_bod_disable();  // Disable brown-out detection for sleeping
+#ifdef __AVR_ATmega1284P__
+        // The only significant difference of the ATmega1284 (non-P) from the ATmega1284P is the inability
+        // to disable brownout detection during sleeping. Don't try disabling BOD if the 3rd signature byte
+        // indicates code compiled for an ATmega1284P is actually running on an ATmega1284 (non-P).
+        if (deviceSignature[2] != 6)
+    		sleep_bod_disable();  // Disable brown-out detection for sleeping
+#else
+        sleep_bod_disable();  // Disable brown-out detection for sleeping
+#endif
 #else
 #warning Brownout cannot be disabled in sleep mode for this MCU
 #endif
