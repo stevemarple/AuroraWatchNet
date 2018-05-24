@@ -1071,6 +1071,23 @@ void maintainDhcpLease(void)
 }
 #endif
 
+
+void generalCallReset(void)
+{
+	Wire.beginTransmission(0x00);
+	Wire.write(0x06);
+	Wire.endTransmission();
+}
+
+
+void generalCallLatch(void)
+{
+	Wire.beginTransmission(0x00);
+	Wire.write(0x04);
+	Wire.endTransmission();
+}
+
+
 void setup(void)
 {
 	get_mcusr();
@@ -1270,6 +1287,8 @@ void setup(void)
 	console.println();
 
 	Wire.begin();
+    generalCallReset();
+    generalCallLatch();
 
 	// Get key
 	eeprom_read_block(hmacKey, (uint8_t*)EEPROM_HMAC_KEY, EEPROM_HMAC_KEY_SIZE);
