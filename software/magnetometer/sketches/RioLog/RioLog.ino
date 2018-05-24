@@ -254,6 +254,7 @@ uint8_t dataQualityInputActiveLow = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALI
 volatile bool dataQualityChanged = false;
 #endif
 
+uint8_t deviceSignature[3] = {0, 0, 0};
 CommandHandler commandHandler;
 
 
@@ -1126,7 +1127,15 @@ void setup(void)
 	uint8_t lowFuse = boot_lock_fuse_bits_get(GET_LOW_FUSE_BITS);
 	uint8_t highFuse = boot_lock_fuse_bits_get(GET_HIGH_FUSE_BITS);
 	uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
-	console << F("Low fuse: ") << _HEX(lowFuse)
+
+    // Get (and print) the signature of the actual device, not what the code was compiled for!
+	console << F("Signature:");
+	for (uint8_t i = 0; i < 3; ++i) {
+    	deviceSignature[i] = boot_signature_byte_get(i * 2) & 0xFF;
+	    console << ' ' << _HEX(deviceSignature[i]);
+    }
+
+	console << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
 			<< F("\nExtended fuse: ") << _HEX(extendedFuse) << endl;
 
