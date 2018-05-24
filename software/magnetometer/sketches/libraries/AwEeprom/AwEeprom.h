@@ -269,4 +269,8 @@
 #define EEPROM_RIO_ADC_GAIN 0x11A
 #define EEPROM_RIO_ADC_GAIN_SIZE 1
 
+// Address of the MCP23008 IO expander. If address outside of valid range it is not used.
+#define EEPROM_RIO_GPIO_ADDRESS 0x11B
+#define EEPROM_RIO_GPIO_ADDRESS_SIZE 1
+
 #endif
