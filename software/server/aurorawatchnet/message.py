@@ -817,9 +817,11 @@ def print_signature(buf):
 
 
 def print_packet(buf, message_time=None):
+    sent_received = ' received '
     try:
         if is_response_message(buf):
             separator = '------------- Response'
+            sent_received = ' sent '
         else:
             separator = '============= Message'
     except KeyboardInterrupt:
@@ -828,7 +830,7 @@ def print_packet(buf, message_time=None):
         separator = '============= Invalid Message' 
 
     if message_time is not None:
-        separator += ' received ' + str(time.time())
+        separator += sent_received + str(time.time())
 
     s = [separator]
     try:
