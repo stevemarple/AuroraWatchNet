@@ -6,6 +6,10 @@
 #include <MCP342x.h>
 #include <CounterRTC.h>
 #include <AwEeprom.h>
+#include <Adafruit_MCP23008.h>
+#define MCP23008_ADDRESS_MASK ((uint8_t)7)
+#define MCP23008_ADDRESS_MIN ((uint8_t)MCP23008_ADDRESS)
+#define MCP23008_ADDRESS_MAX ((uint8_t)(MCP23008_ADDRESS | MCP23008_ADDRESS_MASK))
 
 #define FLC100_POWER 9
 #define FLC100_TEMPERATURE_CHANNEL 4
@@ -136,6 +140,7 @@ private:
 		finished,
 	};
 
+    uint8_t gpioAddress;
 	state_t state;
 	uint8_t axis;
 	uint8_t numRows;
@@ -154,6 +159,8 @@ private:
 	AsyncDelay timeout;
 	AsyncDelay presampleDelay;
 
+    mutable Adafruit_MCP23008 gpio;
+
 	// Data fields
 	CounterRTC::time_t timestamp;
 	int16_t sensorTemperature; // hundredths of degrees Celsius
@@ -164,6 +171,7 @@ private:
 	bool useMedian;
 	bool trimSamples;
 
+    void initGpio(void) const;
 	void aggregate(void);
     void setScanPins() const;
 

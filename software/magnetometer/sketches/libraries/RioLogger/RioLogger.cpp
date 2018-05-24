@@ -13,9 +13,13 @@ uint16_t RioLogger::presampleDelay_ms = 10;
 const uint8_t RioLogger::scanMapping7[7] = {0, 1, 3, 2, 6, 4, 5}; // Almost a Gray code
 const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray code
 
-RioLogger::RioLogger(void) : state(off), axis(0), scanState(0), numSamples(1),
+RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0), numSamples(1),
 							 useMedian(false), trimSamples(false)
 {
+    gpioAddress = eeprom_read_byte((uint8_t*)EEPROM_RIO_GPIO_ADDRESS);
+    if (gpioAddress < MCP23008_ADDRESS_MIN || gpioAddress > MCP23008_ADDRESS_MAX)
+        gpioAddress = 0;
+
 	numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
 	if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
 		numRows = EEPROM_RIO_NUM_ROWS_MAX;
@@ -50,6 +54,8 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 	for (uint8_t i = 0; i < numScanPins; ++i)
 		pinMode(scanPins[i], OUTPUT);
 
+    initGpio();
+
 	setScanPins();
 
 	uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
@@ -81,6 +87,25 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 
 	tempConfig = MCP342x::Config(FLC100_TEMPERATURE_CHANNEL, false, 16, 1);
 	return r;
+}
+
+
+void RioLogger::initGpio(void) const
+{
+    if (gpioAddress) {
+        gpio.begin(gpioAddress & MCP23008_ADDRESS_MASK);
+        // Make everything an input with a pullup
+        for (uint8_t i = 0; i < 8; ++i) {
+            gpio.pinMode(i, INPUT);
+            gpio.pullUp(i, HIGH);
+        }
+
+        // Set the desired output pins
+        for (uint8_t i = 1; i <= 5; ++i) {
+            gpio.pinMode(i, OUTPUT);
+            gpio.digitalWrite(i, LOW);
+        }
+    }
 }
 
 
@@ -378,4 +403,12 @@ void RioLogger::setScanPins() const
 		digitalWrite(scanPins[i], val & mask);
 		mask <<= 1;
 	}
+
+	if (gpioAddress) {
+	    uint8_t d = 0;
+	    d |= ((val & 7) << 1); // Uses GPIO bits 1-3 inclusive
+	    d |= ((scanState & 1) << 5); // Set status LED (GPIO bit 5)
+	    gpio.writeGPIO(d);
+	}
+
 }
