@@ -58,3 +58,6 @@
 [submodule "software/magnetometer/sketches/libraries/Adafruit-MCP23008-library"]
 	path = software/magnetometer/sketches/libraries/Adafruit-MCP23008-library
 	url = git@github.com:stevemarple/Adafruit-MCP23008-library.git
+[submodule "software/magnetometer/sketches/libraries/CommandHandler"]
+	path = software/magnetometer/sketches/libraries/CommandHandler
+	url = https://github.com/stevemarple/arduino-CommandHandler.git
