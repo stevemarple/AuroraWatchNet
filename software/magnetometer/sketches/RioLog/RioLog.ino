@@ -980,11 +980,7 @@ void begin_WIZnet_UDP(void)
 	printEthernetSettings(console, Ethernet.localIP(), localPort,
 						  Ethernet.subnetMask(), Ethernet.gatewayIP(),
 						  dns, remoteIP, remotePort);
-	console.println();
 	console.flush();
-
-
-
 	wiz_udp.begin(localPort, remoteIP, remotePort, 10, 4);
 }
 #endif
@@ -1154,7 +1150,7 @@ void setup(void)
 	uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
 
     // Get (and print) the signature of the actual device, not what the code was compiled for!
-	console << F("Signature:");
+	console << F("\n\n--------\nSignature:");
 	for (uint8_t i = 0; i < 3; ++i) {
     	deviceSignature[i] = boot_signature_byte_get(i * 2) & 0xFF;
 	    console << ' ' << _HEX(deviceSignature[i]);
@@ -1162,16 +1158,16 @@ void setup(void)
 
 	console << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
-			<< F("\nExtended fuse: ") << _HEX(extendedFuse) << endl;
+			<< F("\nExtended fuse: ") << _HEX(extendedFuse);
 
 	// Is the internal RC oscillator in use? Programmed fuses read low
 	uint8_t ckselMask = (uint8_t)~(FUSE_CKSEL3 & FUSE_CKSEL2 &
 								   FUSE_CKSEL1 & FUSE_CKSEL0);
 	bool isRcOsc = ((lowFuse & ckselMask) ==
 					((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
-	console << F("RC osc.: ") << isRcOsc
+	console << F("\nRC osc.: ") << isRcOsc
 			<< F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
-			<< F("\nMCUSR: ") << _HEX(mcusrCopy) << endl;
+			<< F("\nMCUSR: ") << _HEX(mcusrCopy);
 
 #if F_CPU == 8000000UL
 #define F_CPU_STR "8MHz"
@@ -1188,43 +1184,45 @@ void setup(void)
 	// Print the firmware version, clock speed and supported
 	// communication protocols. Place in one long string to minimise
 	// flash usage.
-	console << F("\nFirmware: " FIRMWARE_VERSION "\n"
-				 "F_CPU: " F_CPU_STR "\n"
-				 "Epoch: " STRINGIFY(RTCX_EPOCH) "\n"
-				 "Comms:"
+	console << F(
+	        "\n"
+             "F_CPU: " F_CPU_STR "\n"
+             "Firmware: " FIRMWARE_VERSION "\n"
+             "Epoch: " STRINGIFY(RTCX_EPOCH) "\n"
+             "Comms:"
 #ifdef COMMS_XRF
-				 " XRF"
+             " XRF"
 #endif
 #ifdef COMMS_W5100
-				 " W5100"
+             " W5100"
 #endif
 #ifdef COMMS_W5500
-				 " W5500"
+             " W5500"
 #ifdef ETHERNET2_USE_WDT
-				 "(wdt_reset)"
+             "(wdt_reset)"
 #endif
 #endif
-				 "\n"
-				 "Features:"
+             "\n"
+             "Features:"
 #ifdef FEATURE_FLC100
-				 " FLC100"
+             " FLC100"
 #endif
 #ifdef FEATURE_RIOMETER
-				 " RIOMETER"
+             " RIOMETER"
 #endif
 #ifdef FEATURE_HIH61XX
-				 " HIH61XX"
+             " HIH61XX"
 #endif
 #ifdef FEATURE_MLX90614
-				 " MLX90614"
+             " MLX90614"
 #endif
 #ifdef FEATURE_GNSS
-				 " GNSS"
+             " GNSS"
 #endif
 #ifdef FEATURE_DATA_QUALITY
-				 " DATA_QUALITY"
+             " DATA_QUALITY"
 #endif
-				 "\n");
+             "\n");
 
 	// Only use the LED following a reset initiated by user action
 	// (JTAG, external reset and power on). Exclude brown-out and
