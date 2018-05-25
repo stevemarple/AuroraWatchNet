@@ -149,9 +149,6 @@ void RioLogger::process(void)
 		// TODO: Advance scan step
 		setScanPins();
 		presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
-		Serial.print("Advance scan: ");
-		Serial.println(scanState);
-
 		for (uint8_t i = 0; i < numColumns; ++i) {
 			for (uint8_t j = 0; j < maxSamples; ++j)
 				magDataSamples[i][j] = LONG_MIN;
