@@ -143,7 +143,7 @@
 #include <AwEeprom.h>
 #include <DisableJTAG.h>
 
-#include "CommandHandler.h"
+#include <CommandHandler.h>
 #include "CommsHandler.h"
 
 #include "xbootapi.h"
@@ -255,7 +255,40 @@ volatile bool dataQualityChanged = false;
 #endif
 
 uint8_t deviceSignature[3] = {0, 0, 0};
+
+
+// Commands
+void cmdEepromRead(const char *s);
+void cmdEepromWrite(const char *s);
+void cmdVerbosity(const char *s);
+void cmdReboot(const char *s);
+void cmdSamplingInterval(const char *s);
+#if USE_SD_CARD
+void cmdUseSd(const char *s);
+#endif
+void unknownCommand(const char *s);
+void commandTooLong(int);
+
 CommandHandler commandHandler;
+const int commandBufferLength = 80;
+char commandBuffer[80];
+
+#if USE_SD_CARD
+    const int numCommands = 6;
+#else
+    const int numCommands = 5;
+#endif
+CommandOption commands[numCommands] = {
+    CommandOption("eepromRead=", cmdEepromRead),
+    CommandOption("eepromWrite=", cmdEepromWrite),
+    CommandOption("verbosity", cmdVerbosity),
+    CommandOption("REBOOT=true", cmdReboot),
+    CommandOption("samplingInterval_16th_s", cmdSamplingInterval),
+#if USE_SD_CARD
+    CommandOption("useSd"), cmdUseSd),
+#endif
+};
+
 
 
 // Set if packets should be multiple of some particular length
@@ -1654,6 +1687,7 @@ void setup(void)
 	console.println(F("Setup complete"));
 	console.flush();
 
+    commandHandler.begin(commandBuffer, commandBufferLength, commands, numCommands, unknownCommand, commandTooLong);
 	setAlarm();
 }
 
@@ -2244,4 +2278,157 @@ void loop(void)
 }
 
 
+Stream& printEepromContents(Stream &s, uint16_t address, uint16_t size)
+{
+	s << F("EEPROM values:\n");
+	while (address <= E2END && size--) {
+		s << F("0x") << _HEX(address) << F(": 0x") << _HEX(eeprom_read_byte((uint8_t*)address)) << endl;
+		//s << F("0x") << _HEX(address) << F(": 0x") << "[some value]" << endl;
+		++address;
+	}
+	return s;
+}
 
+
+// Commands
+void cmdEepromRead(const char *s)
+{
+    const char *ep = s;
+    char *ep2;
+    long address = strtol(ep, &ep2, 0);
+    long size;
+
+    if (address >= 0 && address <= E2END && ep2 != ep && *ep2 == ',') {
+		ep = ++ep2;
+		size = strtol(ep, &ep2, 0);
+		if (size > 0 && (address + size) <= E2END && ep2 != ep && *ep2 == '\0') {
+			printEepromContents(console, (uint16_t)address, (uint16_t)size);
+			return;
+		}
+	}
+
+	console.println(F("ERROR: bad values for eepromRead"));
+}
+
+
+void cmdEepromWrite(const char *s)
+{
+    const char *ep = s;
+    char *ep2;
+    long address = strtol(ep, &ep2, 0);
+    long size = 0;
+    if (address >= 0 && address <= E2END && ep2 != ep && *ep2 == ',') {
+		ep = ++ep2;
+		if (*ep == '\'') {
+			// A string, take the value of each byte
+			++ep;
+			while (*ep != '\0') {
+			    eeprom_update_byte((uint8_t*)address, *ep++);
+				++address;
+				++size;
+			}
+		}
+        else {
+            // Assume numeric values for each byte
+            while(address >= 0 && address <= E2END) {
+                long val = strtol(ep, &ep2, 0);
+                if (val >= 0 && val <= 255 && ep2 != ep && (*ep2 == ',' || *ep2 == '\0')) {
+                    eeprom_update_byte((uint8_t*)address, val);
+                    ++address;
+                    ++size;
+                    if (*ep2 == '\0')
+                        break;
+                    ep = ++ep2;
+                }
+                else
+                    break;
+            }
+		}
+        printEepromContents(console, (uint16_t)(address-size), (uint16_t)size);
+
+		return;
+	}
+
+	console.println(F("ERROR: bad values for eepromWrite"));
+}
+
+
+void cmdVerbosity(const char *s)
+{
+    char *ep;
+    if (*s++ == '=') {
+        char *ep;
+        long v = strtol(s, &ep, 0);
+        if (v >= 0 && v <= 255 && ep != s && *ep == '\0')
+            verbosity = v;
+    }
+    console << F("verbosity: ") << verbosity << endl;
+}
+
+
+void cmdReboot(const char *s)
+{
+    if (*s == '\0') {
+        console << F("Rebooting ...\n");
+		console.flush();
+		xboot_reset();
+    }
+    else {
+        unknownCommand(commandBuffer);
+    }
+}
+
+
+void cmdSamplingInterval(const char *s)
+{
+    if (*s++ == '=') {
+        char *ep;
+        long si = strtol(s, &ep, 0);
+        if (si > 0 && ep != s && *ep == '\0') {
+            CounterRTC::Time tmp =
+                CounterRTC::Time((si & 0xFFF0) >> 4,
+                                 (si & 0x000F) <<
+                                 (CounterRTC::fractionsPerSecondLog2 - 4));
+            if (tmp >= minSamplingInterval && tmp <= maxSamplingInterval)
+                samplingInterval = tmp;
+
+        }
+    }
+    console << F("samplingInterval_16th_s: ")
+            << ((samplingInterval.getSeconds() * 16) +
+                (samplingInterval.getFraction() >> (CounterRTC::fractionsPerSecondLog2 - 4))) << endl;
+}
+
+
+#if USE_SD_CARD
+void cmdUseSd(const char *s)
+{
+    if (*s++ == '=') {
+        char *ep;
+        long n = strtol(s, &ep, 0);
+        if (n >= 0 && n <= 1 && ep != s && *ep == '\0') {
+            // Need to update both EEPROM and RAM values since the RAM
+            // value might differ (eg card couldn't be initialized).
+            useSd = n;
+            eeprom_update_byte((uint8_t*)EEPROM_USE_SD, n);
+            // TODO: call SD.begin(sdSelect) if necessary
+        }
+    }
+    console << F("useSd: ")
+            <<  useSd << F(" (current), ")
+            << eeprom_read_byte((const uint8_t*)EEPROM_USE_SD)
+            << F(" (EEPROM)\n");
+}
+#endif
+
+
+void unknownCommand(const char *s)
+{
+    console << F("Unknown command: ") << s << endl;
+}
+
+
+void commandTooLong(int)
+{
+    console << F("Previous command was too long for buffer\n");
+}
