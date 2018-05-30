@@ -1,6 +1,8 @@
 #ifndef RIO_LOGGER_H
 #define RIO_LOGGER_H
 
+#define RIO_LOGGER_VERSION "0.1.0"
+
 #include <stdint.h>
 #include <AsyncDelay.h>
 #include <MCP342x.h>
