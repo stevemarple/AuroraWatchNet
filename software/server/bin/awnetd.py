@@ -296,16 +296,17 @@ def write_gnss_data(message_tags, fstr):
     global gnss_file
     found = False
     t = None
+    tag_name = 'gnss_status'
     try:
-        if 'gnss_status' in message_tags:
-            t, val_navsys, num_sat, hdop = struct.unpack(awn.message.tag_data['gnss_status']['format'],
-                                                         str(message_tags['gnss_status'][0]))
-            is_valid = bool(val_navsys & 0x80)
-            nav_system = (val_navsys & 0x7f)
-            hdop /= 10.0
+        if tag_name in message_tags:
+            epoch = awn.message.get_epoch(message)
+            if len(message_tags[tag_name]) != 1:
+                raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
+            t, is_valid, nav_system, num_sat, hdop = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
+
             if 'gnss_location' in message_tags:
                 data = awn.message.decode_tag_array_of_longs('gnss_location', len(message_tags['gnss_location'][0]),
-                                                             message_tags['gnss_location'][0])
+                                                             message_tags['gnss_location'][0], epoch)
                 if len(data) == 2:
                     data.append(float('NaN'))
             else:
@@ -326,8 +327,8 @@ def write_gnss_data(message_tags, fstr):
     except KeyboardInterrupt:
         raise
     except Exception as e:
+        traceback.print_exc()
         print('Could not save GNSS data: ' + str(e))
-
 
 generic_adc_data_file = None
 
@@ -1152,7 +1153,10 @@ while running:
                     awn.message.print_packet(message, message_time=message_time)
 
                 timestamp = awn.message.get_timestamp(message)
+                epoch = awn.message.get_epoch(message)
+                epoch_adjustment = (epoch - 1970) * awn.message.SECONDS_PER_AVG_YEAR
                 timestamp_s = timestamp[0] + timestamp[1] / 32768.0
+                timestamp_s += epoch_adjustment
                 message_tags = awn.message.parse_packet(message)
                 awn.message.tidy_pending_tags(pending_tags, message_tags)
 

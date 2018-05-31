@@ -150,16 +150,21 @@ def format_get_firmware_page(tag_name, data_len, payload, epoch):
                page=payload[16]*256 + payload[17])
 
 
-def format_gnss_status(tag_name, data_len, payload, epoch):
+def decode_gnss_status(tag_name, data_len, payload, epoch):
     fix_datetime, fix_status, num_sat, hdop_tenths = \
         struct.unpack(tag_data[tag_name]['format'], str(payload))
     epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
-    dt = datetime.utcfromtimestamp(fix_datetime + epoch_adjustment)
     fix_valid = (fix_status & 0x80) != 0
     nav_system = chr(fix_status & 0x7f)
+    return fix_datetime + epoch_adjustment, fix_valid, nav_system, num_sat, hdop_tenths / 10.0
+
+
+def format_gnss_status(tag_name, data_len, payload, epoch):
+    t, is_valid, nav_system, num_sat, hdop = decode_gnss_status(tag_name, data_len, payload, epoch)
+    dt = datetime.utcfromtimestamp(t)
     return dt.isoformat() + ', valid=' + \
-        ('Y' if fix_valid else 'N') + ', sys=' + nav_system + \
-        ', sat=' + str(num_sat) + ', HDOP=' + str(hdop_tenths / 10.0)
+        ('Y' if is_valid else 'N') + ', sys=' + nav_system + \
+        ', sat=' + str(num_sat) + ', HDOP=' + str(hdop)
 
 
 def format_gnss_location(tag_name, data_len, payload, epoch):
@@ -380,6 +385,7 @@ tag_data = {
         'id': 29,
         'length': 8,
         'format': '!lBBB',
+        'decoder': decode_gnss_status,
         'formatter': format_gnss_status,
     },
     'gnss_location': {
@@ -457,8 +463,10 @@ def get_site_id(buf):
 
 
 def get_timestamp(buf):
+    # epoch = get_epoch(buf)
     seconds, = struct.unpack('!l' ,buf[timestamp_seconds_offset:(timestamp_seconds_offset+timestamp_seconds_size)])
     fraction, = struct.unpack('!h' ,buf[timestamp_fraction_offset:(timestamp_fraction_offset+timestamp_fraction_size)])
+    # seconds += (epoch - 1970) * SECONDS_PER_AVG_YEAR
     return [seconds, fraction]
 
 
