@@ -233,6 +233,9 @@
 #define EEPROM_RIO_PRESENT 0xDD
 #define EEPROM_RIO_PRESENT_SIZE 1
 
+#define EEPROM_USE_GNSS 0xDE
+#define EEPROM_USE_GNSS_SIZE 1
+
 // Reserved 0x100 - 0x1FF for settings specific to riometer logger 
 #define EEPROM_RIO_NUM_ROWS 0x100
 #define EEPROM_RIO_NUM_ROWS_SIZE 1
