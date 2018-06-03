@@ -75,7 +75,21 @@
 #endif
 
 #ifdef FEATURE_HIH61XX
+#error Please use FEATURE_HIH61XX_SOFTWIRE or FEATURE_HIH61XX_WIRE
+#endif
+#if defined(FEATURE_HIH61XX_SOFTWIRE) && defined(FEATURE_HIH61XX_WIRE)
+#error No support for simultaneous SoftWare and Wire connections to HIH61xx
+#endif
+
+#ifdef FEATURE_HIH61XX_SOFTWIRE
+#define FEATURE_HIH61XX
 #include <SoftWire.h>
+#include <HIH61xx.h>
+#endif
+
+#ifdef FEATURE_HIH61XX_WIRE
+#define FEATURE_HIH61XX
+#include <Wire.h>
 #include <HIH61xx.h>
 #endif
 
@@ -217,8 +231,16 @@ MLX90614 mlx90614;
 bool mlx90614Present = eeprom_read_byte((uint8_t*)EEPROM_MLX90614_PRESENT);
 #endif
 
+#ifdef FEATURE_HIH61XX_SOFTWIRE
+SoftWire hih61xxSoftWire(A4, A5);
+HIH61xx<SoftWire> hih61xx(hih61xxSoftWire);
+#endif
+
+#ifdef FEATURE_HIH61XX_WIRE
+HIH61xx<TwoWire> hih61xx(Wire);
+#endif
+
 #ifdef FEATURE_HIH61XX
-HIH61xx hih61xx;
 bool hih61xxPresent = eeprom_read_byte((uint8_t*)EEPROM_HIH61XX_PRESENT);
 #endif
 
@@ -1243,8 +1265,11 @@ void setup(void)
 #ifdef FEATURE_RIOMETER
              " RIOMETER"
 #endif
-#ifdef FEATURE_HIH61XX
-             " HIH61XX"
+#ifdef FEATURE_HIH61XX_SOFTWIRE
+             " HIH61XX(SoftWire)"
+#endif
+#ifdef FEATURE_HIH61XX_WIRE
+             " HIH61XX(Wire)"
 #endif
 #ifdef FEATURE_MLX90614
              " MLX90614"
@@ -1467,7 +1492,7 @@ void setup(void)
 	if (hih61xxPresent) {
 		console.print(initialisingStr);
 		console.println(hih61xxStr);
-		hih61xxPresent = hih61xx.initialise(A4, A5);
+		hih61xxPresent = hih61xx.initialise();
 	}
 	console.print(hih61xxStr);
 	if (!hih61xxPresent)
