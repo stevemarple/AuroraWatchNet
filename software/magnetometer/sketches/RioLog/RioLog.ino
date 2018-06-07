@@ -292,7 +292,6 @@ void unknownCommand(const char *s);
 void commandTooLong(int);
 
 CommandHandler commandHandler;
-const int commandBufferLength = 80;
 char commandBuffer[80];
 
 #if USE_SD_CARD
@@ -1712,7 +1711,7 @@ void setup(void)
 	console.println(F("Setup complete"));
 	console.flush();
 
-    commandHandler.begin(commandBuffer, commandBufferLength, commands, numCommands, unknownCommand, commandTooLong);
+    commandHandler.begin(commandBuffer, sizeof(commandBuffer), commands, numCommands, unknownCommand, commandTooLong);
 	setAlarm();
 }
 
