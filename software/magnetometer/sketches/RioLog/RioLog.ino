@@ -1208,6 +1208,14 @@ void setup(void)
     	deviceSignature[i] = boot_signature_byte_get(i * 2) & 0xFF;
 	    console << ' ' << _HEX(deviceSignature[i]);
     }
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
+	if (deviceSignature[0] == 0x1E && deviceSignature[1] == 0x97) {
+		if (deviceSignature[2] == 0x06)
+			console << F(" (ATmega1284 non-P)");
+		else if (deviceSignature[2] == 0x05)
+			console << F(" (ATmega1284P)");
+	}
+#endif
 
 	console << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
