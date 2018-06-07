@@ -1165,8 +1165,7 @@ void setup(void)
 	uint8_t adcGainList[SensorShield_t::maxNumAdcs] = {1, 1, 1};
 #elif defined (FEATURE_RIOMETER)
 	uint8_t adcAddressList[SensorShield_t::maxNumAdcs] = {
-		// TODO: update with correct value
-		0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E}; 
+		0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F};
 	uint8_t adcChannelList[SensorShield_t::maxNumAdcs] = {
 		1, 1, 1, 1, 1, 1, 1, 1 };
 	uint8_t adcResolutionList[SensorShield_t::maxNumAdcs] = {
