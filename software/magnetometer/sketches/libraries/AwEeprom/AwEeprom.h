@@ -236,6 +236,16 @@
 #define EEPROM_USE_GNSS 0xDE
 #define EEPROM_USE_GNSS_SIZE 1
 
+// The device type ID as defined by RTCx
+#define EEPROM_RTCX_DEVICE_TYPE 0xDF
+#define EEPROM_RTCX_DEVICE_TYPE_SIZE 1
+
+// The 7 bit device address on the I2C bus
+#define EEPROM_RTCX_DEVICE_ADDRESS 0xE0
+#define EEPROM_RTCX_DEVICE_ADDRESS_SIZE 1
+
+
+
 // Reserved 0x100 - 0x1FF for settings specific to riometer logger 
 #define EEPROM_RIO_NUM_ROWS 0x100
 #define EEPROM_RIO_NUM_ROWS_SIZE 1

@@ -1186,6 +1186,7 @@ void setup(void)
 			console.begin(9600);
 	else
 		console.begin(consoleBaudRate);
+	console.flush();
 
 	// Explicitly set the pull-ups for the serial port in case the
 	// Arduino IDE disables them.
@@ -1580,12 +1581,25 @@ void setup(void)
 							(radioType != EEPROM_COMMS_TYPE_XRF &&
 							 radioType != EEPROM_COMMS_TYPE_RFM12B));
 
-	// Autoprobe to find RTC
-	// TODO: avoid clash with known ADCs
-	console << F("Autoprobing to find RTC\n");
-	console.flush();
+	// Autoprobe to find RTC. Device type and address can be set in
+	// the EEPROM to void clashes with other devices. Even if the
+	// device details are configured in the EEPROM autoprobe() as
+	// check that it is working correctly.
+	console << F("Autoprobing to find ");
 
-	if (rtc.autoprobe())
+	RTCx::device_t rtcxDevice = (RTCx::device_t)eeprom_read_byte((uint8_t*)EEPROM_RTCX_DEVICE_TYPE);
+	uint8_t rtcxAddress = eeprom_read_byte((uint8_t*)EEPROM_RTCX_DEVICE_ADDRESS);
+	uint8_t foundRtc = false;
+	if (rtcxDevice <= RTCX_NUM_SUPPORTED_DEVICES && rtcxAddress > 7 && rtcxAddress < 120) {
+		console << RTCx::getDeviceName(rtcxDevice) << endl;
+		foundRtc = rtc.autoprobe(&rtcxDevice, &rtcxAddress, 120);
+	}
+	else {
+		console.println("RTC");
+		foundRtc = rtc.autoprobe();
+	}
+
+	if (foundRtc)
 		console << F("Found ") << rtc.getDeviceName() << F(" at address 0x") << _HEX(rtc.getAddress()) << endl;
 	else
 		console << F("No RTC found\n");
