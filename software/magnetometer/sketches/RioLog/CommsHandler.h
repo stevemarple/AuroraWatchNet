@@ -18,8 +18,7 @@ public:
 	static const uint8_t maxRetries = 2;
 	static const char* errorMessages[4];
 
-	inline CommsHandler(void* stackBuffer, uint16_t stackBufferLen);
-
+	CommsHandler(void* msgBuffer, uint16_t msgBufferLen, void* stackBuffer, uint16_t stackBufferLen);
 	void setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin);
 
 	inline void setKey(uint8_t *k, uint8_t len);
@@ -52,13 +51,13 @@ private:
 		stateTimedOut = 4,
 	};
 
-	static const uint16_t messageBufferLen = 512;
 	// static const int powerUpDelay_ms = 250;
 	// static const int resetDelay_us = 250;
 	static const int responseTimeout_ms = 2000;
 
 	error_t errno;
-	uint8_t messageBuffer[messageBufferLen];
+	uint16_t messageBufferLen;
+	uint8_t *messageBuffer;
 	uint16_t messageLen;
 	uint16_t bytesSent;
 	uint16_t responseLen; // Length of the response so far
@@ -73,15 +72,6 @@ private:
 
 };
 
-
-CommsHandler::CommsHandler(void* stackBuffer, uint16_t stackBufferLen) :
-	messageLen(0),
-	state(stateWaitingForMessages),
-	commsPtr(NULL),
-	stack(stackBuffer, stackBufferLen)
-{
-	;
-}
 
 void CommsHandler::setKey(uint8_t *k, uint8_t len)
 {

@@ -311,13 +311,20 @@ CommandOption commands[numCommands] = {
 };
 
 
-
+// ----- Configure the communications handler -----
 // Set if packets should be multiple of some particular length
 uint16_t commsBlockSize = 0;
 
+// Allocate a buffer to use for messages. This must be able to hold the biggest message.
+const uint16_t commsMessageBufferLen = 512;
+uint8_t commsMessageBuffer[commsMessageBufferLen];
+
+// The comms handler stores unacknowledged messages in a stack. Allocate a suitable size buffer for the stack to use.
 const uint16_t commsStackBufferLen = 8192;
 uint8_t commsStackBuffer[commsStackBufferLen];
-CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
+//CommsHandler commsHandler(commsStackBuffer, commsStackBufferLen);
+CommsHandler commsHandler(commsMessageBuffer, commsMessageBufferLen, commsStackBuffer, commsStackBufferLen);
+// -----
 
 CounterRTC::Time lastAcknowledgement;
 

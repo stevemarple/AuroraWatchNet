@@ -36,6 +36,25 @@ const char* CommsHandler::errorMessages[4] = {
 };
 
 
+CommsHandler::CommsHandler(void* msgBuffer, uint16_t msgBufferLen,
+						   void* stackBuffer, uint16_t stackBufferLen) :
+	errno(errorNoError),
+	messageBufferLen(msgBufferLen),
+	messageBuffer(msgBuffer),
+	messageLen(0),
+	bytesSent(0),
+	responseLen(0),
+	responsePacketLen(0),
+	state(stateWaitingForMessages),
+	commsPtr(NULL),
+	stack(stackBuffer, stackBufferLen),
+	keyLen(0),
+	key(NULL)
+{
+	;
+}
+
+
 void CommsHandler::addMessage(void *msg, uint16_t len)
 {
 	if (len > messageBufferLen) {
