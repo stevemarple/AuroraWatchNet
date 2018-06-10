@@ -23,7 +23,7 @@ public:
 	void setup(uint8_t sleepPin, uint8_t onPin, uint8_t resetPin);
 
 	inline void setKey(uint8_t *k, uint8_t len);
-	void addMessage(void *buffer, uint16_t len);
+	void addMessage(void *msg, uint16_t len);
 
 	// Returns number of bytes written to buffer. Powers up XRF when
 	// needed, does not power off.

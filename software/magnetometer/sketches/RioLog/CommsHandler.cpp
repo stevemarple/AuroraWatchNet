@@ -36,14 +36,14 @@ const char* CommsHandler::errorMessages[4] = {
 };
 
 
-void CommsHandler::addMessage(void *ptr, uint16_t len)
+void CommsHandler::addMessage(void *msg, uint16_t len)
 {
 	if (len > messageBufferLen) {
 		console.println(strBufferTooSmall);
 		errno = errorBufferTooSmall;
 	}
 
-	stack.write(ptr, len);
+	stack.write(msg, len);
 	errno = errorNoError;
 
 	// No point in waiting in the timed out state when a new message has
