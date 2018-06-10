@@ -6,4 +6,7 @@
 // #define SHOW_MEM_USAGE
 
 
+#define EXPAND_STR(s) _MY_EXPAND_STR(s)
+#define _MY_EXPAND_STR(s) #s
+
 #endif

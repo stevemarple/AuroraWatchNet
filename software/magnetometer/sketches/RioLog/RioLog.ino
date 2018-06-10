@@ -1050,6 +1050,10 @@ void begin_WIZnet_UDP(void)
 #ifdef FEATURE_GNSS
 void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
 {
+#ifdef FEATURE_BUSY_TIME_PIN
+    digitalWrite(FEATURE_BUSY_TIME_PIN, HIGH);
+#endif
+
 	if (!clock.isValid()) {
 		useGnss = false;
 		return;
@@ -1164,6 +1168,11 @@ void setup(void)
 		pinMode(heaterPin, OUTPUT);
 		digitalWrite(heaterPin, LOW);
 	}
+
+#ifdef FEATURE_BUSY_TIME_PIN
+    pinMode(FEATURE_BUSY_TIME_PIN, OUTPUT);
+    digitalWrite(FEATURE_BUSY_TIME_PIN, LOW);
+#endif
 
 #if defined (FEATURE_FLC100)
 	uint8_t adcAddressList[SensorShield_t::maxNumAdcs] = {0x6E, 0x6A, 0x6C};
@@ -1293,6 +1302,9 @@ void setup(void)
 #endif
 #ifdef FEATURE_DATA_QUALITY
              " DATA_QUALITY"
+#endif
+#ifdef FEATURE_BUSY_TIME_PIN
+            " BUSY_TIME_PIN(" EXPAND_STR(FEATURE_BUSY_TIME_PIN) ")"
 #endif
              "\n");
 
@@ -1686,7 +1698,7 @@ void setup(void)
 		begin_WIZnet_UDP();
 
 		disableJTAG();
-		ledPin = 17; // JTAG TDO
+		//ledPin = 17; // JTAG TDO
 		commsHandler.setCommsInterface(&wiz_udp);
 		useLed = true;
 
@@ -1821,6 +1833,10 @@ void loop(void)
 
 
 	if (startSampling) {
+#ifdef FEATURE_BUSY_TIME_PIN
+        digitalWrite(FEATURE_BUSY_TIME_PIN, HIGH);
+#endif
+
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
 		if (sensorShieldPresent && !sensorShield.isSampling())
 			sensorShield.start();
@@ -2266,6 +2282,10 @@ void loop(void)
 #ifdef FEATURE_MEM_USAGE
 			if (verbosity)
 				console << F("Free mem: ") << freeMemory() << endl;
+#endif
+
+#ifdef FEATURE_BUSY_TIME_PIN
+            digitalWrite(FEATURE_BUSY_TIME_PIN, LOW);
 #endif
 
 			static uint8_t verbosityCharState = 0;
