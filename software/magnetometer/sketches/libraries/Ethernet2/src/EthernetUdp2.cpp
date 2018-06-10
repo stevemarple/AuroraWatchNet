@@ -37,7 +37,15 @@
 #include "Dns.h"
 
 /* Constructor */
-EthernetUDP::EthernetUDP() : _sock(MAX_SOCK_NUM) {}
+EthernetUDP::EthernetUDP() :
+	_sock(MAX_SOCK_NUM),
+	_port(0),
+	_remotePort(0),
+	_offset(0),
+	_remaining(0)
+{
+	;
+}
 
 /* Start EthernetUDP socket, listening at local port PORT */
 uint8_t EthernetUDP::begin(uint16_t port) {
