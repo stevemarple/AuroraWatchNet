@@ -1744,34 +1744,47 @@ void setup(void)
 }
 
 
-bool resultsProcessed = false;
+bool resultsProcessed = true;
 CounterRTC::Time sampleStartTime;
 void loop(void)
 {
+    bool crtcTriggeredCopy = crtcTriggered; // Read actual volatile value only one in loop().
 	bool startSampling = false;
 	wdt_reset();
 
 	// Decide when to start sampling. Use the GNSS PPS input if
 	// possible, otherwise use the alarm feature of the CounterRTC
-	// clock.
+	// clock. Read the flags which are set by ISRs only once (they might change during loop()!)
 #ifdef FEATURE_GNSS
+    bool ppsTriggeredCopy;
 	RTCx::time_t gnssNow;
 	bool gnssNowOk = false;
-	if (ppsTriggered)
+
+    // Only attempt to clear if we have already seen it is set (to avoid race conditions).
+    ppsTriggeredCopy = ppsTriggered;
+    if (ppsTriggeredCopy) {
+        ppsTriggered = false;
 		gnssNowOk = gnss_clock.readClock(gnssNow);
+    }
 
 	if (useGnss && samplingInterval.getFraction() == 0) {
-		if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0))
+		if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0)) {
 			startSampling = true;
+			sampleStartTime = CounterRTC::Time(gnssNow, 0);
+        }
 	}
 	else {
-		if (crtcTriggered)
+		if (crtcTriggeredCopy) {
 			startSampling = true;
+			cRTC.getTime(sampleStartTime);
+        }
 	}
 
 #else
-	if (crtcTriggered)
+	if (crtcTriggeredCopy) {
 		startSampling = true;
+		cRTC.getTime(sampleStartTime);
+    }
 #endif
 
 #ifdef FEATURE_DATA_QUALITY
@@ -1780,10 +1793,8 @@ void loop(void)
 #endif
 
 #ifdef FEATURE_GNSS
-	if (ppsTriggered) {
+	if (ppsTriggeredCopy) {
 		// Set CounterRTC clock from GNSS
-		ppsTriggered = false;
-
 		if (gnssNowOk)  {
 			CounterRTC::Time ourTime;
 			cRTC.getTime(ourTime);
@@ -1810,7 +1821,6 @@ void loop(void)
 
 
 	if (startSampling) {
-		cRTC.getTime(sampleStartTime);
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
 		if (sensorShieldPresent && !sensorShield.isSampling())
 			sensorShield.start();
@@ -1852,7 +1862,7 @@ void loop(void)
 			console << F("--\nSampling started\n");
 	}
 
-	if (crtcTriggered) {
+	if (crtcTriggeredCopy) {
 		// Set crtcTriggered=false BEFORE setting the alarm. If the
 		// computed alarm time is in the past then the callback will be
 		// run immediately and will ensure crtcTriggered is made true. If
@@ -1881,7 +1891,7 @@ void loop(void)
 	houseKeeping.process();
 
 #ifdef FEATURE_GNSS
-	while (!ppsTriggered && gnssSerial.available()) {
+	while (gnssSerial.available()) {
 		char c = gnssSerial.read();
 		if (verbosity == 12)
 			console.print(c);
