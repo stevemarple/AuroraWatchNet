@@ -1976,7 +1976,7 @@ void loop(void)
 #endif
 
 #ifdef FEATURE_HIH61XX
-			if (hih61xxPresent)
+			if (verbosity && hih61xxPresent)
 				console << F("Humidity: ") << hih61xx.getRelHumidity()
 						<< F("\nAmbient: ") << hih61xx.getAmbientTemp() << endl;
 #endif
