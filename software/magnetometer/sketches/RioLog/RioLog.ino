@@ -1247,17 +1247,6 @@ void setup(void)
 			<< F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
 			<< F("\nMCUSR: ") << _HEX(mcusrCopy);
 
-#if F_CPU == 8000000UL
-#define F_CPU_STR "8MHz"
-#elif F_CPU == 12000000UL
-#define F_CPU_STR "12MHz"
-#elif F_CPU == 16000000UL
-#define F_CPU_STR "16MHz"
-#elif F_CPU == 20000000UL
-#define F_CPU_STR "20MHz"
-#else
-#error Unknown F_CPU value
-#endif
 
 	// Print the firmware version, clock speed and supported
 	// communication protocols. Place in one long string to minimise
