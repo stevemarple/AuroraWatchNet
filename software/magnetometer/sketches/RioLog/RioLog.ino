@@ -175,6 +175,51 @@
 // Firmware version limited to 16 characters
 
 const char firmwareVersion[AWPacket::firmwareNameLength] = FIRMWARE_VERSION;
+
+const char features_P[] PROGMEM = {
+    "Features:"
+#ifdef FEATURE_FLC100
+    " FLC100"
+#endif
+#ifdef FEATURE_RIOMETER
+     " RIOMETER"
+#endif
+#ifdef FEATURE_HIH61XX_SOFTWIRE
+     " HIH61XX(SoftWire)"
+#endif
+#ifdef FEATURE_HIH61XX_WIRE
+     " HIH61XX(Wire)"
+#endif
+#ifdef FEATURE_MLX90614
+     " MLX90614"
+#endif
+#ifdef FEATURE_GNSS
+     " GNSS"
+#endif
+#ifdef FEATURE_DATA_QUALITY
+     " DATA_QUALITY"
+#endif
+#ifdef FEATURE_BUSY_TIME_PIN
+    " BUSY_TIME_PIN(" EXPAND_STR(FEATURE_BUSY_TIME_PIN) ")"
+#endif
+};
+
+const char comms_P[] PROGMEM = {
+    "Comms:"
+#ifdef COMMS_XRF
+     " XRF"
+#endif
+#ifdef COMMS_W5100
+     " W5100"
+#endif
+#ifdef COMMS_W5500
+     " W5500"
+#ifdef ETHERNET2_USE_WDT
+     "(wdt_reset)"
+#endif
+#endif
+};
+
 const char *sep = ", ";
 
 uint8_t ledPin = LED_BUILTIN;
@@ -276,8 +321,8 @@ uint8_t dataQualityInputActiveLow = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALI
 volatile bool dataQualityChanged = false;
 #endif
 
-uint8_t deviceSignature[3] = {0, 0, 0};
-
+//uint8_t deviceSignature[3] = {0, 0, 0};
+uint32_t deviceSignature = 0;
 
 // Commands
 void cmdEepromRead(const char *s);
@@ -538,11 +583,11 @@ void doSleep(uint8_t mode)
 		sleep_enable();       // Make sleeping possible
 		wdt_disable();
 #if defined(BODS) && defined(BODSE)
-#ifdef __AVR_ATmega1284P__
+#if defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284P__)
         // The only significant difference of the ATmega1284 (non-P) from the ATmega1284P is the inability
-        // to disable brownout detection during sleeping. Don't try disabling BOD if the 3rd signature byte
-        // indicates code compiled for an ATmega1284P is actually running on an ATmega1284 (non-P).
-        if (deviceSignature[2] != 6)
+        // to disable brownout detection during sleeping. Don't try disabling BOD if the signature byte
+        // indicates code compiled for an ATmega1284P is actually running on an ATmega1284 (non-P). Likewise for '644,.
+        if (deviceSignature != DEVICE_SIG_ATMEGA644 && deviceSignature != DEVICE_SIG_ATMEGA1284)
     		sleep_bod_disable();  // Disable brown-out detection for sleeping
 #else
         sleep_bod_disable();  // Disable brown-out detection for sleeping
@@ -1220,21 +1265,34 @@ void setup(void)
 	uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
 
     // Get (and print) the signature of the actual device, not what the code was compiled for!
-	console << F("\n\n--------\nSignature:");
 	for (uint8_t i = 0; i < 3; ++i) {
-    	deviceSignature[i] = boot_signature_byte_get(i * 2) & 0xFF;
-	    console << ' ' << _HEX(deviceSignature[i]);
+	    deviceSignature <<= 8;
+    	deviceSignature |= (boot_signature_byte_get(i * 2) & 0xFF);
     }
-#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
-	if (deviceSignature[0] == 0x1E && deviceSignature[1] == 0x97) {
-		if (deviceSignature[2] == 0x06)
-			console << F(" (ATmega1284 non-P)");
-		else if (deviceSignature[2] == 0x05)
-			console << F(" (ATmega1284P)");
-	}
+
+    console << F("\n\n--------\nTarget MCU: " EXPAND_STR(CPU_NAME));
+
+    __FlashStringHelper *deviceName = F("Unknown MCU");
+#if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
+    switch (deviceSignature) {
+        case DEVICE_SIG_ATMEGA644:
+            deviceName = F("atmega644");
+            break;
+        case DEVICE_SIG_ATMEGA644P:
+            deviceName = F("atmega644p");
+            break;
+        case DEVICE_SIG_ATMEGA1284:
+            deviceName = F("atmega1284");
+            break;
+        case DEVICE_SIG_ATMEGA1284P:
+            deviceName = F("atmega1284p");
+            break;
+    }
+    console << F("\nActual MCU: ") << deviceName;
 #endif
 
-	console << F("\nLow fuse: ") << _HEX(lowFuse)
+	console << F("\nSignature: ") << _HEX(deviceSignature)
+	        << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
 			<< F("\nExtended fuse: ") << _HEX(extendedFuse);
 
@@ -1253,49 +1311,11 @@ void setup(void)
 	// flash usage.
 	console << F(
 	        "\n"
-             "F_CPU: " F_CPU_STR "\n"
+             "MCU clock: " F_CPU_STR "\n"
              "Firmware: " FIRMWARE_VERSION "\n"
-             "Epoch: " STRINGIFY(RTCX_EPOCH) "\n"
-             "Comms:"
-#ifdef COMMS_XRF
-             " XRF"
-#endif
-#ifdef COMMS_W5100
-             " W5100"
-#endif
-#ifdef COMMS_W5500
-             " W5500"
-#ifdef ETHERNET2_USE_WDT
-             "(wdt_reset)"
-#endif
-#endif
-             "\n"
-             "Features:"
-#ifdef FEATURE_FLC100
-             " FLC100"
-#endif
-#ifdef FEATURE_RIOMETER
-             " RIOMETER"
-#endif
-#ifdef FEATURE_HIH61XX_SOFTWIRE
-             " HIH61XX(SoftWire)"
-#endif
-#ifdef FEATURE_HIH61XX_WIRE
-             " HIH61XX(Wire)"
-#endif
-#ifdef FEATURE_MLX90614
-             " MLX90614"
-#endif
-#ifdef FEATURE_GNSS
-             " GNSS"
-#endif
-#ifdef FEATURE_DATA_QUALITY
-             " DATA_QUALITY"
-#endif
-#ifdef FEATURE_BUSY_TIME_PIN
-            " BUSY_TIME_PIN(" EXPAND_STR(FEATURE_BUSY_TIME_PIN) ")"
-#endif
-             "\n");
+             "Epoch: " STRINGIFY(RTCX_EPOCH) "\n")
+            << ((__FlashStringHelper*)comms_P) << endl
+            << ((__FlashStringHelper*)features_P) << endl;
 
 	// Only use the LED following a reset initiated by user action
 	// (JTAG, external reset and power on). Exclude brown-out and
@@ -1670,8 +1690,9 @@ void setup(void)
 
 	// Set counter RTC time from the hardware RTC
 	struct RTCx::tm tm;
+	CounterRTC::Time t;
 	if (rtc.readClock(&tm)) {
-		CounterRTC::Time t;
+		//CounterRTC::Time t;
 		t.setSeconds(RTCx::mktime(tm));
 		cRTC.setTime(t);
 		lastAcknowledgement = t;
@@ -1737,11 +1758,47 @@ void setup(void)
 	gnss_clock.set1ppsCallback(gnssPpsCallback);
 #endif
 
-	console.println(F("Setup complete"));
+	console.println(F("Configuration complete"));
 	console.flush();
 
     commandHandler.begin(commandBuffer, sizeof(commandBuffer), commands, numCommands, unknownCommand, commandTooLong);
-	setAlarm();
+
+    // Attempt to send a message with useful information about the system. If the logging daemon is not running then
+    // then it will not be sent if the message stack becomes full.
+    const uint16_t bufferLength = 512;
+    uint8_t buffer[bufferLength];
+    AWPacket packet;
+    packet.setKey(hmacKey, sizeof(hmacKey));
+    packet.setTimestamp(t.getSeconds(), t.getFraction());
+    packet.putHeader(buffer, sizeof(buffer));
+
+    packet.putDataUint8(buffer, sizeof(buffer), AWPacket::tagRebootFlags, mcusrCopy);
+    packet.putString(buffer, sizeof(buffer), AWPacket::tagCurrentFirmware, firmwareVersion);
+    packet.putLogMessage_P(buffer, sizeof(buffer), F("Target MCU: " EXPAND_STR(CPU_NAME)));
+
+    char actualMcu[40];
+    strlcpy_P(actualMcu, PSTR("Actual MCU: "), sizeof(actualMcu));
+    strlcat_P(actualMcu, (const char*)deviceName, sizeof(actualMcu));
+    packet.putLogMessage(buffer, sizeof(buffer), actualMcu);
+    packet.putLogMessage_P(buffer, sizeof(buffer), PSTR("Frequency: " F_CPU_STR));
+    packet.putLogMessage_P(buffer, sizeof(buffer), comms_P);
+    packet.putLogMessage_P(buffer, sizeof(buffer), features_P);
+
+
+
+    // Add the signature
+    packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
+
+    // Send the message
+    console << F("Sending startup message") << endl;
+    commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+    ++messageCount;
+
+    // Set the alarm to start taking samples
+    console << F("Setting sample timers") << endl;
+    setAlarm();
+
+    console << F("Setup done") << endl;
 }
 
 
