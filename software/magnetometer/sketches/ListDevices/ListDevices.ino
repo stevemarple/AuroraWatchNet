@@ -27,7 +27,11 @@ uint8_t generalCallLatch(void)
 
 void setup(void)
 {
+#if F_CPU >= 12000000L
+    Serial.begin(115200);
+#else
     Serial.begin(9600);
+#endif
     Wire.begin();
 
 	// Turn on 5V supply
