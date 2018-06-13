@@ -80,6 +80,7 @@ public:
 		tagGnssStatus = 29,
 		tagGnssLocation = 30,
 		tagGenData = 31,
+		tagLogMessage = 32,
 	};
 
 	static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean
@@ -155,8 +156,17 @@ public:
 							  uint8_t tag, uint32_t data) const;
 	bool putData(uint8_t* buffer, size_t bufferLength,
 				 uint8_t tag, const void* data) const;
-	bool putString(uint8_t* buffer, size_t bufferLength,
-				   uint8_t tag, const void* str) const;
+
+#ifdef __AVR__
+    inline bool putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str) const;
+    // When string is stored in flash memory
+    inline bool putString_P(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* flashStr) const;
+    inline bool putLogMessage_P(uint8_t* buffer, size_t bufferLength, const char* flashLogMessage) const;
+    inline bool putLogMessage_P(uint8_t* buffer, size_t bufferLength, const __FlashStringHelper *flashLogMessage) const;
+#else
+    bool putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str) const;
+#endif
+    inline bool putLogMessage(uint8_t* buffer, size_t bufferLength, const char* logMessage) const;
 
 	bool putGetFirmwarePage(uint8_t* buffer, size_t bufferLength,
 							const char* version, uint16_t pageNumber) const;
@@ -202,6 +212,10 @@ private:
 
 	uint8_t keyLen; // In bytes
 	uint8_t *key;
+
+#ifdef __AVR__
+    bool _putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str, bool inFlash) const;
+#endif
 
 };
 
@@ -391,6 +405,36 @@ bool AWPacket::putDataUint32(uint8_t* buffer, size_t bufferLength,
 {
 	return putData(buffer, bufferLength, tag, &data);
 }
+
+
+#ifdef __AVR__
+bool AWPacket::putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str) const
+{
+    return _putString(buffer, bufferLength, tag, str, false);
+}
+
+// When string is stored in flash memory
+bool AWPacket::putString_P(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* flashStr) const
+{
+    return _putString(buffer, bufferLength, tag, flashStr, true);
+}
+
+bool AWPacket::putLogMessage_P(uint8_t* buffer, size_t bufferLength, const char* flashLogMessage) const
+{
+    return _putString(buffer, bufferLength, tagLogMessage, flashLogMessage, true);
+}
+
+bool AWPacket::putLogMessage_P(uint8_t* buffer, size_t bufferLength, const __FlashStringHelper *flashLogMessage) const
+{
+    return _putString(buffer, bufferLength, tagLogMessage, flashLogMessage, true);
+}
+#endif
+
+bool AWPacket::putLogMessage(uint8_t* buffer, size_t bufferLength, const char* logMessage) const
+{
+    return putString(buffer, bufferLength, tagLogMessage, logMessage);
+}
+
 
 
 #endif

@@ -398,7 +398,13 @@ tag_data = {
         'length': 0,
         'decoder': decode_adc_data,
         'formatter': format_adc_data,
-    }
+    },
+    'log_message': {
+        'id': 32,
+        'length': 0,
+        # 'decoder': decode_l
+        'formatter': format_null_terminated_string,
+    },
 }
 
 tag_id_to_name = dict()

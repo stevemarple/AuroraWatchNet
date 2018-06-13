@@ -317,14 +317,24 @@ bool AWPacket::putData(uint8_t* buffer, size_t bufferLength,
 	return true;
 }
 
-bool AWPacket::putString(uint8_t* buffer, size_t bufferLength,
-						 uint8_t tag, const void* str) const
+
+#ifdef __AVR__
+bool AWPacket::_putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str, bool inFlash) const
+#else
+bool AWPacket::putString(uint8_t* buffer, size_t bufferLength, uint8_t tag, const void* str) const
+#endif
 {
 	uint16_t packetLen = getPacketLength(buffer);
 	uint16_t tagLen = tagLengths[tag];
 	uint16_t payloadLen;
 	if (tagLen == 0) {
-		payloadLen = strlen((const char*)str);
+#ifdef __AVR__
+	    if (inFlash)
+    		payloadLen = strlen_P((const char*)str);
+        else
+#endif
+    		payloadLen = strlen((const char*)str);
+
 		if (packetLen + payloadLen + 3 > bufferLength)
 			return false;
 		else
@@ -345,7 +355,14 @@ bool AWPacket::putString(uint8_t* buffer, size_t bufferLength,
 		avrToNetwork(p, &payloadLen, sizeof(payloadLen)); // Write data size
 		p += sizeof(payloadLen);
 	}
-	memcpy(p, str, payloadLen);
+
+#ifdef __AVR__
+	if (inFlash)
+    	memcpy_P(p, str, payloadLen);
+    else
+#endif
+    	memcpy(p, str, payloadLen);
+
 	return true;
 }
 
