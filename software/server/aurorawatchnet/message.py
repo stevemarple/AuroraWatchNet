@@ -61,7 +61,7 @@ flags = {
 
 epoch_flags = {
     1970: 0,
-    1998: flags['epoch'],
+    2018: flags['epoch'],
 }
 
 
@@ -504,7 +504,7 @@ def get_retries(buf):
 
 def get_epoch(buf):
     if buf[flags_offset] & (1 << flags_epoch_bit):
-        return 1998
+        return 2018
     else:
         return 1970
 

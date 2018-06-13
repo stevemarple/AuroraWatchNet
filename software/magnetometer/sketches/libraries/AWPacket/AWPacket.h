@@ -11,7 +11,7 @@
 
 // Meaning of the epoch flag bit
 #define AWPACKET_EPOCH_FLAG_0 1970
-#define AWPACKET_EPOCH_FLAG_1 1998
+#define AWPACKET_EPOCH_FLAG_1 2018
 
 class AWPacket {
 public:

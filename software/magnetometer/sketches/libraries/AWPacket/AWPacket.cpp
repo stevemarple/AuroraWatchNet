@@ -13,7 +13,7 @@ extern "C" {
 #error AWPACKET_EPOCH must be defined
 #endif
 
-#if AWPACKET_EPOCH != 1970 && AWPACKET_EPOCH != 1998
+#if AWPACKET_EPOCH != 1970 && AWPACKET_EPOCH != 2018
 #error Bad value for AWPACKET_EPOCH
 #endif
 
