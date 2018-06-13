@@ -450,7 +450,7 @@ def log_message_events(message, t, message_tags, is_response=False):
 
     tags_to_log = ['time_adjustment', 'reboot_flags', 'reboot',
                    'current_firmware', 'read_eeprom', 'eeprom_contents',
-                   'upgrade_firmware', 'get_firmware_page', 'firmware_page']
+                   'upgrade_firmware', 'get_firmware_page', 'firmware_page', 'log_message']
     for tag_name in tags_to_log:
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
