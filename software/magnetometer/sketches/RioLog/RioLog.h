@@ -20,4 +20,22 @@
 #else
 #error Unknown F_CPU value
 #endif
+
+// Signatures to identify actual MCU fitted
+#ifdef __AVR__
+#define DEVICE_SIG_ATMEGA1284P 0x1e9705
+#define DEVICE_SIG_ATMEGA1284 0x1e9706
+#define DEVICE_SIG_ATMEGA644P 0x1e960a
+#define DEVICE_SIG_ATMEGA644  0x1e9609
+#endif
+
+#ifndef CPU_NAME
+#ifdef __AVR__
+#define CPU_NAME __AVR_DEVICE_NAME__
+#else
+#error Please define CPU_NAME
+#endif
+#endif
+
+
 #endif
