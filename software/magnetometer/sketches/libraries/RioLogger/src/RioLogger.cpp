@@ -111,7 +111,7 @@ void RioLogger::initGpio(void) const
 
 void RioLogger::process(void)
 {
-	static uint8_t magNum; // sub-state number
+	static uint8_t rioNum; // sub-state number
 	static uint8_t tmp = 0;
 	static uint8_t sampleNum = 0;
 
@@ -146,7 +146,6 @@ void RioLogger::process(void)
 		break;
 
 	case advanceScan:
-		// TODO: Advance scan step
 		setScanPins();
 		presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
 		for (uint8_t i = 0; i < numColumns; ++i) {
@@ -199,12 +198,12 @@ void RioLogger::process(void)
 				 */
 				sensorTemperature = ((adcResult * 10) >> (int(tempConfig.getResolution()) + tempConfig.getGain().log2() - 12)) - 6000;
 				state = configuringRioADCs;
-				magNum = 0;
+				rioNum = 0;
 				tmp = 0;
 			}
 			else if (timeout.isExpired()) {
 				state = configuringRioADCs;
-				magNum = 0;
+				rioNum = 0;
 				tmp = 0;
 			}
 
@@ -215,20 +214,20 @@ void RioLogger::process(void)
 		// Write configuration to each ADC. Use tmp as flag to indicate a
 		// failed configuration attempt (and therefore to use the timeout
 		// delay).
-		if (magNum >= numColumns) {
+		if (rioNum >= numColumns) {
 			state = presampleHold;
-			magNum = 0;
+			rioNum = 0;
 			tmp = 0;
 			sampleNum = 0;
 			break;
 		}
 
-		if (adcPresent[magNum] && (tmp == 0 || !timeout.isExpired())) {
+		if (adcPresent[rioNum] && (tmp == 0 || !timeout.isExpired())) {
 			// ADC present and, either no attempts made to configure this ADC
 			// or still within the timeout period.
-			if (adc[magNum].configure(adcConfig[magNum]) ==
+			if (adc[rioNum].configure(adcConfig[rioNum]) ==
 				MCP342x::errorNone) {
-				++magNum;
+				++rioNum;
 				tmp = 0; // Clear failed flag
 			}
 			else if (tmp == 0) {
@@ -239,7 +238,7 @@ void RioLogger::process(void)
 		else
 			// May have reached this point because the ADC could not be
 			// configured. Don't do anything, it will be checked later.
-			++magNum;
+			++rioNum;
 		break;
 
 	case presampleHold:
@@ -260,7 +259,7 @@ void RioLogger::process(void)
 							  (adcConfig[0].getConversionTime() / 2),
 							  AsyncDelay::MICROS);
 				state = readingRioADCs;
-				magNum = 0;
+				rioNum = 0;
 				break;
 			}
 			else if (tmp == 0) {
@@ -276,7 +275,7 @@ void RioLogger::process(void)
 						  (adcConfig[0].getConversionTime() / 2),
 						  AsyncDelay::MICROS);
 			state = readingRioADCs;
-			magNum = 0;
+			rioNum = 0;
 		}
 		break;
 
@@ -295,16 +294,16 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (magNum >= numColumns) {
+		if (rioNum >= numColumns) {
 			++sampleNum;
 			state = convertingRioADCs;
-			magNum = 0;
+			rioNum = 0;
 			tmp = 0;
 			break;
 		}
 
-		if (!adcPresent[magNum]) {
-			++magNum;
+		if (!adcPresent[rioNum]) {
+			++rioNum;
 			break;
 		}
 
@@ -313,15 +312,15 @@ void RioLogger::process(void)
 			MCP342x::Config status;
 			long adcResult;
 
-			err = adc[magNum].read(adcResult, status);
+			err = adc[rioNum].read(adcResult, status);
 			if (!err && status.isReady()) {
 				// Have valid data
 				MCP342x::normalise(adcResult, status);
-				magDataSamples[magNum][sampleNum] = adcResult;
-				++magNum;
+				magDataSamples[rioNum][sampleNum] = adcResult;
+				++rioNum;
 			}
 			else if (timeout.isExpired()) {
-				++magNum;
+				++rioNum;
 			}
 		}
 		break;
