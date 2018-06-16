@@ -28,7 +28,7 @@ public:
 	static const uint8_t numAxes = 3;
 	static const uint8_t magicLength = 2;
 	static const char magic[magicLength];
-	static const uint16_t tagLengths[31];
+	static const uint16_t tagLengths[33];
 
 	static const uint8_t sizeOfTag = 1;
 	static const uint8_t sizeOfPacketLength = 2;
@@ -81,6 +81,7 @@ public:
 		tagGnssLocation = 30,
 		tagGenData = 31,
 		tagLogMessage = 32,
+		// Remember to update tagLengths when adding new tags!
 	};
 
 	static const uint8_t numSamplesMethodMedian = 0x01; // otherwise mean

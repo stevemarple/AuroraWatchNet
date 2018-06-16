@@ -23,7 +23,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[31] = {
+const uint16_t AWPacket::tagLengths[33] = {
 	6, // 0 = X
 	6, // 1 = Y
 	6, // 2 = Z
@@ -58,6 +58,8 @@ const uint16_t AWPacket::tagLengths[31] = {
 	3, // 28 = relHumidity
 	8, // 29 = gnssStatus
 	0, // 30 = gnssLocation
+	0, // 31 = genData
+	0, // 32 = logMessage
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
