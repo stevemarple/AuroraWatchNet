@@ -323,6 +323,7 @@ volatile bool dataQualityChanged = false;
 
 //uint8_t deviceSignature[3] = {0, 0, 0};
 uint32_t deviceSignature = 0;
+__FlashStringHelper *deviceName = nullptr;
 
 // Commands
 void cmdEepromRead(const char *s);
@@ -1194,6 +1195,29 @@ void generalCallLatch(void)
 }
 
 
+void createDeviceName(void)
+{
+    deviceName = F("Unknown MCU");
+
+    // __FlashStringHelper *deviceName = F("Unknown MCU");
+#if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
+    switch (deviceSignature) {
+        case DEVICE_SIG_ATMEGA644:
+            deviceName = F("atmega644");
+            break;
+        case DEVICE_SIG_ATMEGA644P:
+            deviceName = F("atmega644p");
+            break;
+        case DEVICE_SIG_ATMEGA1284:
+            deviceName = F("atmega1284");
+            break;
+        case DEVICE_SIG_ATMEGA1284P:
+            deviceName = F("atmega1284p");
+            break;
+    }
+#endif
+}
+
 void setup(void)
 {
 	get_mcusr();
@@ -1272,7 +1296,6 @@ void setup(void)
 
     console << F("\n\n--------\nTarget MCU: " EXPAND_STR(CPU_NAME));
 
-    __FlashStringHelper *deviceName = F("Unknown MCU");
 #if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
     switch (deviceSignature) {
         case DEVICE_SIG_ATMEGA644:
@@ -1288,9 +1311,11 @@ void setup(void)
             deviceName = F("atmega1284p");
             break;
     }
-    console << F("\nActual MCU: ") << deviceName;
 #endif
 
+    console << F("\nActual MCU: ") << deviceName;
+
+#ifdef __AVR__
 	console << F("\nSignature: ") << _HEX(deviceSignature)
 	        << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
@@ -1304,6 +1329,7 @@ void setup(void)
 	console << F("\nRC osc.: ") << isRcOsc
 			<< F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
 			<< F("\nMCUSR: ") << _HEX(mcusrCopy);
+#endif
 
 
 	// Print the firmware version, clock speed and supported
@@ -1764,33 +1790,51 @@ void setup(void)
     commandHandler.begin(commandBuffer, sizeof(commandBuffer), commands, numCommands, unknownCommand, commandTooLong);
 
     // Attempt to send a message with useful information about the system. If the logging daemon is not running then
-    // then it will not be sent if the message stack becomes full.
+    // message stack could become full and none of these messages will be delivered. The messages are put into the
+    // queue but are not sent until commsHandler.process() is called inside loop(). The message most recently added
+    // to the queue transmitted first so add them in the reverse order to the desired reception order.
     const uint16_t bufferLength = 512;
     uint8_t buffer[bufferLength];
+    cRTC.getTime(t);
+
     AWPacket packet;
+#ifdef FEATURE_RIOMETER
+    // Send 2nd page of EEPROM
+    packet.setKey(hmacKey, sizeof(hmacKey));
+    // cRTC.getTime(t);
+    packet.setTimestamp(t.getSeconds(), t.getFraction());
+    packet.putHeader(buffer, sizeof(buffer));
+    packet.putEepromContents(buffer, sizeof(buffer), 256, 256);
+    packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
+    commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+    ++messageCount;
+#endif
+
+    // Send useful data from first 256 bytes of EEPROM. putEepromContents() automatically redacts the key.
+    // cRTC.getTime(t);
     packet.setKey(hmacKey, sizeof(hmacKey));
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
+    packet.putEepromContents(buffer, sizeof(buffer), 0, 256);
+    packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
+    commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+    ++messageCount;
 
+    // Send hardware and firmware details
+    char actualMcu[40];
+    packet.setKey(hmacKey, sizeof(hmacKey));
+    packet.setTimestamp(t.getSeconds(), t.getFraction());
+    packet.putHeader(buffer, sizeof(buffer));
     packet.putDataUint8(buffer, sizeof(buffer), AWPacket::tagRebootFlags, mcusrCopy);
     packet.putString(buffer, sizeof(buffer), AWPacket::tagCurrentFirmware, firmwareVersion);
     packet.putLogMessage_P(buffer, sizeof(buffer), F("Target MCU: " EXPAND_STR(CPU_NAME)));
-
-    char actualMcu[40];
     strlcpy_P(actualMcu, PSTR("Actual MCU: "), sizeof(actualMcu));
-    strlcat_P(actualMcu, (const char*)deviceName, sizeof(actualMcu));
+    strlcat_P(actualMcu, (const char*)deviceName, sizeof(actualMcu)); // Device name is stored in flash
     packet.putLogMessage(buffer, sizeof(buffer), actualMcu);
     packet.putLogMessage_P(buffer, sizeof(buffer), PSTR("Frequency: " F_CPU_STR));
     packet.putLogMessage_P(buffer, sizeof(buffer), comms_P);
     packet.putLogMessage_P(buffer, sizeof(buffer), features_P);
-
-
-
-    // Add the signature
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
-
-    // Send the message
-    console << F("Sending startup message") << endl;
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
     ++messageCount;
 
@@ -2239,7 +2283,7 @@ void loop(void)
 			}
 #endif
 			if (firstMessage) {
-				// Cancelled when first response is received
+				// Cancelled when first response is received. This information might seem
 				packet.putDataUint8(buffer, sizeof(buffer),
 									AWPacket::tagRebootFlags, mcusrCopy);
 				packet.putString(buffer, sizeof(buffer),
