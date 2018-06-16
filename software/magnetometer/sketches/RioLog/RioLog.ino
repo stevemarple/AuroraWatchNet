@@ -2483,7 +2483,6 @@ void cmdEepromWrite(const char *s)
 
 void cmdVerbosity(const char *s)
 {
-    char *ep;
     if (*s++ == '=') {
         char *ep;
         long v = strtol(s, &ep, 0);
