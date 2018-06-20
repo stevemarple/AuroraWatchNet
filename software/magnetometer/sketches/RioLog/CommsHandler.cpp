@@ -40,7 +40,7 @@ CommsHandler::CommsHandler(void* msgBuffer, uint16_t msgBufferLen,
 						   void* stackBuffer, uint16_t stackBufferLen) :
 	errno(errorNoError),
 	messageBufferLen(msgBufferLen),
-	messageBuffer(msgBuffer),
+	messageBuffer((uint8_t*)msgBuffer),
 	messageLen(0),
 	bytesSent(0),
 	responseLen(0),
