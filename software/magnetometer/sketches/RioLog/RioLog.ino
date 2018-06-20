@@ -323,7 +323,7 @@ volatile bool dataQualityChanged = false;
 
 //uint8_t deviceSignature[3] = {0, 0, 0};
 uint32_t deviceSignature = 0;
-__FlashStringHelper *deviceName = nullptr;
+const __FlashStringHelper *deviceName = nullptr;
 
 // Commands
 void cmdEepromRead(const char *s);
@@ -1432,8 +1432,8 @@ void setup(void)
 		eepromAddress = EEPROM_ADC_ADDRESS_LIST;
 		sz =  EEPROM_ADC_ADDRESS_LIST_SIZE;
 #elif defined (FEATURE_RIOMETER)
-		eepromAddress = EEPROM_RIO_ADC_ADDRESS_LIST;
-		sz =  EEPROM_RIO_ADC_ADDRESS_LIST_SIZE;
+		eepromAddress = EEPROM_GENERIC_ADC_ADDRESS_LIST;
+		sz =  EEPROM_GENERIC_ADC_ADDRESS_LIST_SIZE;
 #endif    
 		if (i < sz) {
 			uint8_t i2cAddress =
@@ -1446,8 +1446,8 @@ void setup(void)
 		eepromAddress = EEPROM_ADC_CHANNEL_LIST;
 		sz =  EEPROM_ADC_CHANNEL_LIST_SIZE;
 #elif defined (FEATURE_RIOMETER)
-		eepromAddress = EEPROM_RIO_ADC_CHANNEL_LIST;
-		sz =  EEPROM_RIO_ADC_CHANNEL_LIST_SIZE;
+		eepromAddress = EEPROM_RIO_RIOMETER_ADC_CHANNEL_LIST;
+		sz =  EEPROM_RIO_RIOMETER_ADC_CHANNEL_LIST_SIZE;
 #endif    
 		if (i < sz) {
 			uint8_t chan =
@@ -1462,7 +1462,7 @@ void setup(void)
 			res = eeprom_read_byte((uint8_t*)(EEPROM_ADC_RESOLUTION_LIST + i));
 #elif defined (FEATURE_RIOMETER)
 		// Same for all
-		res = eeprom_read_byte((uint8_t*)(EEPROM_RIO_ADC_RESOLUTION));
+		res = eeprom_read_byte((uint8_t*)(EEPROM_RIO_RIOMETER_ADC_RESOLUTION));
 #else
 #error Bad logic
 #endif
@@ -1474,8 +1474,8 @@ void setup(void)
 		if (i < EEPROM_ADC_GAIN_LIST_SIZE)
 			gain = eeprom_read_byte((uint8_t*)(EEPROM_ADC_GAIN_LIST + i));
 #elif defined (FEATURE_RIOMETER)
-		// Same for all
-		gain = eeprom_read_byte((uint8_t*)(EEPROM_RIO_ADC_GAIN));
+		if (i < EEPROM_RIO_RIOMETER_ADC_GAIN_LIST_SIZE)
+			gain = eeprom_read_byte((uint8_t*)(EEPROM_RIO_RIOMETER_ADC_GAIN_LIST + i));
 #else
 #error Bad logic
 #endif
