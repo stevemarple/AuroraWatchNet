@@ -79,7 +79,7 @@ public:
 		tagRelHumidity = 28,
 		tagGnssStatus = 29,
 		tagGnssLocation = 30,
-		tagGenData = 31,
+		tagAdcData = 31,
 		tagLogMessage = 32,
 		// Remember to update tagLengths when adding new tags!
 	};

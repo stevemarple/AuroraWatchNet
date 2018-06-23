@@ -58,7 +58,7 @@ const uint16_t AWPacket::tagLengths[33] = {
 	3, // 28 = relHumidity
 	8, // 29 = gnssStatus
 	0, // 30 = gnssLocation
-	0, // 31 = genData
+	0, // 31 = adcData
 	0, // 32 = logMessage
 };
 

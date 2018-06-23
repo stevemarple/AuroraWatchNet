@@ -2225,7 +2225,7 @@ void loop(void)
 					}
 #elif defined (FEATURE_RIOMETER)
 				packet.putAdcData(buffer, sizeof(buffer),
-								  AWPacket::tagGenData, sensorShield.getResGain(0),
+								  AWPacket::tagAdcData, sensorShield.getResGain(0),
 								  sensorShield.getNumBeams(), sensorShield.getData());
 #else
 #error Bad logic
