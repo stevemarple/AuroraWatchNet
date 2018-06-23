@@ -28,7 +28,7 @@ public:
 	static const uint8_t numAxes = 3;
 	static const uint8_t magicLength = 2;
 	static const char magic[magicLength];
-	static const uint16_t tagLengths[33];
+	static const uint16_t tagLengths[34];
 
 	static const uint8_t sizeOfTag = 1;
 	static const uint8_t sizeOfPacketLength = 2;
@@ -81,6 +81,7 @@ public:
 		tagGnssLocation = 30,
 		tagAdcData = 31,
 		tagLogMessage = 32,
+		tagGenDataS32 = 33, // Generic data, signed 32 bit
 		// Remember to update tagLengths when adding new tags!
 	};
 
@@ -187,6 +188,8 @@ public:
 	bool putAdcData(uint8_t* buffer, size_t bufferLength,
 					uint8_t tag, uint8_t resGain, uint8_t numElems,
 					const int32_t* data) const;
+	bool putGenData(uint8_t* buffer, size_t bufferLength, uint8_t dataId,
+	                uint16_t numElems, const int32_t* data) const;
 	bool putPadding(uint8_t* buffer, size_t bufferLength,
 					uint16_t paddingLength) const;
 	bool putSignature(uint8_t* buffer, size_t bufferLength,

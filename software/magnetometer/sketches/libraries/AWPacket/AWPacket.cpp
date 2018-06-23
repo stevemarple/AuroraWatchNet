@@ -23,7 +23,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[33] = {
+const uint16_t AWPacket::tagLengths[34] = {
 	6, // 0 = X
 	6, // 1 = Y
 	6, // 2 = Z
@@ -60,6 +60,7 @@ const uint16_t AWPacket::tagLengths[33] = {
 	0, // 30 = gnssLocation
 	0, // 31 = adcData
 	0, // 32 = logMessage
+	0, // 33 = genDataS32
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
@@ -493,6 +494,33 @@ bool AWPacket::putAdcData(uint8_t* buffer, size_t bufferLength,
 	*p++ = resGain;
 	const uint8_t *dp = (const uint8_t*)data;
 	for (uint8_t i = 0; i < numElems; ++i) {
+		avrToNetwork(p, dp, elemSize);
+		p += elemSize;
+		dp += elemSize;
+	}
+	return true;
+}
+
+
+bool AWPacket::putGenData(uint8_t* buffer, size_t bufferLength, uint8_t dataId,
+                          uint16_t numElems, const int32_t* data) const
+{
+	const uint8_t elemSize = sizeof(*data);
+	uint16_t payloadLength = (elemSize * numElems) + 1;
+	uint16_t tagLen = payloadLength + sizeOfTag + sizeOfPacketLength;
+	uint16_t len = getPacketLength(buffer);
+	if (len + tagLen > bufferLength)
+		return false;
+
+	setPacketLength(buffer, len + tagLen);
+	uint8_t *p = buffer + len;
+	*p++ = (uint8_t)tagGenDataS32;
+	avrToNetwork(p, &payloadLength, sizeof(payloadLength));
+	p += sizeof(payloadLength);
+
+	*p++ = dataId;
+	const uint8_t *dp = (const uint8_t*)data;
+	for (uint16_t i = 0; i < numElems; ++i) {
 		avrToNetwork(p, dp, elemSize);
 		p += elemSize;
 		dp += elemSize;
