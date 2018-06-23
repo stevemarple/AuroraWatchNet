@@ -390,6 +390,61 @@ def write_generic_adc_data(t, message_tags, fstr, extension, message, config=Non
         pass
 
 
+def write_generic_data(t, message_tags, fstr, extension, message, config=None):
+    global generic_adc_data_file
+    sec = 'genericdata'
+    try:
+        epoch = awn.message.get_epoch(message)
+        generic_adc_data_file = get_file_for_time(t, generic_adc_data_file, fstr, extension=extension)
+        if config and config.has_option(sec, 'mapping'):
+            mapping = config.get(sec, 'mapping')
+        else:
+            mapping = None
+        if config and config.has_option(sec, 'scale_factor'):
+            scale_factor = awn.safe_eval(config.get(sec, 'scale_factor'))
+        else:
+            scale_factor = 1.0
+        if config and config.has_option(sec, 'offset'):
+            offset = awn.safe_eval(config.get(sec, 'offset'))
+        else:
+            offset = 0.0
+        if config and config.has_option(sec, 'format'):
+            format = config.get(sec, 'format')
+        else:
+            format = '%f'
+
+        # To do, handle other variations
+        tag_name = 'gen_data_s32'
+        sep = '\t'
+        eol = '\n'
+        if tag_name in message_tags:
+            if len(message_tags[tag_name]) != 1:
+                raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
+            data = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
+
+            data_id = data.pop(0)
+            if mapping is not None:
+                if len(data) != len(mapping):
+                    raise DataMappingException('Incorrect mapping size')
+                data = [data[i] for i in mapping]
+            a = []
+            a.append('%.06f' % t)
+            for d in  data:
+                a.append(format % ((d * scale_factor) + offset))
+
+            generic_adc_data_file.write(sep.join(a))
+            generic_adc_data_file.write(eol)
+
+        global close_after_write
+        if close_after_write:
+            generic_adc_data_file.close()
+
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        print(e)
+        pass
+
 def iso_timestamp(t):
     """
     Create and ISO timestamp with microseconds. Uses UTC.
@@ -1267,6 +1322,12 @@ while running:
                     write_gnss_data(message_tags,
                                     config.get('gnss', 'filename'))
 
+                if config.has_option('genericdata', 'filename') and not awn.message.is_response_message(message):
+                    write_generic_data(timestamp_s, message_tags,
+                                           config.get('genericdata', 'filename'),
+                                           data_quality_extension, message, config)
+
+                # Deprecated?
                 if config.has_option('genericadcdata', 'filename') and not awn.message.is_response_message(message):
                     write_generic_adc_data(timestamp_s, message_tags,
                                            config.get('genericadcdata', 'filename'),
