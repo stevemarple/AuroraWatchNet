@@ -270,7 +270,7 @@ eeprom = {
         'format': 'B',
         'type': awn.safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if FLC100 sensor(s) fitted',
     },
     'mlx90614_present': {
