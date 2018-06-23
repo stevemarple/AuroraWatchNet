@@ -362,7 +362,11 @@ CommandOption commands[numCommands] = {
 uint16_t commsBlockSize = 0;
 
 // Allocate a buffer to use for messages. This must be able to hold the biggest message.
+#ifdef FEATURE_RIOMETER
+const uint16_t commsMessageBufferLen = 1024;
+#else
 const uint16_t commsMessageBufferLen = 512;
+#endif
 uint8_t commsMessageBuffer[commsMessageBufferLen];
 
 // The comms handler stores unacknowledged messages in a stack. Allocate a suitable size buffer for the stack to use.
@@ -2121,8 +2125,8 @@ void loop(void)
 
 			// Buffer for storing the binary AW packet. Will also be used
 			// when writing to SD card.
-			const uint16_t bufferLength = SD_SECTOR_SIZE;
-			uint8_t buffer[bufferLength]; // Sector size for SD card is 512 bytes
+			const uint16_t bufferLength = commsMessageBufferLen;
+			uint8_t buffer[bufferLength];
 
 			// Check system temperature
 			if (fanPin != 0xFF) {
@@ -2140,6 +2144,8 @@ void loop(void)
 
 
 #ifdef FEATURE_SD_CARD
+            // Check that the buffer can store an entire SD sector (512 bytes)
+            static_assert(bufferLength >= SD_SECTOR_SIZE, "Buffer must be larger than SD sector size");
 			if (useSd) {
 				// Check if the SD card circular buffer should be written to disk
 				char newFilename[sdFilenameLen];
@@ -2399,7 +2405,7 @@ void loop(void)
 			// change until the next sampling action.
 			AWPacket::incrementDefaultSequenceId();
 
-			// Buffer for storing the binary AW packet
+			// Buffer for assembling the binary AW packet
 			const uint16_t bufferLength = 256;
 			uint8_t buffer[bufferLength];
 
