@@ -201,6 +201,27 @@ def decode_res_gain(res_gain):
     gain = 2**(res_gain & 0b0011)
     return res, gain
 
+
+def decode_gen_data(data_fmt, tag_name, data_len, payload, epoch):
+    data_size = struct.Struct(data_fmt).size
+    fmt = '!B' + str((data_len - 1) / data_size) + data_fmt
+    return list(struct.unpack(fmt, str(payload))) # data ID followed by the data
+
+
+def format_gen_data(data_fmt, tag_name, data_len, payload, epoch):
+    data = decode_gen_data(data_fmt, tag_name, data_len, payload, epoch)
+    data_id = data.pop(0)
+    return ('ID=%d ' % data_id) + repr(data)
+
+
+def decode_gen_data_s32(tag_name, data_len, payload, epoch):
+    return decode_gen_data('i', tag_name, data_len, payload, epoch)
+
+
+def format_gen_data_s32(tag_name, data_len, payload, epoch):
+    return format_gen_data('i', tag_name, data_len, payload, epoch)
+
+
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
 # protocol but elsewhere referred to by name. In tag_data the keys are
@@ -405,6 +426,12 @@ tag_data = {
         # 'decoder': decode_l
         'formatter': format_null_terminated_string,
     },
+    'gen_data_s32': {
+        'id': 33,
+        'length': 0,
+        'decoder': decode_gen_data_s32,
+        'formatter': format_gen_data_s32,
+    }
 }
 
 tag_id_to_name = dict()
