@@ -760,7 +760,7 @@ def handle_packet_requests(message_tags):
 
 def packet_req_get_firmware_page(data):
     global requested_tags
-    unpacked_data = struct.unpack(awn.message.tag_data['get_firmware_page']['format'], buffer(data))
+    unpacked_data = struct.unpack(awn.message.tag_data['get_firmware_page']['format'], data)
     version = ''.join(unpacked_data[0:awn.message.firmware_version_max_length])
     version_str = version.split('\0', 1)[0]
 
