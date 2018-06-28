@@ -710,7 +710,7 @@ def get_firmware_details(version):
 
     # The CRC check must be computed over the entire temporary 
     # application section; extend as necessary
-    temp_app_size = (131072 - 4096) / 2
+    temp_app_size = int((131072 - 4096) / 2)
     if len(firmware) < temp_app_size:
         padding = chr(0xFF) * (temp_app_size - len(firmware))
         padded_firmware = firmware + padding
@@ -727,7 +727,7 @@ def get_firmware_details(version):
                         + ' ' + str(stated_crc))
     if version != stated_version:
         raise Exception('Version does not match with ' + crc_filename)
-    return stated_crc, len(firmware) / awn.message.firmware_block_size
+    return stated_crc, int(len(firmware) / awn.message.firmware_block_size)
 
 
 def handle_cmd_upgrade_firmware(version):
