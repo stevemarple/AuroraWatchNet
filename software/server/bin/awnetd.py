@@ -479,13 +479,13 @@ def write_to_log_file(t, s):
         logger.exception('Could not write to log file')
 
 
-def log_message_events(message, t, message_tags, is_response=False):
+def log_message_events(t, message_tags, epoch, is_response=False):
     """
     Write important events in a message or its response to a log file.
 
-    :param message:
     :param t:
     :param message_tags:
+    :param epoch:
     :param is_response:
     :return:
     """
@@ -509,12 +509,10 @@ def log_message_events(message, t, message_tags, is_response=False):
     for tag_name in tags_to_log:
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
-                tag_repr, data_repr, data_len = \
-                    awn.message.format_tag_payload(message, tag_name, tag_payload)
-                if data_len:
-                    lines.append(prefix + tag_name + ' ' + data_repr + '\n')
-                else:
-                    lines.append(prefix + tag_name + '\n')
+                data_repr = awn.message.format_tag_payload(tag_name, tag_payload, epoch,
+                                                           '\n' + prefix + tag_name + ' ')
+                lines.append(prefix + tag_name + ' ' + data_repr + '\n')
+
 
     # TODO
     # if ('upgrade_firmware' in message_tags and
@@ -1291,11 +1289,11 @@ while running:
 
                 # Keep logfile of important events
                 if config.has_option('logfile', 'filename'):
-                    log_message_events(message, timestamp_s, message_tags,
+                    log_message_events(timestamp_s, message_tags, epoch,
                                        is_response=awn.message.is_response_message(message))
                     if response is not None:
                         response_tags = awn.message.parse_packet(response)
-                        log_message_events(message, timestamp_s, response_tags,
+                        log_message_events(timestamp_s, response_tags, epoch,
                                            is_response=True)
 
                 if (config.has_option('cloud', 'filename') and

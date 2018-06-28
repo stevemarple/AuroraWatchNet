@@ -4,6 +4,7 @@
 from datetime import datetime
 import hmac
 import math
+import six
 import struct
 import time
 
@@ -115,25 +116,79 @@ def format_read_eeprom(tag_name, data_len, payload, epoch):
     else:
         return 'Data wrong length'
 
-
 def format_eeprom_contents(tag_name, data_len, payload, epoch):
     if data_len < 3:
         return 'Data too short'
     address = 256 * payload[0] + payload[1]
+    eeprom_data = payload[2:]
+    return format_eeprom_contents_inner(tag_name, address, eeprom_data, epoch)
+
+
+def format_eeprom_contents_inner(tag_name, address, eeprom_data, epoch):
+
     r = 'address=0x%04x ' % address
-    if address in eeprom.eeprom_address_to_key:
-        setting = eeprom.eeprom_address_to_key[address]
+    eeprom_data_len = len(eeprom_data)
+    # Try to format the results appropriately if possible.
+    if address in eeprom.eeprom_address_to_setting_name:
+        # The start address matches a known address in EEPROM
+        setting = eeprom.eeprom_address_to_setting_name[address]
+        setting_info = eeprom.eeprom[setting]
+        # Check that the size of the EEPROM data received matches the expected length for the setting
+        if 'size' in setting_info:
+            sz = setting_info['size']
+            if eeprom_data_len > sz:
+                # Multiple settings received. Split into two parts.
+                r1 = format_eeprom_contents_inner(tag_name, address, eeprom_data[0:sz], epoch)
+                r2 = format_eeprom_contents_inner(tag_name, address + sz, eeprom_data[sz:], epoch)
+                r = []
+                if isinstance(r1, six.string_types):
+                    r.append(r1) # Should expect in this case to always get a string
+                else:
+                    r.extend(r1)  # Assume a list
+                if isinstance(r2, six.string_types):
+                    r.append(r2)
+                else:
+                    r.extend(r2)
+                return r
+
+            elif eeprom_data_len < sz:
+                # Not the entire setting so cannot format correctly
+                setting = setting_info = None
+    else:
+        # Unknown start address
+        # TODO: check for the next start address
+        next_address = eeprom.find_next_address(address)
+        if next_address is not None: #  and next_address in eeprom.eeprom_address_to_setting_name:
+            skip_bytes = next_address - address
+            next_setting_name = eeprom.eeprom_address_to_setting_name[next_address]
+            if 'size' in eeprom.eeprom[next_setting_name] and eeprom.eeprom[next_setting_name]['size'] <= eeprom_data_len - skip_bytes:
+                r1 = format_eeprom_contents_inner(tag_name, address, eeprom_data[0:skip_bytes], epoch)
+                r2 = format_eeprom_contents_inner(tag_name, next_address, eeprom_data[skip_bytes:], epoch)
+                r = []
+                if isinstance(r1, six.string_types):
+                    r.append(r1) # Should expect in this case to always get a string
+                else:
+                    r.extend(r1)  # Assume a list
+                if isinstance(r2, six.string_types):
+                    r.append(r2)
+                else:
+                    r.extend(r2)
+                return r
+
+        setting = setting_info = None
+
+    if setting:
+        # Correct data for this setting
         r += '(%s) ' % setting
-        fmt = eeprom.eeprom[setting]['format']
-        order, quantity, elem_type = eeprom.parse_unpack_format(fmt)
-        data = struct.unpack(fmt, payload[2:])
+        order, quantity, elem_type = eeprom.parse_unpack_format(setting_info['format'])
+        data = struct.unpack(setting_info['format'], eeprom_data)
         if len(data) == 1:
             data = data[0]
             if elem_type == 's':
                 data = data.rstrip('\x00')
         r += repr(data)
     else:
-        r += '0x  ' + ' '.join(map(byte_hex, payload[2:]))
+        r += '(unknown %d bytes)  0x  %s' % (eeprom_data_len, ' '.join(map(byte_hex, eeprom_data)))
     return r
 
 
@@ -800,29 +855,25 @@ def print_tags(buf):
             return
         tag_name = tag_id_to_name[tag_id]
         tag = tag_data[tag_name]
-        # tag_len = tag_data[tag_name]['length']
         tag_len = tag['length']
         if tag_len == 0:
             data_len = (buf[i] << 8) + buf[i+1]
             i += 2
         else:
-            data_len = tag_len - 1    
-          
-        if 'formatter' in tag:
-            data_repr = tag['formatter'](tag_name, data_len, buf[i:(i+data_len)], epoch)
-        elif 'format' in tag:
-            data_repr = repr(list(struct.unpack(tag['format'],
-                                                str(buf[i:(i+data_len)]))))
-        else:
-            data_repr = '0x  ' + ' '.join(map(byte_hex, buf[i:(i+data_len)]))
-            
-        print(tag_name + ' (#' + str(tag_id) + '):  ' + data_repr)
+            data_len = tag_len - 1
+
+        tag_header_str = format_tag_header(tag_name, tag_id)
+        join_str = '\n' + (' ' * len(tag_header_str))
+        print(tag_header_str + format_tag_payload(tag_name, buf[i:(i+data_len)], epoch, join_str=join_str))
         i += data_len
 
 
-def format_tag_payload(buffer, tag_name, tag_payload):
+def format_tag_header(tag_name, tag_id):
+    return tag_name + ' (#' + str(tag_id) + '):  '
+
+
+def format_tag_payload(tag_name, tag_payload, epoch, join_str='\n    '):
     if 'formatter' in tag_data[tag_name]:
-        epoch = get_epoch(buffer)
         data_repr = tag_data[tag_name]['formatter'](tag_name,
                                                     len(tag_payload),
                                                     tag_payload,
@@ -833,8 +884,12 @@ def format_tag_payload(buffer, tag_name, tag_payload):
     else:
         data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload))
 
-    return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
-        data_repr, len(tag_payload)
+    if not isinstance(data_repr, six.string_types):
+        try:
+            data_repr = join_str.join(data_repr)
+        except:
+            data_repr = repr(data_repr)
+    return data_repr
 
 
 def decode_tag(tag_name, tag_payload, epoch):

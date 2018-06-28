@@ -2,6 +2,7 @@
 
 import random
 import re
+import struct
 
 import aurorawatchnet as awn
 
@@ -53,9 +54,22 @@ def make_hmac_key(key=None):
 def get_eeprom_addresses():
     r = {}
     for k in eeprom:
-        if 'address' in eeprom[k]:
-            r[eeprom[k]['address']] = k
+        r[eeprom[k]['address']] = k
     return r
+
+
+def compute_eeprom_setting_sizes():
+    global eeprom
+    for k in eeprom:
+        s = struct.Struct(eeprom[k]['format'])
+        eeprom[k]['size'] = s.size
+
+
+def find_next_address(address):
+    for a in sorted(eeprom_address_to_setting_name.keys()):
+        if a > address:
+            return a
+    return None
 
     
 # EEPROM address details. The key is derived from the C language name
@@ -537,7 +551,7 @@ eeprom = {
         'default': 0b00000011,
         'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
     },
-    
+
     # Riometer housekeeping #1 (0x220 - 0x234)
     # Default to measuring temperature on ADC board only (ADC3)
     'rio_housekeeping_1_adc_channel_list': {
@@ -941,4 +955,5 @@ eeprom = {
     },
 }
 
-eeprom_address_to_key = get_eeprom_addresses()
+compute_eeprom_setting_sizes()
+eeprom_address_to_setting_name = get_eeprom_addresses()
