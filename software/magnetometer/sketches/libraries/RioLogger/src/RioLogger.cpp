@@ -123,7 +123,7 @@ void RioLogger::process(void)
 		timestamp = 0;
 		sensorTemperature = INT_MIN; // Clear previous readings
 		for (uint8_t i = 0; i < getNumBeams(); ++i)
-			magData[i] = LONG_MIN;
+			data[i] = LONG_MIN;
 
 		state = powerUpHold;
 		break;
@@ -150,7 +150,7 @@ void RioLogger::process(void)
 		presampleDelay.start(presampleDelay_ms, AsyncDelay::MILLIS);
 		for (uint8_t i = 0; i < numColumns; ++i) {
 			for (uint8_t j = 0; j < maxSamples; ++j)
-				magDataSamples[i][j] = LONG_MIN;
+				dataSamples[i][j] = LONG_MIN;
 		}
 
 		state = convertingTemp;
@@ -316,7 +316,7 @@ void RioLogger::process(void)
 			if (!err && status.isReady()) {
 				// Have valid data
 				MCP342x::normalise(adcResult, status);
-				magDataSamples[rioNum][sampleNum] = adcResult;
+				dataSamples[rioNum][sampleNum] = adcResult;
 				++rioNum;
 			}
 			else if (timeout.isExpired()) {
@@ -356,7 +356,7 @@ void RioLogger::aggregate(void)
 			continue;
 
 		if (useMedian)
-			magData[calcBeamNum(scanState, i)] = median<long>(magDataSamples[i], numSamples);
+			data[calcBeamNum(scanState, i)] = median<long>(dataSamples[i], numSamples);
 		else {
 			// Mean. Ignore any values which are LONG_MIN since they
 			// represent sampling errors.
@@ -364,25 +364,25 @@ void RioLogger::aggregate(void)
 			long smallest, largest; // Initialised when first valid sample found
 			uint8_t count = 0;
 			for (uint8_t j = 0; j < numSamples; ++j) {
-				if (magDataSamples[i][j] != LONG_MIN) {
+				if (dataSamples[i][j] != LONG_MIN) {
 					// Sample is valid
 					if (count) {
-						if (magDataSamples[i][j] < smallest)
-							smallest = magDataSamples[i][j];
-						if (magDataSamples[i][j] > largest)
-							largest = magDataSamples[i][j];
+						if (dataSamples[i][j] < smallest)
+							smallest = dataSamples[i][j];
+						if (dataSamples[i][j] > largest)
+							largest = dataSamples[i][j];
 					}
 					else
-						largest = smallest = magDataSamples[i][j];
+						largest = smallest = dataSamples[i][j];
 					++count;
-					tmp += magDataSamples[i][j];
+					tmp += dataSamples[i][j];
 				}
 				if (trimSamples && count >= 3) {
 					// Remove largest and smallest values
 					tmp = tmp - largest - smallest;
 					count -= 2;
 				}
-				magData[calcBeamNum(scanState, i)] = tmp / count;
+				data[calcBeamNum(scanState, i)] = tmp / count;
 			}
 		}
 	}

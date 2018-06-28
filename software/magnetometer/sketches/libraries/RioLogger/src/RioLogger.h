@@ -24,7 +24,7 @@ class RioLogger {
 public:
 	static const uint8_t maxRows = EEPROM_RIO_NUM_ROWS_MAX;
 	static const uint8_t maxColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
-	static const uint8_t maxNumAdcs = maxRows;
+	static const uint8_t maxNumAdcs = maxColumns;
 	static const uint8_t maxNumBeams = maxRows * maxColumns;
 	static const unsigned long defaultPowerUpDelay_ms = 1000;
 	static unsigned long powerUpDelay_ms;
@@ -78,15 +78,15 @@ public:
 	}
 
 	inline const int32_t* getData(void) const {
-		return magData;
+		return data;
 	}
 
 	inline const int32_t* getDataSamples(uint8_t mag) const {
-		return magDataSamples[mag];
+		return dataSamples[mag];
 	}
 
 	inline int32_t getDataSamples(uint8_t mag, uint8_t sampleNum) const {
-		return magDataSamples[mag][sampleNum];
+		return dataSamples[mag][sampleNum];
 	}
 
 	inline uint8_t getResGain(uint8_t mag) const {
@@ -166,8 +166,12 @@ private:
 	// Data fields
 	CounterRTC::time_t timestamp;
 	int16_t sensorTemperature; // hundredths of degrees Celsius
-	int32_t magData[maxNumBeams];  // averaged from a number of samples
-	int32_t magDataSamples[maxNumAdcs][maxSamples]; // individual results from one row
+	int32_t data[maxNumBeams];  // averaged from a number of samples
+	int32_t dataSamples[maxNumAdcs][maxSamples]; // individual results from one row
+
+    // Housekeeping data. One set of housekeeping data can be sampled (once, no oversampling) during the settling
+    // time of the riometers.
+    int32_t housekeepingData[maxRows][maxNumAdcs];
 
 	uint8_t numSamples;
 	bool useMedian;
