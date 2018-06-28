@@ -81,13 +81,21 @@ public:
 		return data;
 	}
 
-	inline const int32_t* getDataSamples(uint8_t mag) const {
-		return dataSamples[mag];
+	inline const int32_t* getDataSamples(uint8_t rio) const {
+		return dataSamples[rio];
 	}
 
-	inline int32_t getDataSamples(uint8_t mag, uint8_t sampleNum) const {
-		return dataSamples[mag][sampleNum];
+	inline int32_t getDataSamples(uint8_t rio, uint8_t sampleNum) const {
+		return dataSamples[rio][sampleNum];
 	}
+
+    inline const int32_t* getHousekeepingData(uint8_t rowNum) const {
+        return housekeepingData[rowNum];
+    }
+
+    // Copy the housekeeping data to an external array, only taking results from the ADCs sampled.
+    // Returns number of values copied (will not exceed bufferLen)
+    uint8_t copyHousekeepingData(uint8_t rowNum, int32_t *buffer, uint8_t bufferLen) const;
 
 	inline uint8_t getResGain(uint8_t mag) const {
 		return (mag < maxNumAdcs) ? (adcConfig[mag] & 0x0F) : 0;
@@ -132,8 +140,9 @@ private:
 		powerUpHold,
 		readingTime,
 		advanceScan,
-		convertingTemp,
-		readingTemp,
+        configuringHousekeepingADCs,
+        convertingHousekeepingADCs,
+        readingHousekeepingADCs,
 		presampleHold,
 		configuringRioADCs,
 		convertingRioADCs,
@@ -154,8 +163,17 @@ private:
 
 	MCP342x adc[maxNumAdcs]; // X, Y, Z
 	MCP342x::Config adcConfig[maxNumAdcs];
+	MCP342x::Config housekeepingConfig[maxRows][maxNumAdcs];
 	MCP342x::Config tempConfig;
 	bool adcPresent[maxNumAdcs];
+
+    // Use a bitmask to indicate which ADCs are to be sampled for housekeeping data at each stage (LSB is first ADC).
+    // This can be set for each row of the scan. This matches how the settings are stored in EEPROM.
+    uint8_t adcMask;
+    uint8_t houseKeepingAdcMask[maxRows];
+
+
+    static_assert(maxNumAdcs <= 8 * sizeof(houseKeepingAdcMask[0]), "Not enough bits in houseKeepingAdcMask type");
 
 	AsyncDelay delay;
 	AsyncDelay timeout;
@@ -174,11 +192,14 @@ private:
     int32_t housekeepingData[maxRows][maxNumAdcs];
 
 	uint8_t numSamples;
+	uint8_t housekeepingNumSamples[maxRows];
+
 	bool useMedian;
 	bool trimSamples;
 
     void initGpio(void) const;
 	void aggregate(void);
+	void aggregate(uint8_t useMask, long *results);
     void setScanPins() const;
 
 };

@@ -2242,6 +2242,25 @@ void loop(void)
 					}
 #elif defined (FEATURE_RIOMETER)
                 packet.putGenData(buffer, sizeof(buffer), 8, sensorShield.getNumBeams(), sensorShield.getData());
+                for (uint8_t rn = 0; rn < sensorShield.maxRows; ++rn) {
+                    int32_t hkData[sensorShield.maxNumAdcs];
+                    uint8_t numHkSamples = sensorShield.copyHousekeepingData(rn, hkData, sensorShield.maxNumAdcs);
+                    if (numHkSamples) {
+                        // TODO: Fix awnetd.py to handle multiple gen data tags, then uncomment below
+                        // packet.putGenData(buffer, sizeof(buffer), rn, numHkSamples, hkData);
+
+                        // TODO: remove debug output
+                        console.print("HOUSEKEEPING #");
+                        console.print((int)rn);
+                        console.print(": ");
+                        for (uint8_t sn = 0; sn < numHkSamples; ++sn) {
+                            console.print(" ");
+                            console.print(hkData[sn]);
+                        }
+                        console.println();
+
+                    }
+                }
 #else
 #error Bad logic
 #endif

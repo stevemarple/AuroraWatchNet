@@ -13,20 +13,20 @@ uint16_t RioLogger::presampleDelay_ms = 10;
 const uint8_t RioLogger::scanMapping7[7] = {0, 1, 3, 2, 6, 4, 5}; // Almost a Gray code
 const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray code
 
-RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0), numSamples(1),
-							 useMedian(false), trimSamples(false)
+RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
+                             adcMask(0), numSamples(1), useMedian(false), trimSamples(false)
 {
     gpioAddress = eeprom_read_byte((uint8_t*)EEPROM_RIO_GPIO_ADDRESS);
     if (gpioAddress < MCP23008_ADDRESS_MIN || gpioAddress > MCP23008_ADDRESS_MAX)
         gpioAddress = 0;
 
 	numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
-	if (numRows > EEPROM_RIO_NUM_ROWS_MAX)
-		numRows = EEPROM_RIO_NUM_ROWS_MAX;
+	if (numRows >= maxRows)
+		numRows = maxRows;
 
 	numColumns = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLUMNS);
-	if (numColumns > EEPROM_RIO_NUM_COLUMNS_MAX)
-		numColumns = EEPROM_RIO_NUM_COLUMNS_MAX;
+	if (numColumns >= maxColumns)
+		numColumns = maxColumns;
 
 	if (numRows == 7)
 		// Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
@@ -35,6 +35,9 @@ RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0), 
 	else
 		// Will only be a Gray code if numRows == 4 or numRows == 8. Any other value will need its own sequence.
 		scanMapping = scanMapping8;
+
+    for (uint8_t i = 0; i < maxRows; ++i)
+    	houseKeepingAdcMask[i] = 0;
 }
 
 
@@ -73,7 +76,8 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 
 	bool r = true;
 	// Autoprobe to check ADCs are actually present
-	for (int i = 0; i < maxNumAdcs; ++i) {
+	adcMask = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_MASK);
+	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
 		adc[i] = MCP342x(adcAddressList[i]);
 		adcConfig[i] = MCP342x::Config(adcChannelList[i], false,
 									   adcResolutionList[i], adcGainList[i]);
@@ -84,6 +88,39 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 			r = false;
 		}
 	}
+
+	// TODO Use new EEPROM settings for riometer ADC gains etc. Use riometer ADC mask so that it is possible to use
+	// a subset of the ADCs present for riometer data sampling.
+
+    static_assert(EEPROM_RIO_HOUSEKEEPING_0_ADC_CHANNEL_LIST_SIZE >= maxNumAdcs, "ADC channel list size too small");
+    for (uint8_t rn = 0; rn < maxRows; ++rn) {
+        const uint16_t eepromAddressOffset = rn * EEPROM_RIO_HOUSEKEEPING_SETTINGS_STEP;
+        houseKeepingAdcMask[rn] = 0;
+        houseKeepingAdcMask[rn] = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_MASK + eepromAddressOffset));
+        uint16_t ns = eeprom_read_word((const uint16_t*)(EEPROM_RIO_HOUSEKEEPING_0_NUM_SAMPLES + eepromAddressOffset));
+        housekeepingNumSamples[rn] = (ns == 0 || ns > maxSamples ? 1 : ns);  // Enforce sensible limits
+
+        // Resolution is for the same for all ADCs (for timing reasons)
+        uint8_t resolution = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_RESOLUTION + eepromAddressOffset));
+
+        for (uint8_t cn = 0; cn < maxNumAdcs; ++cn) {
+            const uint8_t bitMask = 1 << cn;
+            if (adcPresent[cn] && (houseKeepingAdcMask[rn] & bitMask)) {
+                // ADC present and the EEPROM setting in the mask indicates this ADC is to be used.
+                uint8_t channel = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_CHANNEL_LIST + eepromAddressOffset + cn));
+                uint8_t gain = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_GAIN_LIST + eepromAddressOffset + cn));
+                housekeepingConfig[rn][cn] =  MCP342x::Config(channel, false, resolution, gain);
+            }
+            else {
+                // This won't be used to configure an ADC but set to sensible values anyway. It is important that the
+                // configuration for cn=0 be correct for the resolution since this value is used to determine the
+                // delay and timeout when reading the data back.
+                housekeepingConfig[rn][cn] =  MCP342x::Config(1, false, resolution, 1);
+            }
+
+        }
+
+    }
 
 	tempConfig = MCP342x::Config(FLC100_TEMPERATURE_CHANNEL, false, 16, 1);
 	return r;
@@ -125,6 +162,10 @@ void RioLogger::process(void)
 		for (uint8_t i = 0; i < getNumBeams(); ++i)
 			data[i] = LONG_MIN;
 
+        for (uint8_t rn = 0; rn < maxRows; ++rn)
+            for (uint8_t cn = 0; cn < maxNumAdcs; ++cn)
+            housekeepingData[rn][cn] = LONG_MIN;
+
 		state = powerUpHold;
 		break;
 
@@ -153,60 +194,125 @@ void RioLogger::process(void)
 				dataSamples[i][j] = LONG_MIN;
 		}
 
-		state = convertingTemp;
+		state = configuringHousekeepingADCs;
 		break;
 
-	case convertingTemp:
-		adc[0].convert(tempConfig);
-		// Start two timers, after the first has expired try reading the
-		// ADC until a result is returned. This reduces power consumption
-		// from the I2C pull-up resistors and help keep the noise low
-		// around the magnetometers. The second one is the timeout.
-		delay.start(tempConfig.getConversionTime(), AsyncDelay::MICROS);
-		timeout.start(tempConfig.getConversionTime() +
-					  (tempConfig.getConversionTime() / 2), AsyncDelay::MICROS);
-		state = readingTemp;
+	case configuringHousekeepingADCs:
+        // Write configuration to each ADC. Use tmp as flag to indicate a
+		// failed configuration attempt (and therefore to use the timeout
+		// delay).
+		if (houseKeepingAdcMask[scanState] == 0) {
+		    state = configuringRioADCs;
+            rioNum = 0;
+			tmp = 0;
+			sampleNum = 0;
+			break;
+		}
+
+		if (rioNum >= numColumns) {
+			state = convertingHousekeepingADCs;
+			rioNum = 0;
+			tmp = 0;
+			sampleNum = 0;
+			break;
+		}
+
+		if ((houseKeepingAdcMask[scanState] & (1 << rioNum)) && (tmp == 0 ||!timeout.isExpired())) {
+			// ADC present and, either no attempts made to configure this ADC
+			// or still within the timeout period.
+			if (adc[rioNum].configure(housekeepingConfig[scanState][rioNum]) == MCP342x::errorNone) {
+				++rioNum;
+				tmp = 0; // Clear failed flag
+			}
+			else if (tmp == 0) {
+				timeout.start(MCP342x::writeTimeout_us, AsyncDelay::MICROS);
+				tmp = 1;
+			}
+		}
+		else
+			// May have reached this point because the ADC could not be
+			// configured. Don't do anything, it will be checked later.
+			++rioNum;
 		break;
 
-	case readingTemp:
+    case convertingHousekeepingADCs:
+		// Start conversions
+		if (tmp == 0 || !timeout.isExpired()) {
+			if (MCP342x::generalCallConversion() == 0) {
+				// Conversion command succeeded, start the timers. Delay is
+				// used to indicate when to first attempt reading the
+				// results. Timeout is when to give up.
+
+				unsigned long conversionTime = housekeepingConfig[scanState][0].getConversionTime();
+
+				delay.start(conversionTime, AsyncDelay::MICROS);
+				timeout.start(conversionTime + (conversionTime / 2), AsyncDelay::MICROS);
+				// state = readingRioADCs;
+				state = readingHousekeepingADCs;
+				rioNum = 0;
+				tmp = 0;
+				break;
+			}
+			else if (tmp == 0) {
+				// Timeout for issuing the convert command
+				timeout.start(MCP342x::writeTimeout_us, AsyncDelay::MICROS);
+				tmp = 1;
+			}
+		}
+		else {
+			// Couldn't send generalCallConversion(); move on anyway.
+			delay.start(adcConfig[0].getConversionTime(), AsyncDelay::MICROS);
+			timeout.start(adcConfig[0].getConversionTime() +
+						  (adcConfig[0].getConversionTime() / 2),
+						  AsyncDelay::MICROS);
+			// state = readingRioADCs;
+			state = readingHousekeepingADCs;
+			rioNum = 0;
+			tmp = 0;
+		}
+		break;
+
+    case readingHousekeepingADCs:
+		if (sampleNum >= numSamples) {
+			// Calculate final result
+			aggregate(houseKeepingAdcMask[scanState], &(housekeepingData[scanState][0]));
+
+            state = configuringRioADCs;
+            rioNum = 0;
+            tmp = 0;
+			break;
+		}
+
+		if (rioNum >= numColumns) {
+			++sampleNum;
+			state = convertingHousekeepingADCs;
+			rioNum = 0;
+			tmp = 0;
+			break;
+		}
+
+		if (!adcPresent[rioNum]) {
+			++rioNum;
+			break;
+		}
+
 		if (delay.isExpired()) {
 			uint8_t err;
 			MCP342x::Config status;
 			long adcResult;
-			err = adc[0].read(adcResult, status);
+
+			err = adc[rioNum].read(adcResult, status);
 			if (!err && status.isReady()) {
-				/* Have valid data. Convert to hundredths of degrees C using
-				 * only integer arithmetic.
-				 * From MCP342x data sheet:
-				 * Vdiff = outputCount * 2.048V / ((maxCount+1) * gain)
-				 * where Vdiff is in volts
-				 * maxCount+1 is (1 << resolution)/2 and multiply by gain is a
-				 * shift of log2(gain)
-				 *
-				 * Working in millivolts this can be given as
-				 * mVdiff = outputCount * 2048 / (1 << (resolution + log2(gain) - 1))
-				 * or
-				 * mVdiff = (outputCount << 11) / (1 << (resolution + log2(gain) - 1))
-				 * mVdiff = outputCount >> (resolution + log2(gain) - 12)
-				 *
-				 * From LM61 data sheet degC = (mV - 600)/10
-				 * which gives hundredthsDegC = 10*mV - 6000
-				 *
-				 * Since mVdiff == mV
-				 * hundredthsDegC = (outputCount * 10) >> (resolution + log2(gain) - 12)
-				 *                  - 6000;
-				 */
-				sensorTemperature = ((adcResult * 10) >> (int(tempConfig.getResolution()) + tempConfig.getGain().log2() - 12)) - 6000;
-				state = configuringRioADCs;
-				rioNum = 0;
-				tmp = 0;
+				// Have valid data
+				MCP342x::normalise(adcResult, status);
+				// Store the housekeeping results in the same array as used for the data. It will be aggregated before
+				// the actual data is sampled.
+				dataSamples[rioNum][sampleNum] = adcResult;
+				++rioNum;
 			}
 			else if (timeout.isExpired()) {
-				state = configuringRioADCs;
-				rioNum = 0;
-				tmp = 0;
+				++rioNum;
 			}
-
 		}
 		break;
 
@@ -260,6 +366,7 @@ void RioLogger::process(void)
 							  AsyncDelay::MICROS);
 				state = readingRioADCs;
 				rioNum = 0;
+				tmp = 0;
 				break;
 			}
 			else if (tmp == 0) {
@@ -276,6 +383,7 @@ void RioLogger::process(void)
 						  AsyncDelay::MICROS);
 			state = readingRioADCs;
 			rioNum = 0;
+			tmp = 0;
 		}
 		break;
 
@@ -386,9 +494,48 @@ void RioLogger::aggregate(void)
 			}
 		}
 	}
-
 }
 
+
+void RioLogger::aggregate(uint8_t useMask, long *results)
+{
+	for (uint8_t i = 0; i < numColumns; ++i) {
+	    const uint8_t bitMask = 1 << i;
+		if ((useMask & bitMask) == 0)
+			continue;
+
+		if (useMedian)
+			results[i] = median<long>(dataSamples[i], numSamples);
+		else {
+			// Mean. Ignore any values which are LONG_MIN since they
+			// represent sampling errors.
+			long tmp = 0;
+			long smallest, largest; // Initialised when first valid sample found
+			uint8_t count = 0;
+			for (uint8_t j = 0; j < numSamples; ++j) {
+				if (dataSamples[i][j] != LONG_MIN) {
+					// Sample is valid
+					if (count) {
+						if (dataSamples[i][j] < smallest)
+							smallest = dataSamples[i][j];
+						if (dataSamples[i][j] > largest)
+							largest = dataSamples[i][j];
+					}
+					else
+						largest = smallest = dataSamples[i][j];
+					++count;
+					tmp += dataSamples[i][j];
+				}
+				if (trimSamples && count >= 3) {
+					// Remove largest and smallest values
+					tmp = tmp - largest - smallest;
+					count -= 2;
+				}
+				results[i] = tmp / count;
+			}
+		}
+	}
+}
 
 void RioLogger::setScanPins() const
 {
@@ -408,3 +555,19 @@ void RioLogger::setScanPins() const
 	}
 
 }
+
+
+uint8_t RioLogger::copyHousekeepingData(uint8_t rowNum, int32_t *buffer, uint8_t bufferLen) const
+{
+    uint8_t r = 0;
+    if (rowNum < numRows) {
+        for (uint8_t i = 0; i < maxNumAdcs && r < bufferLen; ++i) {
+            const uint8_t bitMask = 1 << i;
+            if (houseKeepingAdcMask[rowNum] & bitMask)
+                buffer[r++] = housekeepingData[rowNum][i];
+        }
+    }
+    return r;
+
+}
+
