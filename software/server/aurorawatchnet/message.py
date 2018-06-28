@@ -670,7 +670,7 @@ def put_current_epoch_time(buf):
     tag_len = tag_data['current_epoch_time']['length']
     i = packet_length
     now = time.time() - ((get_epoch(buf) - 1970) * SECONDS_PER_AVG_YEAR)
-    seconds = long(now)
+    seconds = int(now)
     frac = int(round((math.modf(now)[0]) * 32768.0))
     if frac >= 32768:
         # Almost start of next second, resulting in a rounding to an
