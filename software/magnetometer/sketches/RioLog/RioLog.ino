@@ -1803,7 +1803,15 @@ void setup(void)
 
     AWPacket packet;
 #ifdef FEATURE_RIOMETER
-    // Send 3rd page of EEPROM
+    // Send 4th page of EEPROM (riometer configuration)
+    packet.setKey(hmacKey, sizeof(hmacKey));
+    packet.setTimestamp(t.getSeconds(), t.getFraction());
+    packet.putHeader(buffer, sizeof(buffer));
+    packet.putEepromContents(buffer, sizeof(buffer), 0x300, 256);
+    packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
+    commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
+
+    // Send 3rd page of EEPROM (riometer housekeeping configuration)
     packet.setKey(hmacKey, sizeof(hmacKey));
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
@@ -1811,7 +1819,7 @@ void setup(void)
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
 
-    // Send 2nd page of EEPROM
+    // Send 2nd page of EEPROM (generic ADC logger configuration)
     packet.setKey(hmacKey, sizeof(hmacKey));
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
