@@ -1803,26 +1803,30 @@ void setup(void)
 
     AWPacket packet;
 #ifdef FEATURE_RIOMETER
-    // Send 2nd page of EEPROM
+    // Send 3rd page of EEPROM
     packet.setKey(hmacKey, sizeof(hmacKey));
-    // cRTC.getTime(t);
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
-    packet.putEepromContents(buffer, sizeof(buffer), 256, 256);
+    packet.putEepromContents(buffer, sizeof(buffer), 0x200, 256);
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
-    ++messageCount;
+
+    // Send 2nd page of EEPROM
+    packet.setKey(hmacKey, sizeof(hmacKey));
+    packet.setTimestamp(t.getSeconds(), t.getFraction());
+    packet.putHeader(buffer, sizeof(buffer));
+    packet.putEepromContents(buffer, sizeof(buffer), 0x100, 256);
+    packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
+    commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
 #endif
 
-    // Send useful data from first 256 bytes of EEPROM. putEepromContents() automatically redacts the key.
-    // cRTC.getTime(t);
+    // Send first page of 256 bytes of EEPROM. putEepromContents() automatically redacts the key.
     packet.setKey(hmacKey, sizeof(hmacKey));
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
     packet.putEepromContents(buffer, sizeof(buffer), 0, 256);
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
-    ++messageCount;
 
     // Send hardware and firmware details
     char actualMcu[40];
@@ -1840,7 +1844,6 @@ void setup(void)
     packet.putLogMessage_P(buffer, sizeof(buffer), features_P);
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
-    ++messageCount;
 
     // Set the alarm to start taking samples
     console << F("Setting sample timers") << endl;
