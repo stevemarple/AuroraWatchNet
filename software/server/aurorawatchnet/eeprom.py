@@ -80,7 +80,7 @@ def find_next_address(address):
 #    default: optional default value. 
 #    help: optional help description for command line switch
 #    metavar: optional metavar description for command line switch
-#    type: optional type parameter for argparse.add_argument()
+#    type: optional type parameter given to argparse add_argument()
 #    choices: optional choices parameter for argparse.add_argument()
 #
 
