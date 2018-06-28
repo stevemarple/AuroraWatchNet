@@ -1105,6 +1105,11 @@ while running:
             select_list2 = select_list[:]
             select_list2.append(control_socket_conn)
             inputready, outputready, exceptready = select.select(select_list2, [], [])
+    except KeyboardInterrupt:
+        print('Interrupted by user')
+        now = time.time()
+        write_to_log_file(now, iso_timestamp(now) + ' D Daemon stopped (keyboard interrupt)\n')
+        break
     except select.error as e:
         print('select error: ' + str(e))
         break
