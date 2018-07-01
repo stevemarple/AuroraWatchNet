@@ -159,7 +159,7 @@ private:
 	uint8_t powerPin;
 	uint8_t scanState;
     uint8_t scanPins[numScanPins];
-    const uint8_t *scanMapping;
+    uint8_t scanMapping[maxRows];
 
 	MCP342x adc[maxNumAdcs]; // X, Y, Z
 	MCP342x::Config adcConfig[maxNumAdcs];

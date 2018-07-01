@@ -10,9 +10,6 @@
 unsigned long RioLogger::powerUpDelay_ms = RioLogger::defaultPowerUpDelay_ms;
 uint16_t RioLogger::presampleDelay_ms = 10;
 
-const uint8_t RioLogger::scanMapping7[7] = {0, 1, 3, 2, 6, 4, 5}; // Almost a Gray code
-const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray code
-
 RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
                              adcMask(0), numSamples(1), useMedian(false), trimSamples(false)
 {
@@ -28,16 +25,10 @@ RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
 	if (numColumns >= maxColumns)
 		numColumns = maxColumns;
 
-	if (numRows == 7)
-		// Not a Gray code but the best available for an odd number. The multi-bit change occurs when the sequence
-		// wraps around, which is hopefully when it matters least.
-		scanMapping = scanMapping7;
-	else
-		// Will only be a Gray code if numRows == 4 or numRows == 8. Any other value will need its own sequence.
-		scanMapping = scanMapping8;
-
-    for (uint8_t i = 0; i < maxRows; ++i)
+    for (uint8_t i = 0; i < maxRows; ++i) {
     	houseKeepingAdcMask[i] = 0;
+        scanMapping[i] = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_SCAN_MAPPING + i));
+    }
 }
 
 
