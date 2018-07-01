@@ -394,7 +394,7 @@ def write_generic_adc_data(t, message_tags, fstr, extension, message, config=Non
 generic_data_files = {}
 
 
-def write_generic_data(t, message_tags, fstr, extension, message, config=None):
+def write_generic_data(t, message_tags, extension, message, config=None):
     global generic_data_files
     epoch = awn.message.get_epoch(message)
     if not config:
@@ -411,8 +411,9 @@ def write_generic_data(t, message_tags, fstr, extension, message, config=None):
                     data = awn.message.decode_tag(tag_name, tag_data, epoch)
                     data_id = data.pop(0)
                     sec = 'genericdata:' + str(data_id)
-                    if not config.has_section(sec):
+                    if not config.has_section(sec) or not config.has_option(sec, 'filename'):
                         continue
+                    fstr = config.get(sec, 'filename')
 
                     if config.has_option(sec, 'mapping'):
                         mapping = config.get(sec, 'mapping')
@@ -434,7 +435,6 @@ def write_generic_data(t, message_tags, fstr, extension, message, config=None):
                     if data_id not in generic_data_files:
                         generic_data_files[data_id] = None
                     generic_data_files[data_id] = get_file_for_time(t, generic_data_files[data_id], fstr, extension=extension)
-
                     if mapping is not None:
                         if len(data) != len(mapping):
                             raise DataMappingException('Incorrect mapping size')
@@ -444,8 +444,8 @@ def write_generic_data(t, message_tags, fstr, extension, message, config=None):
                     for d in  data:
                         a.append(format % ((d * scale_factor) + offset))
 
-                        generic_data_files[data_id].write(sep.join(a))
-                        generic_data_files[data_id].write(eol)
+                    generic_data_files[data_id].write(sep.join(a))
+                    generic_data_files[data_id].write(eol)
 
                     global close_after_write
                     if close_after_write:
@@ -1337,10 +1337,8 @@ while running:
                     write_gnss_data(message_tags,
                                     config.get('gnss', 'filename'))
 
-                if config.has_option('genericdata', 'filename') and not awn.message.is_response_message(message):
-                    write_generic_data(timestamp_s, message_tags,
-                                           config.get('genericdata', 'filename'),
-                                           data_quality_extension, message, config)
+                if not awn.message.is_response_message(message):
+                    write_generic_data(timestamp_s, message_tags, data_quality_extension, message, config)
 
                 # Deprecated?
                 if config.has_option('genericadcdata', 'filename') and not awn.message.is_response_message(message):
