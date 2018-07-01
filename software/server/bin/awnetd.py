@@ -327,7 +327,8 @@ def write_gnss_data(message_tags, fstr):
     except KeyboardInterrupt:
         raise
     except Exception as e:
-        traceback.print_exc()
+        print('====> write_generic_data()')
+
         print('Could not save GNSS data: ' + str(e))
 
 generic_adc_data_file = None
@@ -390,60 +391,71 @@ def write_generic_adc_data(t, message_tags, fstr, extension, message, config=Non
         pass
 
 
+generic_data_files = {}
+
+
 def write_generic_data(t, message_tags, fstr, extension, message, config=None):
-    global generic_adc_data_file
-    sec = 'genericdata'
-    try:
-        epoch = awn.message.get_epoch(message)
-        generic_adc_data_file = get_file_for_time(t, generic_adc_data_file, fstr, extension=extension)
-        if config and config.has_option(sec, 'mapping'):
-            mapping = config.get(sec, 'mapping')
-        else:
-            mapping = None
-        if config and config.has_option(sec, 'scale_factor'):
-            scale_factor = awn.safe_eval(config.get(sec, 'scale_factor'))
-        else:
-            scale_factor = 1.0
-        if config and config.has_option(sec, 'offset'):
-            offset = awn.safe_eval(config.get(sec, 'offset'))
-        else:
-            offset = 0.0
-        if config and config.has_option(sec, 'format'):
-            format = config.get(sec, 'format')
-        else:
-            format = '%f'
+    global generic_data_files
+    epoch = awn.message.get_epoch(message)
+    if not config:
+        return
 
-        # To do, handle other variations
-        tag_name = 'gen_data_s32'
-        sep = '\t'
-        eol = '\n'
-        if tag_name in message_tags:
-            if len(message_tags[tag_name]) != 1:
-                raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
-            data = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
+    # Add other generic data tags here as they are introduced
+    for tag_name in ('gen_data_s32', ):
+        try:
+            sep = '\t'
+            eol = '\n'
+            if tag_name in message_tags:
+                # There can be multiple copies of this tag, probably having different data IDs
+                for tag_data in message_tags[tag_name]:
+                    data = awn.message.decode_tag(tag_name, tag_data, epoch)
+                    data_id = data.pop(0)
+                    sec = 'genericdata:' + str(data_id)
+                    if not config.has_section(sec):
+                        continue
 
-            data_id = data.pop(0)
-            if mapping is not None:
-                if len(data) != len(mapping):
-                    raise DataMappingException('Incorrect mapping size')
-                data = [data[i] for i in mapping]
-            a = []
-            a.append('%.06f' % t)
-            for d in  data:
-                a.append(format % ((d * scale_factor) + offset))
+                    if config.has_option(sec, 'mapping'):
+                        mapping = config.get(sec, 'mapping')
+                    else:
+                        mapping = None
+                    if config.has_option(sec, 'scale_factor'):
+                        scale_factor = awn.safe_eval(config.get(sec, 'scale_factor'))
+                    else:
+                        scale_factor = 1.0
+                    if config.has_option(sec, 'offset'):
+                        offset = awn.safe_eval(config.get(sec, 'offset'))
+                    else:
+                        offset = 0.0
+                    if config.has_option(sec, 'format'):
+                        format = config.get(sec, 'format')
+                    else:
+                        format = '%f'
 
-            generic_adc_data_file.write(sep.join(a))
-            generic_adc_data_file.write(eol)
+                    if data_id not in generic_data_files:
+                        generic_data_files[data_id] = None
+                    generic_data_files[data_id] = get_file_for_time(t, generic_data_files[data_id], fstr, extension=extension)
 
-        global close_after_write
-        if close_after_write:
-            generic_adc_data_file.close()
+                    if mapping is not None:
+                        if len(data) != len(mapping):
+                            raise DataMappingException('Incorrect mapping size')
+                        data = [data[i] for i in mapping]
+                    a = []
+                    a.append('%.06f' % t)
+                    for d in  data:
+                        a.append(format % ((d * scale_factor) + offset))
 
-    except KeyboardInterrupt:
-        raise
-    except Exception as e:
-        print(e)
-        pass
+                        generic_data_files[data_id].write(sep.join(a))
+                        generic_data_files[data_id].write(eol)
+
+                    global close_after_write
+                    if close_after_write:
+                        generic_data_files[data_id].close()
+
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            print(traceback.format_exc())
+            pass
 
 def iso_timestamp(t):
     """
