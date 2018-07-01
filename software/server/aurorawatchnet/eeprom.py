@@ -953,6 +953,14 @@ eeprom = {
         'default': 255,
         'help': '7 bit I2C address for riometer MCP23008 IO expander',
     },
+    'rio_scan_mapping': {
+        'address': 0x32a,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': range(8),
+        'help': 'Map internal riometer scan number (0-7) to 3 bit output value',
+    },
+
 }
 
 compute_eeprom_setting_sizes()

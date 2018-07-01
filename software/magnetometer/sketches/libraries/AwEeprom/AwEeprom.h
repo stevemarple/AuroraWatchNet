@@ -522,4 +522,12 @@
 #define EEPROM_RIO_GPIO_ADDRESS 0x329
 #define EEPROM_RIO_GPIO_ADDRESS_SIZE 1
 
+#define EEPROM_RIO_SCAN_MAPPING 0x32a
+#define EEPROM_RIO_SCAN_MAPPING_SIZE 8
+
+#if EEPROM_RIO_SCAN_MAPPING_SIZE != EEPROM_RIO_NUM_ROWS_MAX
+// Failed sanity check
+#error "Riometer scan mapping is incorrect size for the maximum number of rows"
+#endif
+
 #endif
