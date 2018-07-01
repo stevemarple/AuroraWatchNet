@@ -16,15 +16,15 @@ const uint8_t RioLogger::scanMapping8[8] = {0, 1, 3, 2, 6, 7, 5, 4}; // Gray cod
 RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
                              adcMask(0), numSamples(1), useMedian(false), trimSamples(false)
 {
-    gpioAddress = eeprom_read_byte((uint8_t*)EEPROM_RIO_GPIO_ADDRESS);
+    gpioAddress = eeprom_read_byte((const uint8_t*)EEPROM_RIO_GPIO_ADDRESS);
     if (gpioAddress < MCP23008_ADDRESS_MIN || gpioAddress > MCP23008_ADDRESS_MAX)
         gpioAddress = 0;
 
-	numRows = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_ROWS);
+	numRows = eeprom_read_byte((const uint8_t*)EEPROM_RIO_NUM_ROWS);
 	if (numRows >= maxRows)
 		numRows = maxRows;
 
-	numColumns = eeprom_read_byte((uint8_t*)EEPROM_RIO_NUM_COLUMNS);
+	numColumns = eeprom_read_byte((const uint8_t*)EEPROM_RIO_NUM_COLUMNS);
 	if (numColumns >= maxColumns)
 		numColumns = maxColumns;
 
@@ -75,22 +75,46 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 	MCP342x::generalCallReset();
 
 	bool r = true;
-	// Autoprobe to check ADCs are actually present
-	adcMask = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_MASK);
+//	// Autoprobe to check ADCs are actually present
+//	adcMask = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_MASK);
+//	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
+//		adc[i] = MCP342x(adcAddressList[i]);
+//		adcConfig[i] = MCP342x::Config(adcChannelList[i], false,
+//									   adcResolutionList[i], adcGainList[i]);
+//		if (adc[i].autoprobe(&adcAddressList[i], 1))
+//			adcPresent[i] = true;
+//		else {
+//			adcPresent[i] = false;
+//			r = false;
+//		}
+//	}
+
+    // Resolution is for the same for all ADCs (for timing reasons)
+    uint8_t resolution = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_RESOLUTION);
 	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
-		adc[i] = MCP342x(adcAddressList[i]);
-		adcConfig[i] = MCP342x::Config(adcChannelList[i], false,
-									   adcResolutionList[i], adcGainList[i]);
-		if (adc[i].autoprobe(&adcAddressList[i], 1))
+	    uint8_t i2cAddress = adcAddressList[i];
+
+	    // Use autoprobe to test if device is present. Exclude reserved addresses
+		if (i2cAddress > 3 && i2cAddress < 120 && adc[i].autoprobe(&i2cAddress, 1)) // Fake an array of size 1
 			adcPresent[i] = true;
 		else {
 			adcPresent[i] = false;
-			r = false;
+			r = false;  // One of the indicated ADCs is not present.
 		}
-	}
 
-	// TODO Use new EEPROM settings for riometer ADC gains etc. Use riometer ADC mask so that it is possible to use
-	// a subset of the ADCs present for riometer data sampling.
+        const uint8_t bitMask = 1 << i;
+        if (adcPresent[i] && (adcMask & bitMask)) {
+            // ADC present and the EEPROM setting in the mask indicates this ADC is to be used.
+            uint8_t channel = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_CHANNEL_LIST);
+            uint8_t gain = eeprom_read_byte((const uint8_t*)EEPROM_RIO_RIOMETER_ADC_GAIN_LIST);
+            adcConfig[i] = MCP342x::Config(channel, false, resolution, gain);
+        }
+        else {
+            // Insert a sensible configuration anyway. This especically matters for adcConfig[0] since it's resolution
+            // value is used to determine the delay and timeout when reading the data back.
+            adcConfig[i] = MCP342x::Config(1, false, resolution, 1);
+        }
+	}
 
     static_assert(EEPROM_RIO_HOUSEKEEPING_0_ADC_CHANNEL_LIST_SIZE >= maxNumAdcs, "ADC channel list size too small");
     for (uint8_t rn = 0; rn < maxRows; ++rn) {
@@ -101,7 +125,7 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
         housekeepingNumSamples[rn] = (ns == 0 || ns > maxSamples ? 1 : ns);  // Enforce sensible limits
 
         // Resolution is for the same for all ADCs (for timing reasons)
-        uint8_t resolution = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_RESOLUTION + eepromAddressOffset));
+        uint8_t hkRes = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_RESOLUTION + eepromAddressOffset));
 
         for (uint8_t cn = 0; cn < maxNumAdcs; ++cn) {
             const uint8_t bitMask = 1 << cn;
@@ -109,13 +133,13 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
                 // ADC present and the EEPROM setting in the mask indicates this ADC is to be used.
                 uint8_t channel = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_CHANNEL_LIST + eepromAddressOffset + cn));
                 uint8_t gain = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_HOUSEKEEPING_0_ADC_GAIN_LIST + eepromAddressOffset + cn));
-                housekeepingConfig[rn][cn] =  MCP342x::Config(channel, false, resolution, gain);
+                housekeepingConfig[rn][cn] = MCP342x::Config(channel, false, hkRes, gain);
             }
             else {
                 // This won't be used to configure an ADC but set to sensible values anyway. It is important that the
                 // configuration for cn=0 be correct for the resolution since this value is used to determine the
                 // delay and timeout when reading the data back.
-                housekeepingConfig[rn][cn] =  MCP342x::Config(1, false, resolution, 1);
+                housekeepingConfig[rn][cn] = MCP342x::Config(1, false, hkRes, 1);
             }
 
         }
