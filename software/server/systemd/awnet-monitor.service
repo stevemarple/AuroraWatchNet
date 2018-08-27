@@ -1,0 +1,24 @@
+[Unit]
+Description=AuroraWatchNet monitor service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+
+# For debugging and development run the emulator via a screen session.
+# Type must be set to "forking".
+# As user pi use "screen -d -r awnet-monitor" to connect and view
+# Type=forking
+# ExecStart=/usr/bin/screen -d -m -S awnet-monitor /home/pi/bin/awnetd_monitor.py -c /etc/awnetd_monitor.ini --log-level=debug -f
+
+# For production use run the emulator as a normal process. Type must be set
+# to "simple". Warnings and errors will be logged to systemd's journal.
+Type=simple
+ExecStart=/home/pi/bin/awnetd_monitor.py -c /etc/awnetd_monitor.ini --log-level=debug -f
+
+StandardOutput=journal
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
