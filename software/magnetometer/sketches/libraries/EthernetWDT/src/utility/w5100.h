@@ -327,7 +327,7 @@ private:
 #if !defined(SPI_HAS_EXTENDED_CS_PIN_HANDLING)
   #define SPI_ETHERNET_SETTINGS SPISettings(4000000, MSBFIRST, SPI_MODE0)
   #if defined(ARDUINO_ARCH_AVR)
-    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
       inline static void initSS()    { DDRB  |=  _BV(4); };
       inline static void setSS()     { PORTB &= ~_BV(4); };
       inline static void resetSS()   { PORTB |=  _BV(4); };
