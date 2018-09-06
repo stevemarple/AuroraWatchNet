@@ -6,7 +6,7 @@ BUILDER = $(ARDUINO_DIR)/arduino-builder
 
 # Extra compilation flags passed to arduino-builder, such as to
 # indicate which communication hardware should be supported.
-EXTRA_FLAGS = -DCOMMS_W5100 -DCOMMS_XRF -DETHERNET2_USE_WDT
+EXTRA_FLAGS = -DCOMMS_W5100 -DCOMMS_XRF -DETHERNETWDT_USE_WDT -DETHERNET2_USE_WDT
 C_EXTRA_FLAGS = $(EXTRA_FLAGS)
 CPP_EXTRA_FLAGS = $(EXTRA_FLAGS)
 
