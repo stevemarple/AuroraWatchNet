@@ -130,7 +130,7 @@
 #ifdef COMMS_W5100
 #define COMMS_ARCH_DEFINED
 #include <SPI.h>
-#include <Ethernet.h>
+#include <EthernetWDT.h>
 #include <Dns.h>
 #include <Dhcp.h>
 #include <WIZnet_UDP.h>
@@ -211,6 +211,9 @@ const char comms_P[] PROGMEM = {
 #endif
 #ifdef COMMS_W5100
      " W5100"
+#ifdef ETHERNETWDT_USE_WDT
+     "(wdt_reset)"
+#endif
 #endif
 #ifdef COMMS_W5500
      " W5500"
@@ -914,7 +917,7 @@ int dnsLookup(IPAddress dnsServer, const char *hostname,
 			  IPAddress &result)
 {
 	DNSClient dns;
-#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+#if (defined(COMMS_W5100) && !defined(ETHERNETWDT_USE_WDT)) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
     // Temporarily disable watchdog timer because slow DNS responses
     // can force an endless reboot cycle.
     wdt_disable();
@@ -922,7 +925,7 @@ int dnsLookup(IPAddress dnsServer, const char *hostname,
 
 	dns.begin(dnsServer);
 	int r = dns.getHostByName(hostname, result);
-#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+#if (defined(COMMS_W5100) && !defined(ETHERNETWDT_USE_WDT)) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
 	wdt_enable(WDTO_8S);
 #endif
 	return r;
@@ -1018,7 +1021,7 @@ void begin_WIZnet_UDP(void)
 		// Use DHCP to obtain dynamic IP
 		console << F("Requesting IP... ");
 		console.flush();
-#if defined(COMMS_W5100) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
+#if (defined(COMMS_W5100) && !defined(ETHERNETWDT_USE_WDT)) || (defined(COMMS_W5500) && !defined(ETHERNET2_USE_WDT))
 		// Temporarily disable watchdog timer because slow DHCP requests
 		// can force an endless reboot cycle.
 		wdt_disable();
@@ -2378,7 +2381,7 @@ void loop(void)
 				console << F("Gone ") << maxTimeNoAck;
 				console.println(F("s without mesg ack, rebooting\n"));
 				console.flush();
-				wdt_enable(WDTO_8S);
+				wdt_enable(WDTO_1S);
 				while (1)
 					;
 			}
