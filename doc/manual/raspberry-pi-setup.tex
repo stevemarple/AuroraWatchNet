@@ -223,16 +223,6 @@ Insert the following lines into the file if they are not present:
 SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"  
 \end{Cmd}
 
-\subsection{Regenerate SSH host keys}
-
-As user \rootUser
-\begin{Cmd}
-cd /etc/ssh
-rm ssh_host_*_key\{,.pub\}
-ssh-keygen -A
-\end{Cmd}
-
-\newpage
 \section{Installing the AuroraWatchNet server software}
 
 \subsection{Install the Git repository}
