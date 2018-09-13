@@ -10,16 +10,19 @@ CONFIG_FILE="/etc/duckdns"
 # USE_LOCAL_IP_ADDRESS="1"
 
 if [ -f "$CONFIG_FILE" ]; then
-    . "$CONFIG_FILE"
-    if [ -z "$TOKEN" ]; then
-	eho "TOKEN not set"
-    fi
-    if [ -z "$DUCKDNS_HOSTNAME" ]; then
-	DUCKDNS_HOSTNAME="`hostname -s`"
-    fi
+	. "$CONFIG_FILE"
+	if [ -z "$TOKEN" ]; then
+		echo "TOKEN not set"
+	fi
+	if [ -z "$DUCKDNS_HOSTNAME" ]; then
+		DUCKDNS_HOSTNAME=$(hostname -s)
+	fi
+	if [ -z "$INTERFACE" ]; then
+		INTERFACE="eth0"
+	fi
 else
-    echo "Config file $CONFIG_FILE missing"
-    exit 1
+	echo "Config file $CONFIG_FILE missing"
+	exit 1
 fi
 
 
@@ -27,26 +30,26 @@ fi
 url="https://www.duckdns.org/update?domains=${DUCKDNS_HOSTNAME}&token=${TOKEN}"
 
 if [ -n "$USE_LOCAL_IP_ADDRESS" ]; then
-    # Retrieve local IP address. Uncomment below to use local (internal) 
-    # IP address. Comment out line below to have duckdns use the external
-    # IP address.
-    ip="`/sbin/ifconfig eth0|grep -o 'inet addr:[0-9.]*' | cut -d: -f2`"
-    url="${url}&ip=${ip}"
+	# Retrieve local IP address. Uncomment below to use local (internal)
+	# IP address. Comment out line below to have duckdns use the external
+	# IP address.
+	ip=$(/bin/ip addr show dev "$INTERFACE" | awk '($1=="inet" && $6=="global"){split($2,a,"/");print(a[1])}')
+	url="${url}&ip=${ip}"
 
-    if [ -n "USE_IPV6" ]; then
-	ipv6="`/sbin/ifconfig eth0| sed -r -n 's/.*inet6\s?addr: ([0-9a-f:]*).*/\1/pi'`"
-	if [ -n "$ipv6" ]; then
-	    url="${url}&ipv6=${ipv6}"
+	if [ -n "USE_IPV6" ]; then
+		ipv6=$(/bin/ip addr show dev "$INTERFACE" | awk '($1=="inet6" && $4=="global"){split($2,a,"/");print(a[1])}')
+		if [ -n "$ipv6" ]; then
+			url="${url}&ipv6=${ipv6}"
+		fi
 	fi
-    fi
 fi
 
 if [ -n "$VERBOSE" ]; then
-    url="${url}&verbose=true"
-    echo "URL is $url"
+	url="${url}&verbose=true"
+	echo "URL is $url"
 fi
 
-# Update Duck DNS
+# Update DuckDNS
 curl -s -S -k "$url"
 ret="$?"
 echo ""
