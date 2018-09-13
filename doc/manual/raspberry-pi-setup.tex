@@ -196,19 +196,6 @@ As user \rootUser
 nano /etc/fstab  
 \end{Cmd}
 
-Find the line where the root file system is mounted, it will look
-similar to
-\begin{Cmd}
-/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
-\end{Cmd}
-Change the mount options (\code{defaults,noatime} in the example
-above) so that the mount options are now
-\filename{noatime,nodiratime}. The line should look similar to the one
-below.
-\begin{Cmd}
-/dev/mmcblk0p2  /               ext4    noatime,nodiratime  0       1
-\end{Cmd}
-
 At the end of the \filename{/etc/fstab} add the following lines:
 \begin{Cmd}[fontsize=\relsize{-2.5}]
 # tmpfs for AuroraWatchNet temporary files. Files will be deleted on 
