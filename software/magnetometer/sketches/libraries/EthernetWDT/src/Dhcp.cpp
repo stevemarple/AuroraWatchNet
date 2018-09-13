@@ -267,7 +267,7 @@ uint8_t DhcpClass::parseDHCPResponse(unsigned long responseTimeout, uint32_t& tr
         {
             return 255;
         }
-#ifdef ETHERNET_USE_WDT
+#ifdef ETHERNETWDT_USE_WDT
 	wdt_reset();
 #endif
         delay(50);
