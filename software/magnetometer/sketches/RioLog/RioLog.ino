@@ -352,7 +352,7 @@ CommandOption commands[numCommands] = {
     CommandOption("eepromRead=", cmdEepromRead),
     CommandOption("eepromWrite=", cmdEepromWrite),
     CommandOption("verbosity", cmdVerbosity),
-    CommandOption("REBOOT=true", cmdReboot),
+    CommandOption("reboot=TRUE", cmdReboot),
     CommandOption("samplingInterval_16th_s", cmdSamplingInterval),
 #if USE_SD_CARD
     CommandOption("useSd"), cmdUseSd),
@@ -729,9 +729,9 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 		break;
 
 	case AWPacket::tagReboot:
-		wdt_enable(WDTO_1S);
-		while (1)
-			;
+		console << F("Reboot command received from server\n");
+		console.flush();
+		reboot();
 		break;
 
 	case AWPacket::tagUpgradeFirmware:
@@ -828,7 +828,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 				console << F("Install FW result: ") << installResult << endl;
 				console.flush();
 				delay(1000);
-				xboot_reset();
+				reboot();
 			}
 			++upgradeFirmwareGetBlockNumber;
 
@@ -1027,11 +1027,9 @@ void begin_WIZnet_UDP(void)
 		wdt_disable();
 #endif
 		if (Ethernet.begin(macAddress) == 0) {
-			console << F("DHCP failed, rebooting...\n");
+			console << F("DHCP failed");
 			console.flush();
-			wdt_enable(WDTO_1S);
-			while (1)
-				;
+			reboot();
 		}
 		wdt_enable(WDTO_8S);
 
@@ -1165,12 +1163,9 @@ void maintainDhcpLease(void)
 		// break;
 	case DHCP_CHECK_RENEW_FAIL:
 	case DHCP_CHECK_REBIND_FAIL:
-		console.println(F("failed, rebooting"));
+		console.println(F("failed"));
 		console.flush();
-		// Reboot
-		wdt_enable(WDTO_1S);
-		while (1)
-			;
+		reboot();
 		break;
 	case DHCP_CHECK_RENEW_OK:
 		console.println(F("renewed"));
@@ -2381,9 +2376,7 @@ void loop(void)
 				console << F("Gone ") << maxTimeNoAck;
 				console.println(F("s without mesg ack, rebooting\n"));
 				console.flush();
-				wdt_enable(WDTO_1S);
-				while (1)
-					;
+				reboot();
 			}
 			else if (ackAge < 0)
 				// Guard against large time jumps
@@ -2564,15 +2557,22 @@ void cmdVerbosity(const char *s)
 void cmdReboot(const char *s)
 {
     if (*s == '\0') {
-        console << F("Rebooting ...\n");
+		console << F("Reboot command received from console\n");
 		console.flush();
-		xboot_reset();
+		reboot();
     }
     else {
         unknownCommand(commandBuffer);
     }
 }
 
+void reboot(void) {
+	console << F("Rebooting ...\n");
+	console.flush();
+	wdt_enable(WDTO_15MS);
+	while (1)
+		;
+}
 
 void cmdSamplingInterval(const char *s)
 {
