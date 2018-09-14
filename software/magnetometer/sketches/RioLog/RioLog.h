@@ -1,5 +1,5 @@
-#ifndef MAG_CLOUD_H
-#define MAG_CLOUD_H
+#ifndef RIO_LOG_H
+#define RIO_LOG_H
 
 #define SD_SECTOR_SIZE 512
 
