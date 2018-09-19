@@ -77,11 +77,16 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 	    uint8_t i2cAddress = adcAddressList[i];
 
 	    // Use autoprobe to test if device is present. Exclude reserved addresses
-		if (i2cAddress > 3 && i2cAddress < 120 && adc[i].autoprobe(&i2cAddress, 1)) // Fake an array of size 1
-			adcPresent[i] = true;
+		if (i2cAddress > 3 && i2cAddress < 120) {
+			if (adc[i].autoprobe(&i2cAddress, 1)) // Fake an array of size 1
+				adcPresent[i] = true;
+			else {
+				adcPresent[i] = false;
+				r = false;  // One of the indicated ADCs is not present.
+			}
+		}
 		else {
-			adcPresent[i] = false;
-			r = false;  // One of the indicated ADCs is not present.
+			adcPresent[i] = false; // Dont' return an error since its value wasn't valid
 		}
 
         const uint8_t bitMask = 1 << i;
