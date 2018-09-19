@@ -244,6 +244,13 @@
 #define EEPROM_RTCX_DEVICE_ADDRESS 0xE0
 #define EEPROM_RTCX_DEVICE_ADDRESS_SIZE 1
 
+// The baud rate after powering on the GNSS
+#define EEPROM_GNSS_DEFAULT_BAUD_RATE 0xE1
+#define EEPROM_GNSS_DEFAULT_BAUD_RATE_SIZE 4
+
+// The baudrate we wish to use
+#define EEPROM_GNSS_DESIRED_BAUD_RATE 0xE5
+#define EEPROM_GNSS_DESIRED_BAUD_RATE_SIZE 4
 
 // ##### ##### ##### ##### ##### #####
 // Reserved 0x100 - 0x1FF for settings relating to generic ADC logging

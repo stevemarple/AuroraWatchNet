@@ -495,6 +495,22 @@ eeprom = {
         'default': 255,
         'help': '7 bit I2C address for RTCx device',
     },
+    'gnss_default_baud_rate': {
+        'address': 0xe1,
+        'format': '<I',
+        'type': int,
+        'choices': [4800, 9600, 19200, 38400, 76800, 115200, 230400],
+        'default': 115200,
+        'help': 'Default GNSS module baud rate after power-on',
+    },
+    'gnss_desired_baud_rate': {
+        'address': 0xe5,
+        'format': '<I',
+        'type': int,
+        'choices': [4800, 9600, 19200, 38400, 76800, 115200, 230400],
+        'default': 115200,
+        'help': 'Desired GNSS module baud rate after configuration',
+    },
 
     # Reserved 0x100 - 0x1FF for settings relating to generic ADC logging
     'generic_adc_address_list': {
