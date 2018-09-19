@@ -309,9 +309,12 @@ CounterRTC::Time as3935Timestamp;
 
 
 #ifdef FEATURE_GNSS
+bool eepromUseGnss = true; // EEPROM setting indicating if GNSS should be used.
 HardwareSerial& gnssSerial = Serial1;
 const uint8_t gnssPpsPin = 6;
+const uint8_t gnssResetPin = A0;
 volatile bool ppsTriggered = false;
+volatile bool ppsTestTrigger = false;
 volatile AsyncDelay ppsTimeout;
 volatile bool useGnss = false;
 char gnssBuffer[85];
@@ -680,7 +683,7 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 #ifdef FEATURE_GNSS
 		// When GNSS timing is in operation don't adjust the clock based
 		// on time received from the server
-		if (useGnss)
+		if (eepromUseGnss && useGnss)
 			break;
 
 #endif
@@ -1107,34 +1110,47 @@ void begin_WIZnet_UDP(void)
 
 
 #ifdef FEATURE_GNSS
+volatile gnssState_t gnssState = gnssStateClockNotValid;
 void gnssPpsCallback(volatile const GNSS_Clock __attribute__((unused)) &clock)
 {
+	ppsTestTrigger = true;
+	const int timeout_ms = 1200;
 #ifdef FEATURE_BUSY_TIME_PIN
     digitalWrite(FEATURE_BUSY_TIME_PIN, HIGH);
 #endif
-
 	if (!clock.isValid()) {
+		gnssState = gnssStateClockNotValid;
 		useGnss = false;
-		return;
 	}
-
-	if (useGnss)
-		if (ppsTimeout.isExpired()) {
-			// Don't use this pulse, nor the next one.
-			useGnss = false;
-			return;
-		}
-		else
+	else if (ppsTimeout.isExpired()) {
+		gnssState = gnssStateTimeoutExpired;
+		useGnss = false;
+	}
+	else {
+		switch (gnssState) {
+		case gnssStateValid:
+			useGnss = true;
 			ppsTriggered = true;
-	else
-		// Don't use this pulse but accept the next one if it occurs
-		// within the expected time interval
-		useGnss = true;
+			break;
+
+		case gnssStatePending:
+			gnssState = gnssStateValid;
+			useGnss = false;
+			break;
+
+		case gnssStateClockNotValid:
+		case gnssStateTimeoutExpired:
+		default:
+			gnssState = gnssStatePending;
+			useGnss = false;
+			break;
+		}
+	}
 
 	// Allow for some delay in responding to the the PPS interrupt and
 	// for timing errors by millis() as the system clock frequency may
 	// not be accurate.
-	ppsTimeout.start(1200, AsyncDelay::MILLIS);
+	ppsTimeout.start(timeout_ms, AsyncDelay::MILLIS);
 }
 #endif
 
@@ -1446,10 +1462,8 @@ void setup(void)
 		sz =  EEPROM_GENERIC_ADC_ADDRESS_LIST_SIZE;
 #endif    
 		if (i < sz) {
-			uint8_t i2cAddress =
-				eeprom_read_byte((uint8_t*)(eepromAddress + i));
-			if (i2cAddress > 0 && i2cAddress <= 127)
-				adcAddressList[i] = i2cAddress;
+			uint8_t i2cAddress = eeprom_read_byte((uint8_t*)(eepromAddress + i));
+			adcAddressList[i] = i2cAddress;
 		}
 
 #if defined (FEATURE_FLC100)
@@ -1660,7 +1674,7 @@ void setup(void)
 	// the EEPROM to void clashes with other devices. Even if the
 	// device details are configured in the EEPROM autoprobe() as
 	// check that it is working correctly.
-	console << F("Autoprobing to find ");
+	console << F("Autoprobing for ");
 
 	RTCx::device_t rtcxDevice = (RTCx::device_t)eeprom_read_byte((uint8_t*)EEPROM_RTCX_DEVICE_TYPE);
 	uint8_t rtcxAddress = eeprom_read_byte((uint8_t*)EEPROM_RTCX_DEVICE_ADDRESS);
@@ -1803,6 +1817,8 @@ void setup(void)
 
 #ifdef FEATURE_GNSS
 	gnss_clock.set1ppsCallback(gnssPpsCallback);
+	gnss_clock.getMicroNMEA().setBadChecksumHandler(unknownNmeaSentence);
+	gnss_clock.getMicroNMEA().setUnknownSentenceHandler(badNmeaChecksum);
 #endif
 
 	console.println(F("Configuration complete"));
@@ -1882,7 +1898,21 @@ bool resultsProcessed = true;
 CounterRTC::Time sampleStartTime;
 void loop(void)
 {
-    bool crtcTriggeredCopy = crtcTriggered; // Read actual volatile value only one in loop().
+    if (ppsTestTrigger) {
+	console << F("GNSS clock valid: ") << gnss_clock.isValid() << endl;
+	ppsTestTrigger = false;
+    }
+
+#ifdef FEATURE_GNSS
+	while (gnssSerial.available()) {
+		char c = gnssSerial.read();
+		if (gnss_clock.process(c) && verbosity == 12) {
+			console << gnss_clock.getSentence() << endl;
+		}
+	}
+#endif
+
+    bool crtcTriggeredCopy = crtcTriggered; // Read actual volatile value only once in loop().
 	bool startSampling = false;
 	uint8_t startSamplingReason;
 	wdt_reset();
@@ -1902,7 +1932,7 @@ void loop(void)
 		gnssNowOk = gnss_clock.readClock(gnssNow);
     }
 
-	if (useGnss && samplingInterval.getFraction() == 0) {
+	if (eepromUseGnss && useGnss && samplingInterval.getFraction() == 0) {
 		if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0)) {
 			startSampling = true;
 			startSamplingReason = 1;
@@ -1933,7 +1963,7 @@ void loop(void)
 #endif
 
 #ifdef FEATURE_GNSS
-	if (ppsTriggeredCopy) {
+	if (ppsTriggeredCopy && eepromUseGnss) {
 		// Set CounterRTC clock from GNSS
 		if (gnssNowOk)  {
 			CounterRTC::Time ourTime;
@@ -2007,6 +2037,11 @@ void loop(void)
 		if (verbosity)
 			console << F("--\nSampling started, reason: ") << startSamplingReason << endl;
 
+		uint8_t gnssStateCopy;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			gnssStateCopy = gnssState;
+		}
+		console << F("GNSS state: ") << gnssStateCopy << endl;
 	}
 
 	if (crtcTriggeredCopy) {
@@ -2037,15 +2072,6 @@ void loop(void)
 #endif
 #ifdef FEATURE_HOUSEKEEPING
 	houseKeeping.process();
-#endif
-
-#ifdef FEATURE_GNSS
-	while (gnssSerial.available()) {
-		char c = gnssSerial.read();
-		if (verbosity == 12)
-			console.print(c);
-		gnss_clock.process(c);
-	}
 #endif
 
 #ifdef FEATURE_DATA_QUALITY
@@ -2156,6 +2182,7 @@ void loop(void)
 
 #ifdef FEATURE_GNSS
 			if (verbosity) {
+				console << F("Use GNSS: ") << (useGnss ? 'Y' : 'N') << endl;
 				console << F("GNSS valid: ") << (gnssFixValid ? 'Y' : 'N') << endl;
 				if (gnssFixValid) {
 					console << F("Fix time: ") << gnssFixTime
@@ -2663,4 +2690,15 @@ void unknownCommand(const char *s)
 void commandTooLong(int)
 {
     console << F("Previous command was too long for buffer\n");
+}
+
+
+void unknownNmeaSentence(const MicroNMEA &nmea)
+{
+    console << F("Unknown NMEA sentence: ") << nmea.getSentence() << endl;
+}
+
+void badNmeaChecksum(const MicroNMEA &nmea)
+{
+    console << F("Bad NMEA checksum: ") << nmea.getSentence() << endl;
 }

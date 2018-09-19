@@ -37,5 +37,11 @@
 #endif
 #endif
 
+enum gnssState_t {
+	gnssStateClockNotValid,
+	gnssStateTimeoutExpired,
+	gnssStatePending,
+	gnssStateValid
+};
 
 #endif
