@@ -198,7 +198,10 @@ private:
 	void aggregate(void);
 	void aggregate(uint8_t useMask, long *results);
     void setScanPins() const;
-
+public:
+	uint8_t getScanState(void) {
+		return scanState;
+	};
 };
 
 
