@@ -830,7 +830,6 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 				uint8_t installResult =  xboot_install_firmware(upgradeFirmwareCRC);
 				console << F("Install FW result: ") << installResult << endl;
 				console.flush();
-				delay(1000);
 				reboot();
 			}
 			++upgradeFirmwareGetBlockNumber;
