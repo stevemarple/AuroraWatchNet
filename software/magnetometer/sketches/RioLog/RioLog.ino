@@ -97,7 +97,9 @@
 #include <AS3935.h>
 #endif
 
+#ifdef FEATURE_HOUSEKEEPING
 #include <HouseKeeping.h>
+#endif
 
 #include <RTCx.h>
 #include <CounterRTC.h>
@@ -178,6 +180,9 @@ const char firmwareVersion[AWPacket::firmwareNameLength] = FIRMWARE_VERSION;
 
 const char features_P[] PROGMEM = {
     "Features:"
+#ifdef FEATURE_HOUSEKEEPING
+    " HOUSEKEEPING"
+#endif
 #ifdef FEATURE_FLC100
     " FLC100"
 #endif
@@ -1632,12 +1637,14 @@ void setup(void)
 	}
 #endif
 
+#ifdef FEATURE_HOUSEKEEPING
 	uint8_t VinDivider = eeprom_read_byte((uint8_t*)EEPROM_VIN_DIVIDER);
 	if (VinDivider == 0xFF)
 		VinDivider = 1; // For compatibility with older firmware
 	houseKeeping.initialise(2, 7, A6, VinDivider,
 							(radioType != EEPROM_COMMS_TYPE_XRF &&
 							 radioType != EEPROM_COMMS_TYPE_RFM12B));
+#endif
 
 	// Autoprobe to find RTC. Device type and address can be set in
 	// the EEPROM to void clashes with other devices. Even if the
@@ -1958,8 +1965,10 @@ void loop(void)
 
 		// AS3935 does not need starting here. It is kept powered.
 
+#ifdef FEATURE_HOUSEKEEPING
 		if (!houseKeeping.isSampling())
 			houseKeeping.start();
+#endif
 
 		startSampling = false;
 		resultsProcessed = false;
@@ -2009,7 +2018,9 @@ void loop(void)
 	if (as3935Present)
 		as3935.process();
 #endif
+#ifdef FEATURE_HOUSEKEEPING
 	houseKeeping.process();
+#endif
 
 #ifdef FEATURE_GNSS
 	while (gnssSerial.available()) {
@@ -2048,7 +2059,10 @@ void loop(void)
 #ifdef FEATURE_HIH61XX
 		&& (hih61xxPresent == false || hih61xx.isFinished())
 #endif
-		&& houseKeeping.isFinished()) {
+#ifdef FEATURE_HOUSEKEEPING
+		&& houseKeeping.isFinished()
+#endif
+		) {
 		// Process SD card when normal sampling is not running; SD card
 		// access can be slow and block.
 
@@ -2060,15 +2074,19 @@ void loop(void)
 
 			if (verbosity)
 				console << F("Timestamp: ") << sampleStartTime.getSeconds()
-						<< sep << sampleStartTime.getFraction()
-						<< F("\nSystem temp.: ") << houseKeeping.getSystemTemperature();
+						<< sep << sampleStartTime.getFraction() << endl;
+#ifdef FEATURE_HOUSEKEEPING
+                console << F("System temp.: ") << houseKeeping.getSystemTemperature();
+#endif
 #if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
 			if (verbosity && sensorShieldPresent)
 				console << F("\n" SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature() << endl;
 #endif
 
+#ifdef FEATURE_HOUSEKEEPING
 			if (verbosity && houseKeeping.getVinDivider())
 				console << F("Supply voltage: ") << houseKeeping.getVin() << endl;
+#endif
 
 #ifdef FEATURE_MLX90614
 			if (mlx90614Present) {
@@ -2139,6 +2157,7 @@ void loop(void)
 			const uint16_t bufferLength = commsMessageBufferLen;
 			uint8_t buffer[bufferLength];
 
+#ifdef FEATURE_HOUSEKEEPING
 			// Check system temperature
 			if (fanPin != 0xFF) {
 				int16_t fanTemperature
@@ -2152,6 +2171,7 @@ void loop(void)
 					(fanTemperature - (int16_t)(fanHysteresis/2)))
 					digitalWrite(fanPin, LOW);
 			}
+#endif
 
 
 #ifdef FEATURE_SD_CARD
@@ -2264,6 +2284,7 @@ void loop(void)
 			}
 #endif
 
+#ifdef FEATURE_HOUSEKEEPING
 			packet.putDataInt16(buffer, sizeof(buffer),
 								AWPacket::tagMCUTemperature,
 								houseKeeping.getSystemTemperature());
@@ -2277,6 +2298,7 @@ void loop(void)
 								 (uint16_t(samplingInterval.getSeconds() << 4) |
 								  samplingInterval.getFraction() >>
 								  (CounterRTC::fractionsPerSecondLog2 - 4)));
+#endif
 
 #ifdef FEATURE_MLX90614
 			if (mlx90614Present) {
