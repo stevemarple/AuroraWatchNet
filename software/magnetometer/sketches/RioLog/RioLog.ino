@@ -1507,8 +1507,10 @@ void setup(void)
 		console.print(initialisingStr);
 		console.println(sensorFlashStr);
 
-		sensorShield.initialise(FLC100_POWER, adcAddressList, adcChannelList,
-								adcResolutionList, adcGainList);
+		if (!sensorShield.initialise(FLC100_POWER, adcAddressList, adcChannelList,
+									 adcResolutionList, adcGainList)) {
+			console << sensorFlashStr << F(" failed to initialise\n");
+		}
 		sensorShield.setNumSamples(numSamples,
 								   aggregate & EEPROM_AGGREGATE_USE_MEDIAN,
 								   aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
