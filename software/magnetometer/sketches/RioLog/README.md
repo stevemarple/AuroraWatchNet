@@ -125,17 +125,17 @@ Pin numbers refer to the Calunium pin.
     11: MOSI (RFM12B etc)
     12: MISO (RFM12B etc)
     13: SCK (RFM12B etc) and LED
-    14: (Reserved for AS3935 lightning detector SDA)
+    14: FEATURE_AS3935: AS3935 software SDA
     15: RTC square-wave output
-    16: JTAG TDI / MLX90614 software SDA
-    17: JTAG TDO / (Reserved for AS3935 lightning detector SCL)
-    18: JTAG TMS / MLX90614 power
-    19: JTAG TCK / MLX90614 software SCL
+    16: JTAG TDI / FEATURE_MLX90614: MLX90614 software SDA
+    17: JTAG TDO / FEATURE_AS3935:  AS3935 software SCL
+    18: JTAG TMS / FEATURE_MLX90614: MLX90614 power
+    19: JTAG TCK / FEATURE_MLX90614: MLX90614 software SCL
     20: SDA (RTC, MCP3424 etc)
     21: SCL (RTC, MCP3424 etc)
     22: Calunium microSD CS
-    23: XRF on indicator
-    A0: GNSS reset (via jumper)
+    23: COMMS_XRF: XRF on indicator
+    A0: FEATURE_GNSS: GNSS reset (via jumper)
     A1:
     A2: Vin voltage measurement (via jumper)
     A3:
