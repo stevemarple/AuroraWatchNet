@@ -1244,6 +1244,18 @@ void createDeviceName(void)
 #endif
 }
 
+
+#ifdef FEATURE_GNSS
+uint32_t getBaudRate(void* eepromAddress, uint32_t defaultValue)
+{
+	uint32_t baud = eeprom_read_dword((const uint32_t*)eepromAddress);
+    if (!baud || baud == 0xFFFFFFFF)
+        baud = defaultValue;
+    return baud;
+}
+#endif
+
+
 void setup(void)
 {
 	get_mcusr();
@@ -1630,7 +1642,9 @@ void setup(void)
 
 
 #ifdef FEATURE_GNSS
-	gnssSerial.begin(115200);
+	eepromUseGnss = (bool) eeprom_read_byte((const uint8_t*)EEPROM_USE_GNSS);
+	uint32_t gnssDefaultBaudRate = getBaudRate((void*)EEPROM_GNSS_DEFAULT_BAUD_RATE, 115200);
+	gnssSerial.begin(gnssDefaultBaudRate); // Set to the GNSS module's power-on baud rate
 	gnss_clock.begin(gnssBuffer, sizeof(gnssBuffer), gnssPpsPin);
 
 	// Reset the GNSS module. The user can disable this by removing the jumper.
@@ -1641,6 +1655,18 @@ void setup(void)
 	    digitalWrite(gnssResetPin, HIGH);
 	    delay(500);
 	}
+
+    // Switch GNSS module to desired baud rate
+    uint32_t gnssDesiredBaudRate = getBaudRate((void*)EEPROM_GNSS_DESIRED_BAUD_RATE, 19200);
+    if (gnssDesiredBaudRate != gnssDefaultBaudRate) {
+        console << F("Changing GNSS baud rate from ") << gnssDefaultBaudRate << F(" to ") << gnssDesiredBaudRate << endl;
+        char baudBuffer[80];
+        snprintf_P(baudBuffer, sizeof(baudBuffer), PSTR("$PORZA,1,%d,1"), gnssDesiredBaudRate);
+        MicroNMEA::sendSentence(gnssSerial, baudBuffer);
+        delay(50);
+        gnssSerial.begin(gnssDesiredBaudRate);
+        delay(50);
+    }
 
 	// Compatibility mode off
 	MicroNMEA::sendSentence(gnssSerial, "$PNVGNME,2,7,1");
