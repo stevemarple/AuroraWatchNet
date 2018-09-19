@@ -425,9 +425,9 @@ eeprom = {
         },
     'console_baud_rate': {
         'address': 0xd4,
-        'format': 'H',
+        'format': '<I',
         'type': int,
-        'default': 9600,
+        'default': 115200,
         'help': 'Console baud rate',
         'metavar': 'BAUD',
         },
