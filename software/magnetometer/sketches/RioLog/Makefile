@@ -44,7 +44,7 @@ COPY = cp
 MKDIR = mkdir
 
 
-default : rio-W5100-20MHz
+default : all
 
 clean : clean-build
 
@@ -80,6 +80,7 @@ all : rio-W5100-12MHz rio-W5100-20MHz rio-W5500-12MHz rio-W5500-20MHz
 RIO_FLAGS = \
   -DRTCX_EPOCH=2018 \
   -DAWPACKET_EPOCH=RTCX_EPOCH \
+  -DFEATURE_HOUSEKEEPING \
   -DFEATURE_FLC100 \
   -DFEATURE_GNSS \
   -DFEATURE_HIH61XX_WIRE \
