@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+import aurorawatchnet.eeprom
+from binascii import hexlify
+import os
+
+
+k = os.urandom(16)
+
+print('For awnet.ini: ')
+print('[magnetometer]')
+print('key = ' + hexlify(k))
+print('')
+
+print('For magnetometer command console:')
+
+eeprom_address = aurorawatchnet.eeprom.eeprom['hmac_key']['address']
+key_bytes = ','.join(map(lambda x: str(ord(x)), k))
+print('eepromWrite=%d,%s' % (eeprom_address, key_bytes))
+print('')

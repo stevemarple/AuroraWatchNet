@@ -2,17 +2,17 @@
 
 # import datetime
 from datetime import datetime
-import hashlib
 import hmac
-import os
+import math
+import six
 import struct
 import time
 
-import aurorawatchnet as awn
 import aurorawatchnet.eeprom as eeprom
 
 __all__ = ['validate_packet']
 
+SECONDS_PER_AVG_YEAR = (365 * 86400) + (86400/4)  # 365.25 days
 default_magic = 'AW'
 default_version = 1
 
@@ -50,6 +50,21 @@ flags_signed_message_bit = 0
 flags_sample_timing_error_bit = 1
 flags_response_bit = 2
 flags_data_quality_warning_bit = 3
+flags_epoch_bit = 4
+
+flags = {
+    'signed_message': 1 << flags_signed_message_bit,
+    'sample_timing_error': 1 << flags_sample_timing_error_bit,
+    'response': 1 << flags_response_bit,
+    'data_quality_warning': 1 << flags_data_quality_warning_bit,
+    'epoch': 1 << flags_epoch_bit,
+}
+
+epoch_flags = {
+    1970: 0,
+    2018: flags['epoch'],
+}
+
 
 size_of_tag = 1
 size_of_packet_length = 2
@@ -62,31 +77,38 @@ firmware_version_max_length = 16
 firmware_block_size = 128
 
 
-def decode_tag_array_of_longs(tag_name, data_len, payload):
+def decode_tag_array_of_longs(tag_name, data_len, payload, epoch):
     return list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
 
-def format_tag_array_of_longs(tag_name, data_len, payload):
+
+def format_tag_array_of_longs(tag_name, data_len, payload, epoch):
     return repr(list(struct.unpack('!' + str(data_len/4) + 'l', str(payload))))
-   
-def format_padding(tag_name, data_len, payload):
+
+
+def format_padding(tag_name, data_len, payload, epoch):
     return str([0] * data_len)
 
-def format_tag_blank(tag_name, data_len, payload):
+
+def format_tag_blank(tag_name, data_len, payload, epoch):
     return ''
 
-def format_null_terminated_string(tag_name, data_len, payload):
+
+def format_null_terminated_string(tag_name, data_len, payload, epoch):
     return "'" + str(payload.split('\0')[0]) + "'"
 
-def format_unix_epoch_32678(tag_name, data_len, payload):
-    '''
+
+def format_unix_epoch_32678(tag_name, data_len, payload, epoch):
+    """
     Format a timestamp based on seconds since Unix epoch plus
     32768th second.
-    '''
+    """
     t = struct.unpack('!ih', str(payload))
-    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0) + epoch_adjustment)
     return str(t[0]) + ',' + str(t[1]) + ' (' + dt.isoformat() + ')'
 
-def format_read_eeprom(tag_name, data_len, payload):
+
+def format_read_eeprom(tag_name, data_len, payload, epoch):
     if data_len == 4:
         return 'address=0x{addr:03x} length={length:d}'\
             .format(addr=256 * payload[0] + payload[1],
@@ -94,49 +116,113 @@ def format_read_eeprom(tag_name, data_len, payload):
     else:
         return 'Data wrong length'
 
-def format_eeprom_contents(tag_name, data_len, payload):
+def format_eeprom_contents(tag_name, data_len, payload, epoch):
     if data_len < 3:
         return 'Data too short'
     address = 256 * payload[0] + payload[1]
+    eeprom_data = payload[2:]
+    return format_eeprom_contents_inner(tag_name, address, eeprom_data, epoch)
+
+
+def format_eeprom_contents_inner(tag_name, address, eeprom_data, epoch):
+
     r = 'address=0x%04x ' % address
-    if address in eeprom.eeprom_address_to_key:
-        setting = eeprom.eeprom_address_to_key[address]
+    eeprom_data_len = len(eeprom_data)
+    # Try to format the results appropriately if possible.
+    if address in eeprom.eeprom_address_to_setting_name:
+        # The start address matches a known address in EEPROM
+        setting = eeprom.eeprom_address_to_setting_name[address]
+        setting_info = eeprom.eeprom[setting]
+        # Check that the size of the EEPROM data received matches the expected length for the setting
+        if 'size' in setting_info:
+            sz = setting_info['size']
+            if eeprom_data_len > sz:
+                # Multiple settings received. Split into two parts.
+                r1 = format_eeprom_contents_inner(tag_name, address, eeprom_data[0:sz], epoch)
+                r2 = format_eeprom_contents_inner(tag_name, address + sz, eeprom_data[sz:], epoch)
+                r = []
+                if isinstance(r1, six.string_types):
+                    r.append(r1) # Should expect in this case to always get a string
+                else:
+                    r.extend(r1)  # Assume a list
+                if isinstance(r2, six.string_types):
+                    r.append(r2)
+                else:
+                    r.extend(r2)
+                return r
+
+            elif eeprom_data_len < sz:
+                # Not the entire setting so cannot format correctly
+                setting = setting_info = None
+    else:
+        # Unknown start address
+        # TODO: check for the next start address
+        next_address = eeprom.find_next_address(address)
+        if next_address is not None: #  and next_address in eeprom.eeprom_address_to_setting_name:
+            skip_bytes = next_address - address
+            next_setting_name = eeprom.eeprom_address_to_setting_name[next_address]
+            if 'size' in eeprom.eeprom[next_setting_name] and eeprom.eeprom[next_setting_name]['size'] <= eeprom_data_len - skip_bytes:
+                r1 = format_eeprom_contents_inner(tag_name, address, eeprom_data[0:skip_bytes], epoch)
+                r2 = format_eeprom_contents_inner(tag_name, next_address, eeprom_data[skip_bytes:], epoch)
+                r = []
+                if isinstance(r1, six.string_types):
+                    r.append(r1) # Should expect in this case to always get a string
+                else:
+                    r.extend(r1)  # Assume a list
+                if isinstance(r2, six.string_types):
+                    r.append(r2)
+                else:
+                    r.extend(r2)
+                return r
+
+        setting = setting_info = None
+
+    if setting:
+        # Correct data for this setting
         r += '(%s) ' % setting
-        fmt = eeprom.eeprom[setting]['format']
-        order, quantity, elem_type = eeprom.parse_unpack_format(fmt)
-        data = struct.unpack(fmt, payload[2:])
+        order, quantity, elem_type = eeprom.parse_unpack_format(setting_info['format'])
+        data = struct.unpack(setting_info['format'], eeprom_data)
         if len(data) == 1:
             data = data[0]
             if elem_type == 's':
                 data = data.rstrip('\x00')
         r += repr(data)
     else:
-        r += '0x  ' + ' '.join(map(byte_hex, payload[2:]))
+        r += '(unknown %d bytes)  0x  %s' % (eeprom_data_len, ' '.join(map(byte_hex, eeprom_data)))
     return r
 
 
-def format_upgrade_firmware(tag_name, data_len, payload):
+def format_upgrade_firmware(tag_name, data_len, payload, epoch):
     return "'{version:s}' pages={pages:d} crc=0x{crc:04x}".\
         format(version=payload[0:16].split('\0')[0],
                pages=payload[16]*256 + payload[17],
                crc=payload[18]*256 + payload[19])
 
-def format_get_firmware_page(tag_name, data_len, payload):
+
+def format_get_firmware_page(tag_name, data_len, payload, epoch):
     return "'{version:s}' page={page:d}".\
         format(version=payload[0:16].split('\0')[0],
                page=payload[16]*256 + payload[17])
 
-def format_gnss_status(tag_name, data_len, payload):
+
+def decode_gnss_status(tag_name, data_len, payload, epoch):
     fix_datetime, fix_status, num_sat, hdop_tenths = \
         struct.unpack(tag_data[tag_name]['format'], str(payload))
-    dt = datetime.utcfromtimestamp(fix_datetime)
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
     fix_valid = (fix_status & 0x80) != 0
     nav_system = chr(fix_status & 0x7f)
+    return fix_datetime + epoch_adjustment, fix_valid, nav_system, num_sat, hdop_tenths / 10.0
+
+
+def format_gnss_status(tag_name, data_len, payload, epoch):
+    t, is_valid, nav_system, num_sat, hdop = decode_gnss_status(tag_name, data_len, payload, epoch)
+    dt = datetime.utcfromtimestamp(t)
     return dt.isoformat() + ', valid=' + \
-        ('Y' if fix_valid else 'N') + ', sys=' + nav_system + \
-        ', sat=' + str(num_sat) + ', HDOP=' + str(hdop_tenths / 10.0)
- 
-def format_gnss_location(tag_name, data_len, payload):
+        ('Y' if is_valid else 'N') + ', sys=' + nav_system + \
+        ', sat=' + str(num_sat) + ', HDOP=' + str(hdop)
+
+
+def format_gnss_location(tag_name, data_len, payload, epoch):
     data = list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
     if len(data) == 2:
         alt = '?'
@@ -149,6 +235,47 @@ def format_gnss_location(tag_name, data_len, payload):
          'alt': alt,
          }
     return '{lat:.6f}{ns}, {lon:.6f}{ew}, {alt}'.format(**d)
+
+
+def decode_adc_data(tag_name, data_len, payload, epoch):
+    fmt = '!B' + str((data_len - 1) / 4) + 'l'
+    data = list(struct.unpack(fmt, str(payload)))
+    res_gain = decode_res_gain(data.pop(0))
+    return list(res_gain) + data
+
+
+def format_adc_data(tag_name, data_len, payload, epoch):
+    data = decode_adc_data(tag_name, data_len, payload, epoch)
+    res = data.pop(0)
+    gain = data.pop(0)
+    return ('%db, x%d ' % (res, gain)) + repr(data)
+
+
+def decode_res_gain(res_gain):
+    res = ((res_gain & 0b1100) / 2) + 12
+    gain = 2**(res_gain & 0b0011)
+    return res, gain
+
+
+def decode_gen_data(data_fmt, tag_name, data_len, payload, epoch):
+    data_size = struct.Struct(data_fmt).size
+    fmt = '!B' + str((data_len - 1) / data_size) + data_fmt
+    return list(struct.unpack(fmt, str(payload))) # data ID followed by the data
+
+
+def format_gen_data(data_fmt, tag_name, data_len, payload, epoch):
+    data = decode_gen_data(data_fmt, tag_name, data_len, payload, epoch)
+    data_id = data.pop(0)
+    return ('ID=%d ' % data_id) + repr(data)
+
+
+def decode_gen_data_s32(tag_name, data_len, payload, epoch):
+    return decode_gen_data('i', tag_name, data_len, payload, epoch)
+
+
+def format_gen_data_s32(tag_name, data_len, payload, epoch):
+    return format_gen_data('i', tag_name, data_len, payload, epoch)
+
 
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
@@ -166,188 +293,206 @@ def format_gnss_location(tag_name, data_len, payload):
 # string representation for display.
 #
 # All numbers are sent in network byte order (MSB first, LSB last).
-
 tag_data = {
     # Magnetometer data, raw sample units.
     'mag_data_x': {
         'id': 0,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     'mag_data_y': {
         'id': 1,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     'mag_data_z': {
         'id': 2,
         'length': 6,
         'format': '!Bl',
-        },
+    },
     # Temperatures, hundredths of Celsius (signed).
     'magnetometer_temperature': {
         'id': 3,
         'length': 3,
         'format': '!h',
-        },
+    },
     'system_temperature': {
         'id': 4,
         'length': 3,
         'format': '!h',
-        },
+    },
     # Voltage, millivolts.
     'supply_voltage': {
         'id': 5,
         'length': 3,
         'format': '!H',
-        },
+    },
     'time_adjustment': {
         'id': 6,
         'length': 7,
         'format': '!ih',
-        },
+    },
     'reboot_flags': {
         'id': 7,
         'length': 2,
         # 'format': '!B',
-        },
+    },
     'sampling_interval': {
         'id': 8,
         'length': 3,
         'format': '!H',
-        },
+    },
     'padding_byte': {
         'id': 9,
         'length': 1,
         'formatter': format_padding,
-        },
+    },
     'padding': {
         'id': 10,
         'length': 0,
         'formatter': format_padding,
-        },
+    },
     'current_epoch_time': {
         'id': 11,
         'length': 7,
-        #'format': '!LH',
+        # 'format': '!LH',
         'format': '!ih',
-        'formatter' : format_unix_epoch_32678,
-        },
+        'formatter': format_unix_epoch_32678,
+    },
     'reboot': {
         'id': 12,
         'length': 1,
         # 'format': '',
-        },
+    },
     'current_firmware': {
         'id': 13,
         'length': (size_of_tag + firmware_version_max_length),
         'format': ('!' + str(firmware_version_max_length) + 'c'),
         'formatter': format_null_terminated_string,
-        },
+    },
     'upgrade_firmware': {
         'id': 14,
         'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number + size_of_crc),
         'format': ('!' + str(firmware_version_max_length) + 'cHH'),
         'formatter': format_upgrade_firmware,
-        },
+    },
     'get_firmware_page': {
         'id': 15,
-        'length': (size_of_tag + firmware_version_max_length + 
+        'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number),
         'format': ('!' + str(firmware_version_max_length) + 'cH'),
         'formatter': format_get_firmware_page,
-        },
+    },
     'firmware_page': {
         'id': 16,
-        'length': (size_of_tag + firmware_version_max_length + 
+        'length': (size_of_tag + firmware_version_max_length +
                    size_of_firmware_page_number + firmware_block_size),
-        'format': ('!' + str(firmware_version_max_length) + 'cH' + 
+        'format': ('!' + str(firmware_version_max_length) + 'cH' +
                    str(firmware_block_size) + 'c'),
         'formatter': format_get_firmware_page,
         # 'formatter': format_tag_blank,
-        },
+    },
     'read_eeprom': {
         'id': 17,
         'length': 5,
         'format': '!HH',
         'formatter': format_read_eeprom,
-        },
+    },
     'eeprom_contents': {
         'id': 18,
         'length': 0,
         # 'format': None,
         'formatter': format_eeprom_contents,
-        },
+    },
     'num_samples': {
         'id': 19,
         'length': 3,
         'format': '!BB',
-        },
+    },
     'all_samples': {
         'id': 20,
         'length': 2,
         # 'format': '!?',
-        },
+    },
     'mag_data_all_x': {
         'id': 21,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     'mag_data_all_y': {
         'id': 22,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     'mag_data_all_z': {
         'id': 23,
         'length': 0,
         'formatter': format_tag_array_of_longs,
-        },
+    },
     # Temperatures, hundredths of Celsius (signed).
     'cloud_ambient_temperature': {
         'id': 24,
         'length': 3,
         'format': '!h',
-        },
+    },
     'cloud_object1_temperature': {
         'id': 25,
         'length': 3,
         'format': '!h',
-        },
+    },
     'cloud_object2_temperature': {
         'id': 26,
         'length': 3,
         'format': '!h',
-        },
+    },
     'ambient_temperature': {
         'id': 27,
         'length': 3,
         'format': '!h',
-        },
+    },
     # Relative humidity, hundredths of percent.
     'relative_humidity': {
         'id': 28,
         'length': 3,
         'format': '!H',
-        },
+    },
     'gnss_status': {
         'id': 29,
         'length': 8,
         'format': '!lBBB',
+        'decoder': decode_gnss_status,
         'formatter': format_gnss_status,
-        },
+    },
     'gnss_location': {
         'id': 30,
         'length': 0,
         'formatter': format_gnss_location,
-        },
+    },
+    'adc_data': {
+        'id': 31,
+        'length': 0,
+        'decoder': decode_adc_data,
+        'formatter': format_adc_data,
+    },
+    'log_message': {
+        'id': 32,
+        'length': 0,
+        # 'decoder': decode_l
+        'formatter': format_null_terminated_string,
+    },
+    'gen_data_s32': {
+        'id': 33,
+        'length': 0,
+        'decoder': decode_gen_data_s32,
+        'formatter': format_gen_data_s32,
     }
+}
 
-tag_id_to_name = {}
+tag_id_to_name = dict()
 for tag_name in tag_data.keys():
     tag_id = tag_data[tag_name]['id']
-    if tag_id_to_name.has_key(tag_id):
+    if tag_id in tag_id_to_name:
         raise Exception('Duplicate tag ID')
     tag_id_to_name[tag_id] = tag_name
 
@@ -367,9 +512,11 @@ def decode_cloud_temp(tag_name, payload):
         temp -= 273.15
     return temp
 
-def format_tag_cloud_temp(tag_name, dataLen, payload):
+
+def format_tag_cloud_temp(tag_name, data_len, payload, epoch):
     return str(decode_cloud_temp(tag_name, payload)) + 'C'
- 
+
+
 def get_header_field(buf, offset, size):
     if len(buf) < offset + size:
         return None
@@ -379,45 +526,55 @@ def get_header_field(buf, offset, size):
         r += buf[offset + i]
     return r
 
+
 def get_magic(buf):
     if len(buf) > magic_offset + magic_size:
         return bytearray(buf[magic_offset:magic_offset+magic_size])
     else:
         return None
-    
+
+
 def get_version(buf):
     return get_header_field(buf, version_offset, version_size)
+
 
 def get_flags(buf):
     return get_header_field(buf, flags_offset, flags_size)
 
+
 def get_packet_length(buf):
     return get_header_field(buf, packet_length_offset, packet_length_size)
+
 
 def get_site_id(buf):
     return get_header_field(buf, site_id_offset, site_id_size)
 
+
 def get_timestamp(buf):
-    seconds = get_header_field(buf, timestamp_seconds_offset, 
-                             timestamp_seconds_size)
-    fraction = get_header_field(buf, timestamp_fraction_offset, 
-                              timestamp_fraction_size)
+    # epoch = get_epoch(buf)
+    seconds, = struct.unpack('!l' ,buf[timestamp_seconds_offset:(timestamp_seconds_offset+timestamp_seconds_size)])
+    fraction, = struct.unpack('!h' ,buf[timestamp_fraction_offset:(timestamp_fraction_offset+timestamp_fraction_size)])
+    # seconds += (epoch - 1970) * SECONDS_PER_AVG_YEAR
     return [seconds, fraction]
+
 
 def is_signed_message(buf):
     if len(buf) <= flags_offset:
         return None
     return buf[flags_offset] & (1 << flags_signed_message_bit)
-    
+
+
 def is_response_message(buf):
     if len(buf) <= flags_offset:
         return None
     return buf[flags_offset] & (1 << flags_response_bit)
 
+
 def is_data_quality_flag_set(buf):
     if len(buf) <= flags_offset:
         return None
     return buf[flags_offset] & (1 << flags_data_quality_warning_bit)
+
 
 def get_sequence_id(buf):
     if not is_signed_message(buf):
@@ -425,48 +582,65 @@ def get_sequence_id(buf):
     else:
         return buf[get_packet_length(buf) - signature_block_length + sequence_id_offset]
 
+
 def get_retries(buf):
     if not is_signed_message(buf):
         return None
     else:
         return buf[get_packet_length(buf) - signature_block_length + retries_offset]
-    
+
+
+def get_epoch(buf):
+    if buf[flags_offset] & (1 << flags_epoch_bit):
+        return 2018
+    else:
+        return 1970
+
+
 def set_header_field(buf, val, offset, size):
     tmp = val
     for i in range(size-1, -1, -1):
         buf[offset + i] = (tmp & 0xff)
         tmp >>= 8
 
+
 def set_magic(buf, magic=default_magic):
     for i in range(magic_size):
         buf[i] = magic[i]
 
-def setVersion(buf, version=default_version):
+
+def set_version(buf, version=default_version):
     set_header_field(buf, version, version_offset, version_size)
+
 
 def set_packet_length(buf, packet_length):
     set_header_field(buf, packet_length, packet_length_offset, packet_length_size)
 
+
 def set_flags(buf, flags):
     set_header_field(buf, flags, flags_offset, flags_size)
-    
+
+
 def set_site_id(buf, site_id):
     set_header_field(buf, site_id, site_id_offset, site_id_size)
-        
+
+
 def set_timestamp(buf, seconds, fraction):
-    set_header_field(buf, seconds, timestamp_seconds_offset, 
-                   timestamp_seconds_size)
-    set_header_field(buf, fraction, timestamp_fraction_offset, 
-                   timestamp_fraction_size)
+    set_header_field(buf, seconds, timestamp_seconds_offset,
+                     timestamp_seconds_size)
+    set_header_field(buf, fraction, timestamp_fraction_offset,
+                     timestamp_fraction_size)
+
 
 def put_header(buf, site_id, timestamp, magic=default_magic, version=default_version, flags=0):
-    buf[header_length-1] = 0 # Set size
+    buf[header_length-1] = 0  # Set size
     set_magic(buf, magic)
-    setVersion(buf, version)
+    set_version(buf, version)
     set_flags(buf, flags)
     set_packet_length(buf, header_length)
     set_site_id(buf, site_id)
     set_timestamp(buf, *timestamp)
+
 
 def put_data(buf, tag_id, data):
     packet_length = get_packet_length(buf) 
@@ -489,19 +663,23 @@ def put_data(buf, tag_id, data):
     for n in range(data_len):
         buf[i + n] = data[n]
     set_packet_length(buf, packet_length)
-    
+
+
 def put_current_epoch_time(buf):
     packet_length = get_packet_length(buf)
     tag_len = tag_data['current_epoch_time']['length']
-    i = packet_length 
-    now = time.time()
-    seconds = long(now);
-    frac = int(round((now % 1) * 32768.0))
+    i = packet_length
+    now = time.time() - ((get_epoch(buf) - 1970) * SECONDS_PER_AVG_YEAR)
+    seconds = int(now)
+    frac = int(round((math.modf(now)[0]) * 32768.0))
     if frac >= 32768:
         # Almost start of next second, resulting in a rounding to an
         # improper fraction
         frac = 0
         seconds += 1
+    elif frac <= -32768:
+        frac = 0
+        seconds -= 1
 
     buf[i] = tag_data['current_epoch_time']['id']
     i += 1
@@ -511,9 +689,10 @@ def put_current_epoch_time(buf):
         buf[i + n] = 0
     data = bytearray(struct.pack(tag_data['current_epoch_time']['format'], 
                                  seconds, frac))
-    buf[packet_length + 1 : packet_length + tag_len] = data
+    buf[packet_length + 1: packet_length + tag_len] = data
     
     set_packet_length(buf, packet_length + tag_len)
+
 
 def put_padding(buf, padding_length):
     if padding_length == 0:
@@ -527,6 +706,7 @@ def put_padding(buf, padding_length):
     else:
         put_data(buf, tag_data['padding']['id'], bytearray(padding_length - 3))
 
+
 def put_signature(buf, hmac_key, retries, sequence_id):
     if is_signed_message(buf):
         signed_len = get_packet_length(buf)
@@ -535,15 +715,14 @@ def put_signature(buf, hmac_key, retries, sequence_id):
         set_packet_length(buf, signed_len)
 
     buf[flags_offset] |= (1 << flags_signed_message_bit)
-    
   
     i = signed_len - signature_block_length
-    buf[i] = sequence_id;
+    buf[i] = sequence_id
     i += 1
     buf[i] = retries
     i += 1
     # Now add HMAC-MD5
-    hmac_md5 = hmac.new(hmac_key)# , digestmod=hashlib.md5)
+    hmac_md5 = hmac.new(hmac_key)  # , digestmod=hashlib.md5)
     hmac_md5.update(str(buf[0:(signed_len - hmac_length)]))
     
     # Take least significant bytes
@@ -551,28 +730,31 @@ def put_signature(buf, hmac_key, retries, sequence_id):
     buf[(signed_len - hmac_length):signed_len] = \
         hmac_bytes[(len(hmac_bytes)-hmac_length):]
 
+
 def remove_signature(buf):
     if is_signed_message(buf):
         buf[flags_offset] &= ~(1 << flags_signed_message_bit)
         unsigned_len = get_packet_length(buf) - signature_block_length
         set_packet_length(buf, unsigned_len)
 
-def make_header(site_id, timestamp, magic=default_magic, 
-               version=default_version, flags=0):
+
+def make_header(site_id, timestamp, magic=default_magic,
+                version=default_version, flags=0):
     buf = bytearray()
     put_header(buf, site_id, timestamp, magic, version, flags)
     return buf
 
+
 def parse_packet(buf):
-    r = { };
-    i = header_length;
+    r = dict()
+    i = header_length
     end_of_data = get_packet_length(buf)
     if is_signed_message(buf):
         end_of_data -= signature_block_length
     while i < end_of_data:
         tag_id = buf[i]
         i += 1
-        if not tag_id_to_name.has_key(tag_id):
+        if tag_id not in tag_id_to_name:
             raise Exception('Unknown tag: ' + str(tag_id))
         tag_name = tag_id_to_name[tag_id]
         tag = tag_data[tag_name]
@@ -583,7 +765,6 @@ def parse_packet(buf):
         else:
             data_len = tag_len - 1
         data = buf[i:(i+data_len)]
-        
               
         if tag_name not in r:
             r[tag_name] = []
@@ -591,6 +772,7 @@ def parse_packet(buf):
         i += data_len
         
     return r
+
 
 def tidy_pending_tags(pending_tags, message_tags):
     del_list = []
@@ -606,7 +788,7 @@ def tidy_pending_tags(pending_tags, message_tags):
                 print('Firmware already at version ' + upgrade_firmware)
                 del_list.append(tag_name)
         
-        elif tag_name == 'all_samples' and bool(ord(pending_tags[tag][0])) == \
+        elif tag_name == 'all_samples' and bool(ord(pending_tags[tag_name][0])) == \
             any(t in message_tags for t in ['mag_data_all_x', 'mag_data_all_y',
                                             'mag_data_all_z']):
             # pending_tags[all_samples][0] must match whether
@@ -618,8 +800,7 @@ def tidy_pending_tags(pending_tags, message_tags):
             # TODO: check correct data has been received. NB: if key was sent 
             # it won't be confirmed!
             del_list.append(tag_name)
-            
-            
+
         elif tag_name in message_tags and \
                 pending_tags[tag_name] in message_tags[tag_name]:
             # This tag appears in message_tags, and one of the values matches
@@ -628,79 +809,97 @@ def tidy_pending_tags(pending_tags, message_tags):
 
     for d in del_list:
         del pending_tags[d]
-    
+
+
 # Print in hex, 00 - FF
 def byte_hex(a):
     return hex(a)[2:].zfill(2)
-    
+
+
 def print_buffer(buf, length=None):
     if length is None:
         length = len(buf)
     print(' '.join(map(hex, buf[:length])))
-    
+
+
 def header_to_str_array(buf):
     t = get_timestamp(buf)
-    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0))
+    epoch = get_epoch(buf)
+    epoch_adjustment = (epoch - 1970) * SECONDS_PER_AVG_YEAR
+    dt = datetime.utcfromtimestamp(t[0] + (t[1]/32768.0) + epoch_adjustment)
     return ['Magic: ' + ''.join(map(chr, get_magic(buf))),
             'Version: ' + str(get_version(buf)),
-            'Flags: ' + hex(get_flags(buf)),
+            'Flags: ' + hex(get_flags(buf)) + '  (epoch=' + str(epoch) + ')',
             'Packet length: ' + str(get_packet_length(buf)),
             'Site ID: ' + str(get_site_id(buf)),
             ('Timestamp: ' + str(t[0]) + ',' + str(t[1]) 
              + ' (' + dt.isoformat() + ')')]
 
   
-def print_header(buf):
-    print('\n'.header_to_str_array(buf))
+# def print_header(buf):
+#     print('\n'.header_to_str_array(buf))
+
 
 def print_tags(buf):
     i = header_length
     end_of_data = get_packet_length(buf)
     if is_signed_message(buf):
         end_of_data -= signature_block_length
+    epoch = get_epoch(buf)
     while i < end_of_data:
         tag_id = buf[i]
         i += 1
-        if not tag_id_to_name.has_key(tag_id):
+        if tag_id not in tag_id_to_name:
             # Cannot continue since the length is not known
             print('Unknown tag: ' + str(tag_id))
             return
         tag_name = tag_id_to_name[tag_id]
         tag = tag_data[tag_name]
-        # tag_len = tag_data[tag_name]['length']
         tag_len = tag['length']
         if tag_len == 0:
             data_len = (buf[i] << 8) + buf[i+1]
             i += 2
         else:
-            data_len = tag_len - 1    
-          
-        if tag.has_key('formatter'):
-            data_repr = tag['formatter'](tag_name, data_len, 
-                                         buf[i:(i+data_len)])
-        elif tag.has_key('format'):
-            data_repr = repr(list(struct.unpack(tag['format'],
-                                                str(buf[i:(i+data_len)]))))
-        else:
-            data_repr = '0x  ' + ' '.join(map(byte_hex, buf[i:(i+data_len)]))
-            
-        print(tag_name + ' (#' + str(tag_id) + '):  ' + data_repr)
-        i += data_len
-        
+            data_len = tag_len - 1
 
-def decode_tag_payload(tag_name, tag_payload):
-    if tag_data[tag_name].has_key('formatter'):
-        data_repr = tag_data[tag_name]['formatter'](tag_name, 
+        tag_header_str = format_tag_header(tag_name, tag_id)
+        join_str = '\n' + (' ' * len(tag_header_str))
+        print(tag_header_str + format_tag_payload(tag_name, buf[i:(i+data_len)], epoch, join_str=join_str))
+        i += data_len
+
+
+def format_tag_header(tag_name, tag_id):
+    return tag_name + ' (#' + str(tag_id) + '):  '
+
+
+def format_tag_payload(tag_name, tag_payload, epoch, join_str='\n    '):
+    if 'formatter' in tag_data[tag_name]:
+        data_repr = tag_data[tag_name]['formatter'](tag_name,
                                                     len(tag_payload),
-                                                    tag_payload)
-    elif tag_data[tag_name].has_key('format'):
+                                                    tag_payload,
+                                                    epoch)
+    elif 'format' in tag_data[tag_name]:
         data_repr = repr(list(struct.unpack(tag_data[tag_name]['format'],
                                             str(tag_payload))))
     else:
         data_repr = '0x  ' + ' '.join(map(byte_hex, tag_payload))
-    
-    return tag_name + (' (#%d): ' % tag_data[tag_name]['id']) + data_repr, \
-        data_repr, len(tag_payload)
+
+    if not isinstance(data_repr, six.string_types):
+        try:
+            data_repr = join_str.join(data_repr)
+        except:
+            data_repr = repr(data_repr)
+    return data_repr
+
+
+def decode_tag(tag_name, tag_payload, epoch):
+    if 'decoder' in tag_data[tag_name]:
+        data = tag_data[tag_name]['decoder'](tag_name, len(tag_payload), tag_payload, epoch)
+    elif 'format' in tag_data[tag_name]:
+        data = list(struct.unpack(tag_data[tag_name]['format'], str(tag_payload)), epoch)
+    else:
+        data = tag_payload
+    return data
 
 
 def print_signature(buf):
@@ -711,24 +910,30 @@ def print_signature(buf):
         print('HMAC-MD5: 0x  ' + ' '.join(map(byte_hex, buf[packet_length-hmac_length:packet_length])))
     else:
         print('Signature: none')
-        
+
+
 def print_packet(buf, message_time=None):
-    
+    sent_received = ' received '
     try:
         if is_response_message(buf):
             separator = '------------- Response'
+            sent_received = ' sent '
         else:
             separator = '============= Message'
-    except:
+    except KeyboardInterrupt:
+        raise
+    except Exception:
         separator = '============= Invalid Message' 
 
     if message_time is not None:
-        separator += ' received ' + str(time.time())
+        separator += sent_received + str(time.time())
 
     s = [separator]
     try:
         # print_header(buf)
         s.extend(header_to_str_array(buf))
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         s.append('Error in header: ' + str(e))
 
@@ -736,18 +941,23 @@ def print_packet(buf, message_time=None):
 
     try:
         print_tags(buf)
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Error in tags: ' + str(e))
     try:
         print_signature(buf)
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         print('Error in header: ' + str(e))
-    
+
+
 def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
     complete_message = False
 
     valid = True    
-    while (len(buf)):
+    while len(buf):
         valid = True
         
         # Check magic
@@ -760,10 +970,10 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
             break
         
         # Check message is signed
-        if is_signed_message(buf) == None:
-            break;
+        if is_signed_message(buf) is None:
+            break
 
-        if is_signed_message(buf) == False:
+        if not is_signed_message(buf):
             # All transmitted messages must be signed
             valid = False
         
@@ -774,15 +984,16 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                 break
             elif packet_length < header_length:
                 valid = False
+        else:
+            packet_length = 0
             
         if valid and len(buf) >= packet_length:
             complete_message = True
 
             if not ignore_digest:
                 # Compute HMAC-MD5
-                hmac_md5 = hmac.new(hmac_key)# , digestmod=hashlib.md5)
+                hmac_md5 = hmac.new(hmac_key)  # , digestmod=hashlib.md5)
                 hmac_md5.update(str(buf[0:(packet_length - hmac_length)]))
-
 
                 # Take least significant bytes
                 hmac_bytes = hmac_md5.digest()
@@ -803,8 +1014,10 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                     # Be paranoid when printing invalid packets!
                     try:
                         print_packet(buf)
-                    except:
-                        None
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception:
+                        pass
                     print('#########################')
             
         # All tests done
@@ -822,6 +1035,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
     
     return None  
 
+
 def crc16(data, crc=0):
     for a in data:
         crc ^= ord(a)
@@ -838,5 +1052,5 @@ def adc_counts_to_tesla(val, tesla_per_volt=50e-6):
     # 8x gain. Thus largest possible normalised magnitude is 2^17 * 8.
     # Largest magnitude of ADC output is from +/- 2.048V   
 
-    scale_factor = 2.048 * tesla_per_volt / (pow(2,17) * 8)
+    scale_factor = 2.048 * tesla_per_volt / (pow(2, 17) * 8)
     return val * scale_factor

@@ -25,6 +25,7 @@ class FLC100;
 class FLC100 {
 public:
   static const uint8_t numAxes = 3;
+  static const uint8_t maxNumAdcs = numAxes;
   static const unsigned long defaultPowerUpDelay_ms = 1000;
   static unsigned long powerUpDelay_ms;
   static const uint8_t maxSamples = 16;
@@ -60,19 +61,19 @@ public:
       return adcPresent[n];
   }
 
-  inline const int32_t* getMagData(void) const {
+  inline const int32_t* getData(void) const {
     return magData;
   }
 
-  inline const int32_t* getMagDataSamples(uint8_t mag) const {
+  inline const int32_t* getDataSamples(uint8_t mag) const {
     return magDataSamples[mag];
   }
 
-  inline int32_t getMagDataSamples(uint8_t mag, uint8_t sampleNum) const {
+  inline int32_t getDataSamples(uint8_t mag, uint8_t sampleNum) const {
     return magDataSamples[mag][sampleNum];
   }
 
-  inline uint8_t getMagResGain(uint8_t mag) const {
+  inline uint8_t getResGain(uint8_t mag) const {
     return (mag < numAxes) ? (adcConfig[mag] & 0x0F) : 0; 
   }
   

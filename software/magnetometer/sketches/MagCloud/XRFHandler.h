@@ -4,16 +4,16 @@
 class XRFHandler {
 public:
 
-  inline XRFHandler(void);
-  void process(void);
-  
+	inline XRFHandler(void);
+	void process(void);
+
 private:
-  
+
 };
 
 XRFHandler::XRFHandler(void)
 {
-  ;
+	;
 }
 
 #endif

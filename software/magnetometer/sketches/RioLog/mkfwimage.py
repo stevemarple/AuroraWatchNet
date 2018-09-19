@@ -8,7 +8,8 @@ import os
 import struct
 import subprocess
 
-import AW_Message
+import aurorawatchnet as awn
+import aurorawatchnet.message
 
 
 # Parse command line options
@@ -30,18 +31,11 @@ if not os.path.exists(options.elf_filename):
     print(options.elf_filename + ' does not exist')
     os.sys.exit(1)
 
-# TODO: Use config file
-fw_path = '/var/aurorawatchnet/firmware'
+fw_path = os.path.dirname(options.elf_filename)
 bin_filename = os.path.join(fw_path, options.firmware_version + '.bin')
 crc_filename = os.path.join(fw_path, options.firmware_version + '.crc')
-
-if os.path.exists(bin_filename):
-    print('Error: ' + bin_filename + ' already exists')
-    os.sys.exit(1)
-if os.path.exists(crc_filename):
-    print('Error: ' + crc_filename + ' already exists')
-    os.sys.exit(1)
-
+if os.path.exists(bin_filename) or os.path.exists(crc_filename):
+    bin_filename
 try:
     cmd = ['avr-objcopy', '-O', 'binary', options.elf_filename, bin_filename]
     subprocess.check_call(cmd)
@@ -53,7 +47,7 @@ except subprocess.CalledProcessError as e:
 bin_file = open(bin_filename, 'a+b') 
 bin_contents = bin_file.read()
 
-block_size = AW_Message.firmware_block_size
+block_size = awn.message.firmware_block_size
 if len(bin_contents) % block_size:
     # Pad the file to the block size used for transmission
     padding = chr(0xFF) * (block_size - (len(bin_contents) % block_size))
@@ -71,7 +65,7 @@ elif len(bin_contents) > temp_app_size:
     print('Firmware image too large (' + str(len(bin_contents)) + ' bytes)')
     os.sys.exit(1)
     
-crc = AW_Message.crc16(bin_contents)
+crc = awn.message.crc16(bin_contents)
 crc_file = open(crc_filename, 'w')
 crc_str = struct.pack('>H', crc)
 # Output in similar way to md5sum

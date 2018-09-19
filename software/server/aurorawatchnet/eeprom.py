@@ -2,6 +2,7 @@
 
 import random
 import re
+import struct
 
 import aurorawatchnet as awn
 
@@ -53,9 +54,22 @@ def make_hmac_key(key=None):
 def get_eeprom_addresses():
     r = {}
     for k in eeprom:
-        if 'address' in eeprom[k]:
-            r[eeprom[k]['address']] = k
+        r[eeprom[k]['address']] = k
     return r
+
+
+def compute_eeprom_setting_sizes():
+    global eeprom
+    for k in eeprom:
+        s = struct.Struct(eeprom[k]['format'])
+        eeprom[k]['size'] = s.size
+
+
+def find_next_address(address):
+    for a in sorted(eeprom_address_to_setting_name.keys()):
+        if a > address:
+            return a
+    return None
 
     
 # EEPROM address details. The key is derived from the C language name
@@ -66,7 +80,7 @@ def get_eeprom_addresses():
 #    default: optional default value. 
 #    help: optional help description for command line switch
 #    metavar: optional metavar description for command line switch
-#    type: optional type parameter for argparse.add_argument()
+#    type: optional type parameter given to argparse add_argument()
 #    choices: optional choices parameter for argparse.add_argument()
 #
 
@@ -270,7 +284,7 @@ eeprom = {
         'format': 'B',
         'type': awn.safe_eval,
         'choices': [0, 1],
-        'default': True,
+        'default': False,
         'help': 'Flag indicating if FLC100 sensor(s) fitted',
     },
     'mlx90614_present': {
@@ -411,9 +425,9 @@ eeprom = {
         },
     'console_baud_rate': {
         'address': 0xd4,
-        'format': 'H',
+        'format': '<I',
         'type': int,
-        'default': 9600,
+        'default': 115200,
         'help': 'Console baud rate',
         'metavar': 'BAUD',
         },
@@ -449,6 +463,521 @@ eeprom = {
     #     'default': 255,
     #     'help': 'Data quality output pin',
     #     },
+
+    'rio_present': {
+        'address': 0xdd,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'choices': [0, 1],
+        'default': False,
+        'help': 'Flag indicating if riometer ADC board is used',
+    },
+    'use_gnss': {
+        'address': 0xde,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'choices': [0, 1],
+        'default': True,
+        'help': 'Flag indicating if GNSS should be used whenever possible',
+    },
+    'rtcx_device_type': {
+        'address': 0xdf,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'choices': [0, 1, 2, 255],
+        'default': 255,
+        'help': 'RTCx device type (0=DS1307, 1=MCP7941x, 2=PCF85263, 255=auto)',
+    },
+    'rtcx_device_address': {
+        'address': 0xe0,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'default': 255,
+        'help': '7 bit I2C address for RTCx device',
+    },
+    'gnss_default_baud_rate': {
+        'address': 0xe1,
+        'format': '<I',
+        'type': int,
+        'choices': [4800, 9600, 19200, 38400, 76800, 115200, 230400],
+        'default': 115200,
+        'help': 'Default GNSS module baud rate after power-on',
+    },
+    'gnss_desired_baud_rate': {
+        'address': 0xe5,
+        'format': '<I',
+        'type': int,
+        'choices': [4800, 9600, 19200, 38400, 76800, 115200, 230400],
+        'default': 115200,
+        'help': 'Desired GNSS module baud rate after configuration',
+    },
+
+    # Reserved 0x100 - 0x1FF for settings relating to generic ADC logging
+    'generic_adc_address_list': {
+        'address': 0x100,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+
+    # Reserved 0x200 - 0x3FF for settings specific to riometer logger
+
+    # Riometer housekeeping #0 (0x200 - 0x214)
+    # Default to recording Vin and +5V only (ADC1 and ADC2)
+    'rio_housekeeping_0_adc_channel_list': {
+        'address': 0x200,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [2, 2, 2, 2, 2, 2, 2, 2],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_0_adc_gain_list': {
+        'address': 0x208,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_0_num_samples': {
+        'address': 0x210,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_0_aggregate': {
+        'address': 0x212,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_0_adc_resolution': {
+        'address': 0x213,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_0_adc_mask': {
+        'address': 0x214,
+        'format': 'B',
+        'default': 0b00000011,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+
+    # Riometer housekeeping #1 (0x220 - 0x234)
+    # Default to measuring temperature on ADC board only (ADC3)
+    'rio_housekeeping_1_adc_channel_list': {
+        'address': 0x220,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [2, 2, 2, 2, 2, 2, 2, 2],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_1_adc_gain_list': {
+        'address': 0x228,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_1_num_samples': {
+        'address': 0x230,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_1_aggregate': {
+        'address': 0x232,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_1_adc_resolution': {
+        'address': 0x233,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_1_adc_mask': {
+        'address': 0x234,
+        'format': 'B',
+        'default': 0b00000100,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+
+    # Riometer housekeeping #2 (0x240 - 0x254)
+    'rio_housekeeping_2_adc_channel_list': {
+        'address': 0x240,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_2_adc_gain_list': {
+        'address': 0x248,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_2_num_samples': {
+        'address': 0x250,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_2_aggregate': {
+        'address': 0x252,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_2_adc_resolution': {
+        'address': 0x253,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_2_adc_mask': {
+        'address': 0x254,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    
+    # Riometer housekeeping #3 (0x260 - 0x274)
+    'rio_housekeeping_3_adc_channel_list': {
+        'address': 0x260,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_3_adc_gain_list': {
+        'address': 0x268,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_3_num_samples': {
+        'address': 0x270,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_3_aggregate': {
+        'address': 0x272,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_3_adc_resolution': {
+        'address': 0x273,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_3_adc_mask': {
+        'address': 0x274,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    
+    # Riometer housekeeping #4 (0x280 - 0x294)
+    'rio_housekeeping_4_adc_channel_list': {
+        'address': 0x280,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_4_adc_gain_list': {
+        'address': 0x288,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_4_num_samples': {
+        'address': 0x290,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_4_aggregate': {
+        'address': 0x292,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_4_adc_resolution': {
+        'address': 0x293,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_4_adc_mask': {
+        'address': 0x294,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    
+    # Riometer housekeeping #5 (0x2a0 - 0x2b4)
+    'rio_housekeeping_5_adc_channel_list': {
+        'address': 0x2a0,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_5_adc_gain_list': {
+        'address': 0x2a8,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_5_num_samples': {
+        'address': 0x2b0,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_5_aggregate': {
+        'address': 0x2b2,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_5_adc_resolution': {
+        'address': 0x2b3,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_5_adc_mask': {
+        'address': 0x2b4,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    
+    # Riometer housekeeping #6 (0x2c0 - 0x2d4)
+    'rio_housekeeping_6_adc_channel_list': {
+        'address': 0x2c0,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_6_adc_gain_list': {
+        'address': 0x2c8,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_6_num_samples': {
+        'address': 0x2d0,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_6_aggregate': {
+        'address': 0x2d2,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_6_adc_resolution': {
+        'address': 0x2d3,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_6_adc_mask': {
+        'address': 0x2d4,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    
+    # Riometer housekeeping #7 (0x2e0 - 0x2f4)
+    'rio_housekeeping_7_adc_channel_list': {
+        'address': 0x2e0,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [4, 4, 4, 4, 4, 4, 4, 4],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_housekeeping_7_adc_gain_list': {
+        'address': 0x2e8,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_housekeeping_7_num_samples': {
+        'address': 0x2f0,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_housekeeping_7_aggregate': {
+        'address': 0x2f2,
+        'format': 'B',
+        'type': int,
+        'default': 0,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_housekeeping_7_adc_resolution': {
+        'address': 0x2f3,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_housekeeping_7_adc_mask': {
+        'address': 0x2f4,
+        'format': 'B',
+        'default': 0,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+
+    # Riometer data (0x300 - 0x314)
+    # The settings for the riometer data follows the same scheme as for housekeeping data. However the settings apply
+    # for all scan steps.
+    'rio_riometer_adc_channel_list': {
+        'address': 0x300,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC I2C addresses',
+    },
+    'rio_riometer_adc_gain_list': {
+        'address': 0x308,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': [1, 1, 1, 1, 1, 1, 1, 1],
+        'help': 'List of MCP3424 ADC PGA gain values',
+    },
+    'rio_riometer_num_samples': {
+        'address': 0x310,
+        'format': 'H',
+        'type': int,
+        'default': 1,
+        'help': 'Number of riometer data samples to take per sampling interval',
+    },
+    'rio_riometer_aggregate': {
+        'address': 0x312,
+        'format': 'B',
+        'type': int,
+        'default': 1,
+        'choices': [0, 1, 2],
+        'help': 'Aggregate function for multiple samples; 0=mean, 1=median, 2=trimmed mean',
+    },
+    'rio_riometer_adc_resolution': {
+        'address': 0x313,
+        'format': 'B',
+        'default': 14,
+        'help': 'MCP3424 ADC resolution (bits)',
+        'metavar': 'BITS'
+    },
+    'rio_riometer_adc_mask': {
+        'address': 0x314,
+        'format': 'B',
+        'default': 0xff,
+        'help': 'Mask indicating which ADCs should be used for sampling riometer data (LSB = first ADC in list)',
+    },
+    # Generic riometer information
+    'rio_num_rows': {
+        'address': 0x320,
+        'format': 'B',
+        'type': int,
+        'default': 8,
+        'choices': range(1,8),
+        'help': 'Number of riometer rows',
+    },
+    'rio_num_columns': {
+        'address': 0x321,
+        'format': 'B',
+        'type': int,
+        'default': 8,
+        'choices': range(1, 8),
+        'help': 'Number of riometer columns',
+    },
+    'rio_scan_pins': {
+        'address': 0x322,
+        'format': '3B',
+        'type': awn.safe_eval,
+        'default': [255, 255, 255], # Off
+        'help': 'GPIO pin numbers for scan control',
+    },
+    'rio_presample_delay_ms': {
+        'address': 0x325,
+        'format': 'H',
+        'type': int,
+        'default': 10,
+        'help': 'Delay before riometer sampling starts (ms)',
+        'metavar': 'MILLISECONDS',
+    },
+    'rio_row_scan_interval_ms': {
+        'address': 0x327,
+        'format': 'H',
+        'type': int,
+        'default': 120,
+        'help': 'Interval between riometer row scans (ms)',
+        'metavar': 'MILLISECONDS',
+    },
+    'rio_gpio_address': {
+        'address': 0x329,
+        'format': 'B',
+        'type': awn.safe_eval,
+        'default': 255,
+        'help': '7 bit I2C address for riometer MCP23008 IO expander',
+    },
+    'rio_scan_mapping': {
+        'address': 0x32a,
+        'format': '8B',
+        'type': awn.safe_eval,
+        'default': range(8),
+        'help': 'Map internal riometer scan number (0-7) to 3 bit output value',
+    },
+
 }
 
-eeprom_address_to_key = get_eeprom_addresses()
+compute_eeprom_setting_sizes()
+eeprom_address_to_setting_name = get_eeprom_addresses()
