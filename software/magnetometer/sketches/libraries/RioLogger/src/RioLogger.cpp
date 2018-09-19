@@ -279,7 +279,7 @@ void RioLogger::process(void)
 		break;
 
     case readingHousekeepingADCs:
-		if (sampleNum >= numSamples) {
+		if (sampleNum >= housekeepingNumSamples[scanState]) {
 			// Calculate final result
 			aggregate(houseKeepingAdcMask[scanState], &(housekeepingData[scanState][0]));
 
