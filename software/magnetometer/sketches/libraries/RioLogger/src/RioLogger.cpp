@@ -40,16 +40,7 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
 	powerPin = pp;
 	pinMode(powerPin, OUTPUT);
 	scanState = 0;
-	// 5, 9 available; 7 possibly available if not needed for PPS.
-	scanPins[0] = 23;
-	scanPins[1] = 22;
-	scanPins[2] = 14;
-
-	for (uint8_t i = 0; i < numScanPins; ++i)
-		pinMode(scanPins[i], OUTPUT);
-
     initGpio();
-
 	setScanPins();
 
 	uint8_t pud_50ms = eeprom_read_byte((uint8_t*)FLC100_POWER_UP_DELAY_50MS);
@@ -556,11 +547,6 @@ void RioLogger::setScanPins() const
 {
 	const uint8_t val = scanMapping[scanState];
 	uint8_t mask = 1;
-
-	for (uint8_t i = 0; i < numScanPins; ++i) {
-		digitalWrite(scanPins[i], val & mask);
-		mask <<= 1;
-	}
 
 	if (gpioAddress) {
 	    uint8_t d = 0;

@@ -30,8 +30,6 @@ public:
 	static unsigned long powerUpDelay_ms;
 	static uint16_t presampleDelay_ms;
 	static const uint8_t maxSamples = 16;
-    static const uint8_t numScanPins = 3; // ceil(log2(EEPROM_RIO_NUM_ROWS_MAX))
-    // static const uint8_t numScanStates = 8; // pow(2, numScanPins)
     static const uint8_t scanMapping7[7];
     static const uint8_t scanMapping8[8];
 
@@ -158,7 +156,6 @@ private:
 	uint8_t numColumns;
 	uint8_t powerPin;
 	uint8_t scanState;
-    uint8_t scanPins[numScanPins];
     uint8_t scanMapping[maxRows];
 
 	MCP342x adc[maxNumAdcs]; // X, Y, Z
