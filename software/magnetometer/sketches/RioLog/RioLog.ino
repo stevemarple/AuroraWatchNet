@@ -1877,6 +1877,7 @@ void loop(void)
 {
     bool crtcTriggeredCopy = crtcTriggered; // Read actual volatile value only one in loop().
 	bool startSampling = false;
+	uint8_t startSamplingReason;
 	wdt_reset();
 
 	// Decide when to start sampling. Use the GNSS PPS input if
@@ -1897,12 +1898,14 @@ void loop(void)
 	if (useGnss && samplingInterval.getFraction() == 0) {
 		if (gnssNowOk && (gnssNow % samplingInterval.getSeconds() == 0)) {
 			startSampling = true;
+			startSamplingReason = 1;
 			sampleStartTime = CounterRTC::Time(gnssNow, 0);
         }
 	}
 	else {
 		if (crtcTriggeredCopy) {
 			startSampling = true;
+			startSamplingReason = 2;
 			cRTC.getTime(sampleStartTime);
         }
 	}
@@ -1910,13 +1913,16 @@ void loop(void)
 #else
 	if (crtcTriggeredCopy) {
 		startSampling = true;
+		startSamplingReason = 3;
 		cRTC.getTime(sampleStartTime);
     }
 #endif
 
 #ifdef FEATURE_DATA_QUALITY
-	if (dataQualityChanged)
+	if (dataQualityChanged) {
 		startSampling = true;
+		startSamplingReason = 4;
+	}
 #endif
 
 #ifdef FEATURE_GNSS
@@ -1992,7 +1998,8 @@ void loop(void)
 #endif
 
 		if (verbosity)
-			console << F("--\nSampling started\n");
+			console << F("--\nSampling started, reason: ") << startSamplingReason << endl;
+
 	}
 
 	if (crtcTriggeredCopy) {
