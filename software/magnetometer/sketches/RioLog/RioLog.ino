@@ -1619,7 +1619,14 @@ void setup(void)
 	gnssSerial.begin(115200);
 	gnss_clock.begin(gnssBuffer, sizeof(gnssBuffer), gnssPpsPin);
 
-	// TODO: reset GNSS  module
+	// Reset the GNSS module. The user can disable this by removing the jumper.
+	if (gnssResetPin != 0xFF) {
+	    pinMode(gnssResetPin, OUTPUT);
+	    digitalWrite(gnssResetPin, LOW);
+	    delay(5);
+	    digitalWrite(gnssResetPin, HIGH);
+	    delay(500);
+	}
 
 	// Compatibility mode off
 	MicroNMEA::sendSentence(gnssSerial, "$PNVGNME,2,7,1");
