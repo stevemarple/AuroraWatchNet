@@ -202,6 +202,9 @@ const char features_P[] PROGMEM = {
 #ifdef FEATURE_BUSY_TIME_PIN
     " BUSY_TIME_PIN(" EXPAND_STR(FEATURE_BUSY_TIME_PIN) ")"
 #endif
+#ifdef FEATURE_MEM_USAGE
+     " MEM_USAGE"
+#endif
 };
 
 const char comms_P[] PROGMEM = {
