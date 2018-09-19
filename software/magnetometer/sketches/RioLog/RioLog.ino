@@ -240,6 +240,7 @@ const uint8_t heaterPin = eeprom_read_byte((uint8_t*)EEPROM_HEATER_PIN);
 // Flag to indicate if LED should be switched on. To ensure minimal
 // power consumption it is always switched off.
 bool useLed = false;
+uint8_t maxMessagesLed = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
 
 // Number of messages transmitted. Rollover is expected and must be
 // planned for!
@@ -2373,9 +2374,7 @@ void loop(void)
 
 			// Message queued, turn on LED
 			if (useLed) {
-				uint8_t maxMessages
-					= eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
-				if (maxMessages && messageCount >= maxMessages)
+				if (maxMessagesLed && messageCount >= maxMessagesLed)
 					useLed = false;
 				digitalWrite(ledPin, useLed);
 			}
@@ -2464,9 +2463,7 @@ void loop(void)
 			++messageCount;
 			// Message queued, turn on LED
 			if (useLed) {
-				uint8_t maxMessages
-					= eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
-				if (maxMessages && messageCount >= maxMessages)
+				if (maxMessagesLed && messageCount >= maxMessagesLed)
 					useLed = false;
 				digitalWrite(ledPin, useLed);
 			}
