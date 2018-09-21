@@ -2659,9 +2659,7 @@ void cmdReboot(const char *s)
 void reboot(void) {
 	console << F("Rebooting ...\n");
 	console.flush();
-	wdt_enable(WDTO_15MS);
-	while (1)
-		;
+	xboot_reset();
 }
 
 void cmdSamplingInterval(const char *s)
