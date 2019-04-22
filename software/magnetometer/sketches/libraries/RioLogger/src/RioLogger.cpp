@@ -29,6 +29,11 @@ RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
     	houseKeepingAdcMask[i] = 0;
         scanMapping[i] = eeprom_read_byte((const uint8_t*)(EEPROM_RIO_SCAN_MAPPING + i));
     }
+
+	uint16_t psd = eeprom_read_word((const uint16_t*)EEPROM_RIO_PRESAMPLE_DELAY_MS);
+	if (psd != 0 && psd <= 1000) {
+		presampleDelay_ms = psd;
+	}
 }
 
 
