@@ -561,6 +561,7 @@ void RioLogger::setScanPins() const
 	if (gpioAddress) {
 	    uint8_t d = 0;
 	    d |= ((val & 7) << 1); // Uses GPIO bits 1-3 inclusive
+		d |= (1 << 4); // Set the output enable pin for the RF switches
 	    d |= ((scanState & 1) << 5); // Set status LED (GPIO bit 5)
 	    gpio.writeGPIO(d);
 	}
