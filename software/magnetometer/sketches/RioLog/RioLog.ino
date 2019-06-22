@@ -2726,3 +2726,4 @@ void badNmeaChecksum(const MicroNMEA &nmea)
 {
     console << F("Bad NMEA checksum: ") << nmea.getSentence() << endl;
 }
+
