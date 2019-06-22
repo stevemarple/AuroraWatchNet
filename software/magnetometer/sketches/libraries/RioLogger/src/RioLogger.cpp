@@ -225,7 +225,11 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (rioNum >= numColumns) {
+		// Here we limit the ADC to the most that can be present (not
+		// the number of riometer columns), to allow for more
+		// housekeeping channels than riometer data. This is useful
+		// for when an eighth riometer records widebeam data.
+		if (rioNum >= maxNumAdcs) {
 			state = convertingHousekeepingADCs;
 			rioNum = 0;
 			tmp = 0;
@@ -299,7 +303,7 @@ void RioLogger::process(void)
 			break;
 		}
 
-		if (rioNum >= numColumns) {
+		if (rioNum >= maxNumAdcs) {
 			++sampleNum;
 			state = convertingHousekeepingADCs;
 			rioNum = 0;
@@ -335,7 +339,7 @@ void RioLogger::process(void)
 	case configuringRioADCs:
 		// Write configuration to each ADC. Use tmp as flag to indicate a
 		// failed configuration attempt (and therefore to use the timeout
-		// delay).
+		// delay). Here we limit the ADCs used to the number of columns.
 		if (rioNum >= numColumns) {
 			state = presampleHold;
 			rioNum = 0;
@@ -515,7 +519,7 @@ void RioLogger::aggregate(void)
 
 void RioLogger::aggregate(uint8_t useMask, long *results)
 {
-	for (uint8_t i = 0; i < numColumns; ++i) {
+	for (uint8_t i = 0; i < maxNumAdcs; ++i) {
 	    const uint8_t bitMask = 1 << i;
 		if ((useMask & bitMask) == 0)
 			continue;
