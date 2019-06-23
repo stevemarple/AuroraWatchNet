@@ -11,7 +11,7 @@ unsigned long RioLogger::powerUpDelay_ms = RioLogger::defaultPowerUpDelay_ms;
 uint16_t RioLogger::presampleDelay_ms = 10;
 
 RioLogger::RioLogger(void) : gpioAddress(0), state(off), axis(0), scanState(0),
-                             adcMask(0), numSamples(1), useMedian(false), trimSamples(false)
+                             adcMask(0), numSamples(1), useMedian(false), trimSamples(false), freezeScan(255), rioConnected(true)
 {
     gpioAddress = eeprom_read_byte((const uint8_t*)EEPROM_RIO_GPIO_ADDRESS);
     if (gpioAddress < MCP23008_ADDRESS_MIN || gpioAddress > MCP23008_ADDRESS_MAX)
@@ -559,17 +559,30 @@ void RioLogger::aggregate(uint8_t useMask, long *results)
 
 void RioLogger::setScanPins() const
 {
-	const uint8_t val = scanMapping[scanState];
-	uint8_t mask = 1;
+	uint8_t val;
+	bool ledState;
+	if (isScanFrozen()) {
+		// Freeze scanning at selected state, LED always on
+		val = scanMapping[freezeScan];
+		ledState = 1;
+	}
+	else {
+		// Scan normally, toggle LED
+		val = scanMapping[scanState];
+		ledState = scanState & 1;
+	}
+
+	if (!isRioConnected()) {
+		ledState = 1;
+	}
 
 	if (gpioAddress) {
 	    uint8_t d = 0;
 	    d |= ((val & 7) << 1); // Uses GPIO bits 1-3 inclusive
-		d |= (1 << 4); // Set the output enable pin for the RF switches
-	    d |= ((scanState & 1) << 5); // Set status LED (GPIO bit 5)
+		d |= (isRioConnected() << 4); // Set output enable pin for RF switches
+	    d |= (ledState << 5); // Set status LED (GPIO bit 5)
 	    gpio.writeGPIO(d);
 	}
-
 }
 
 

@@ -679,6 +679,15 @@ def handle_control_message(buf, pending_tags):
                 struct.pack(awn.message.tag_data['all_samples']['format'],
                             flag)
             r.append('all_samples:' + str(flag))
+        elif cmd.startswith('rio_freeze_scan='):
+            scan_num = int(cmd.replace('rio_freeze_scan=', '', 1))
+            if scan_num < 0 or scan_num > 255:
+                scan_num = 255
+            pending_tags['rio_freeze_scan'] = struct.pack(awn.message.tag_data['rio_freeze_scan']['format'], scan_num)
+            r.append('rio_freeze_scan:' + str(scan_num))
+        elif cmd.startswith('rio_connect='):
+            rio_connect = int(cmd.replace('rio_connect=', '', 1))
+            pending_tags['rio_connect'] = struct.pack(awn.message.tag_data['rio_freeze_scan']['format'], rio_connect)
         elif cmd == 'pending_tags':
             r.append('pending_tags:' + describe_pending_tags())
         else:

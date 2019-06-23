@@ -28,7 +28,7 @@ public:
 	static const uint8_t numAxes = 3;
 	static const uint8_t magicLength = 2;
 	static const char magic[magicLength];
-	static const uint16_t tagLengths[34];
+	static const uint16_t tagLengths[36];
 
 	static const uint8_t sizeOfTag = 1;
 	static const uint8_t sizeOfPacketLength = 2;
@@ -82,6 +82,8 @@ public:
 		tagAdcData = 31,
 		tagLogMessage = 32,
 		tagGenDataS32 = 33, // Generic data, signed 32 bit
+		tagRioFreezeScan = 34,
+		tagRioConnect = 35,
 		// Remember to update tagLengths when adding new tags!
 	};
 

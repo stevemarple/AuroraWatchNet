@@ -486,7 +486,17 @@ tag_data = {
         'length': 0,
         'decoder': decode_gen_data_s32,
         'formatter': format_gen_data_s32,
-    }
+    },
+    'rio_freeze_scan': {
+        'id': 34,
+        'length': 2,
+        'format': '!B',
+    },
+    'rio_connect': {
+        'id': 35,
+        'length': 2,
+        'format': '!?',
+    },
 }
 
 tag_id_to_name = dict()

@@ -129,6 +129,33 @@ public:
 					uint8_t adcGainList[maxNumAdcs]);
 	void process(void);
 	void finish(void);
+	
+	inline uint8_t getScanState(void) const {
+		return scanState;
+	};
+
+	inline bool isScanFrozen(void) const {
+		// Use maxRows here. This allows a 7x7 riometer system to have
+		// a dummy 8th scan state that connects to riometers to a
+		// noise source.
+		return freezeScan < maxRows;
+	}
+
+	inline uint8_t getFreezeScan(void) const {
+		return freezeScan;
+	};
+
+	inline void setFreezeScan(uint8_t freezeScanAtState) {
+		freezeScan = freezeScanAtState;
+	};
+
+	inline bool isRioConnected(void) const {
+		return rioConnected;
+	}
+
+	inline void setRioConnected(bool c) {
+		rioConnected = c;
+	}
 
 private:
 
@@ -193,15 +220,13 @@ private:
 
 	bool useMedian;
 	bool trimSamples;
+	uint8_t freezeScan;
+	bool rioConnected;
 
     void initGpio(void) const;
 	void aggregate(void);
 	void aggregate(uint8_t useMask, long *results);
     void setScanPins() const;
-public:
-	uint8_t getScanState(void) {
-		return scanState;
-	};
 };
 
 

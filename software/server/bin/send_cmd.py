@@ -32,22 +32,50 @@ aw_cmds = {
         # 'format': 'f',
         'help': 'Sampling interval',
         'metavar': 'SECONDS',
-        },
+    },
     'upgrade_firmware': {
         'help': 'Upgrade firmware',
         'metavar': 'FIRMWARE_VERSION',
-        },
+    },
     'reboot': {
         'help': 'Reboot microcontroller',
         'metavar': 'TRUE',
         'choices': ['TRUE'],
-        },
-    }
+    },
+    'rio_freeze_scan': {
+        'help': 'Freeze riometer scanning at given state',
+        'metavar': 'STATE',
+        'type': int,
+    },
+    'rio_unfreeze_scan': {
+        'dest': 'rio_freeze_scan',
+        'action': 'store_const',
+        'const': 255,
+        'help': 'Resume normal riometer scanning',
+    },
+    'rio_connect': {
+        'help': 'Connect riometers from Butler matrix',
+        'action': 'store_const',
+        'const': 1,
+    },
+    'rio_disconnect': {
+        'help': 'Disconnect riometers from Butler matrix',
+        'action': 'store_const',
+        'const': '0',
+        'dest': 'rio_connect',
+    },
+}
 
-# Add options for EEPROM settings, prefix with 'eeprom_'
+# Add options for EEPROM settings, prefix with 'eeprom_'. Do not pass
+# the default EEPROM value as the default argparse value!
+
 for k in eeprom.eeprom.keys():
-    aw_cmds['eeprom_' + k] = eeprom.eeprom[k]
-
+    # aw_cmds['eeprom_' + k] = eeprom.eeprom[k]
+    aw_cmds['eeprom_' + k] = {}
+    for k2 in eeprom.eeprom[k]:
+        if k2 not in ['default']:
+            aw_cmds['eeprom_' + k][k2] = eeprom.eeprom[k][k2]
+    
 # Parse command line options
 parser = \
     argparse.ArgumentParser(description='Send commands to recording daemon.',
@@ -74,16 +102,22 @@ parser.add_argument('-v', '--verbose',
                     help='Be verbose')
 
 for k in sorted(aw_cmds.keys()):
-    if aw_cmds[k].has_key('action'):
-        parser.add_argument('--' + k.replace('_', '-'),
-                            action=aw_cmds[k].get('action'),
-                            help=aw_cmds[k].get('help'))
-    else:
-        parser.add_argument('--' + k.replace('_', '-'),
-                            type=aw_cmds[k].get('type'),
-                            choices=aw_cmds[k].get('choices'),
-                            help=aw_cmds[k].get('help'),
-                            metavar=aw_cmds[k].get('metavar'))
+    parse_args = {}
+    for k2 in aw_cmds[k]:
+        if k2 not in ['format', 'address', 'size']:
+            parse_args[k2] = aw_cmds[k][k2]
+#    print(k + ': ' + repr(parse_args))
+    parser.add_argument('--' + k.replace('_', '-'), **parse_args)
+    # if aw_cmds[k].has_key('action'):
+    #     parser.add_argument('--' + k.replace('_', '-'),
+    #                         action=aw_cmds[k].get('action'),
+    #                         help=aw_cmds[k].get('help'))
+    # else:
+    #     parser.add_argument('--' + k.replace('_', '-'),
+    #                         type=aw_cmds[k].get('type'),
+    #                         choices=aw_cmds[k].get('choices'),
+    #                         help=aw_cmds[k].get('help'),
+    #                         metavar=aw_cmds[k].get('metavar'))
 
 eeprom_settings_group = parser.add_mutually_exclusive_group()
 read_cmds = []
@@ -104,7 +138,11 @@ config = awn.read_config_file(args.config_file)
 user_cmds = []
 
 for k in aw_cmds:
-    s = getattr(args, k)
+    cmd_name = k
+    if 'dest' in aw_cmds[k]:
+        cmd_name = aw_cmds[k]['dest']
+
+    s = getattr(args, cmd_name)
     if s is None:
         continue
 
@@ -113,7 +151,7 @@ for k in aw_cmds:
     # back to a string
     s = str(s)
 
-    m = re.match('^eeprom_(.*)', k)
+    m = re.match('^eeprom_(.*)', cmd_name)
     if m:
         cmd['name'] = 'write_eeprom'
         eeprom_setting = m.group(1)
@@ -141,7 +179,7 @@ for k in aw_cmds:
         cmd['value'] = str(eeprom.eeprom[eeprom_setting]['address']) + \
             ',' + ','.join([str(ord(x)) for x in eeprom_data])
     else:
-        cmd['name'] = k
+        cmd['name'] = cmd_name
         cmd['value'] = s
 
     user_cmds.append(cmd)

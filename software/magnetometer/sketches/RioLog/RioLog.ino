@@ -281,6 +281,8 @@ bool sensorShieldPresent = eeprom_read_byte((uint8_t*)EEPROM_FLC100_PRESENT);
 typedef RioLogger SensorShield_t;
 RioLogger sensorShield;
 bool sensorShieldPresent = eeprom_read_byte((uint8_t*)EEPROM_RIO_PRESENT);
+bool sendFreezeScan = false;
+bool sendRioConnect = false;
 #endif
 
 #ifdef FEATURE_MLX90614
@@ -900,6 +902,26 @@ bool processResponseTags(uint8_t tag, const uint8_t *data, uint16_t dataLen, voi
 			allSamples = (all != 0);
 		}
 		break;
+
+#ifdef FEATURE_RIOMETER
+	case AWPacket::tagRioFreezeScan:
+		{
+			uint8_t scanNum;
+			AWPacket::networkToAvr(&scanNum, data, sizeof(scanNum));
+			sensorShield.setFreezeScan(scanNum);
+			sendFreezeScan = true;
+		}
+		break;
+
+	case AWPacket::tagRioConnect:
+		{
+			uint8_t connect;
+			AWPacket::networkToAvr(&connect, data, sizeof(connect));
+			sensorShield.setRioConnected(connect);
+			sendRioConnect = true;
+		}
+		break;
+#endif
 
 	} // end of switch
 
@@ -2417,6 +2439,23 @@ void loop(void)
 				packet.putEepromContents(buffer, sizeof(buffer),
 										 eepromContentsAddress, eepromContentsLength);
 			}
+
+
+#ifdef FEATURE_RIOMETER
+			// If we have been instructed to change the freeze scan
+			// state then the tag must be returned as
+			// confirmation. Send the tag continously when scanning is
+			// frozen.
+			if (sendFreezeScan || sensorShield.isScanFrozen()) {
+				packet.putDataUint8(buffer, sizeof(buffer), AWPacket::tagRioFreezeScan, sensorShield.getFreezeScan());
+				sendFreezeScan = false;
+			}
+			if (sendRioConnect || !sensorShield.isRioConnected()) {
+				packet.putDataUint8(buffer, sizeof(buffer), AWPacket::tagRioConnect, sensorShield.isRioConnected());
+				sendRioConnect = false;
+			}
+#endif
+
 #ifdef FEATURE_GNSS
 			packet.putGnssStatus(buffer, sizeof(buffer),
 								 gnssFixTime, gnssFixValid, navSystem,
@@ -2427,6 +2466,7 @@ void loop(void)
 									(altitudeValid ? 3 : 2), gnssLocation);
 
 #endif
+
 
 			// Add the signature
 			packet.putSignature(buffer, sizeof(buffer), commsBlockSize);

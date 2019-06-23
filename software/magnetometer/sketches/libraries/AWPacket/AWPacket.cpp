@@ -23,7 +23,7 @@ const char AWPacket::magic[AWPacket::magicLength] = {'A', 'W'};
  * the length is variable, the first two bytes (in network byte order)
  * following the tag indicate the payload size.
  */
-const uint16_t AWPacket::tagLengths[34] = {
+const uint16_t AWPacket::tagLengths[36] = {
 	6, // 0 = X
 	6, // 1 = Y
 	6, // 2 = Z
@@ -61,6 +61,8 @@ const uint16_t AWPacket::tagLengths[34] = {
 	0, // 31 = adcData
 	0, // 32 = logMessage
 	0, // 33 = genDataS32
+	2, // 34 = rioFreezeScan
+	2, // 35 = rioConnect
 };
 
 uint8_t AWPacket::defaultSequenceId = 0;
