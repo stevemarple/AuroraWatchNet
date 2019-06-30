@@ -8,12 +8,27 @@
 // Select the communication hardware (one or more)
 //#define COMMS_XRF
 //#define COMMS_W5100
-#define COMMS_W5500
+
+//#define COMMAND_HANDLER_DEBUG
+
+#define RTCX_EPOCH 2018
+#define AWPACKET_EPOCH RTCX_EPOCH
+
+// #if defined(__AVR_ATmega1284__) && (F_CPU == 12000000)
+// #define COMMS_W5100
+// #else
+// #define COMMS_W5500
+// #endif
+#define COMMS_W5100
+#define ETHERNETWDT_USE_WDT
 
 // If Ethernet2 library is used then have it reset the WDT while doing DHCP
 #define ETHERNET2_USE_WDT
 
-#define FEATURE_FLC100
+#define FEATURE_HOUSEKEEPING
+
+//#define FEATURE_FLC100
+#define FEATURE_RIOMETER
 
 #define FEATURE_GNSS
 #define FEATURE_VERBOSITY 1
@@ -21,11 +36,15 @@
 // Displaying memory usage includes malloc().
 //#define FEATURE_MEM_USAGE
 
-#if 1
-// Include cloud detector sensors
-#define FEATURE_HIH61XX
-#define FEATURE_MLX90614
-// #define FEATURE_AS3935
-#endif
+#define FEATURE_HIH61XX_WIRE
 
+//#define FEATURE_BUSY_TIME_PIN 17
+#define FEATURE_BUSY_TIME_PIN A3
+
+// Increase serial buffer sizes; increasing TX is particularly useful
+// as serial print will wait if the buffer is full. Do not go above
+// 256 bytes as race conditions might occur. See the comments in the
+// arduino hardware serial code.
+#define SERIAL_RX_BUFFER_SIZE 256
+#define SERIAL_TX_BUFFER_SIZE 256
 #endif
