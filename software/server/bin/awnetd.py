@@ -400,11 +400,12 @@ def write_generic_data(t, message_tags, extension, message, config=None):
     if not config:
         return
 
+    sep = '\t'
+    eol = '\n'
+
     # Add other generic data tags here as they are introduced
     for tag_name in ('gen_data_s32', ):
         try:
-            sep = '\t'
-            eol = '\n'
             if tag_name in message_tags:
                 # There can be multiple copies of this tag, probably having different data IDs
                 for tag_data in message_tags[tag_name]:
@@ -415,18 +416,9 @@ def write_generic_data(t, message_tags, extension, message, config=None):
                         continue
                     fstr = config.get(sec, 'filename')
 
-                    if config.has_option(sec, 'mapping'):
-                        mapping = config.get(sec, 'mapping')
-                    else:
-                        mapping = None
-                    if config.has_option(sec, 'scale_factor'):
-                        scale_factor = awn.safe_eval(config.get(sec, 'scale_factor'))
-                    else:
-                        scale_factor = 1.0
-                    if config.has_option(sec, 'offset'):
-                        offset = awn.safe_eval(config.get(sec, 'offset'))
-                    else:
-                        offset = 0.0
+                    # Include scale factor, offset etc
+                    data = manipulate_generic_data_array(sec, data, message_tags, epoch)
+
                     if config.has_option(sec, 'format'):
                         format = config.get(sec, 'format')
                     else:
@@ -435,14 +427,11 @@ def write_generic_data(t, message_tags, extension, message, config=None):
                     if data_id not in generic_data_files:
                         generic_data_files[data_id] = None
                     generic_data_files[data_id] = get_file_for_time(t, generic_data_files[data_id], fstr, extension=extension)
-                    if mapping is not None:
-                        if len(data) != len(mapping):
-                            raise DataMappingException('Incorrect mapping size')
-                        data = [data[i] for i in mapping]
                     a = []
                     a.append('%.06f' % t)
-                    for d in  data:
-                        a.append(format % ((d * scale_factor) + offset))
+                    for d in data:
+                        # a.append(format % ((d * scale_factor) + offset))
+                        a.append(format % d)
 
                     generic_data_files[data_id].write(sep.join(a))
                     generic_data_files[data_id].write(eol)
@@ -456,6 +445,49 @@ def write_generic_data(t, message_tags, extension, message, config=None):
         except Exception:
             print(traceback.format_exc())
             pass
+
+
+def manipulate_generic_data_array(sec, data, message_tags, epoch):
+    if config.has_option(sec, 'mapping'):
+        mapping = config.get(sec, 'mapping')
+    else:
+        mapping = None
+    if config.has_option(sec, 'scale_factor'):
+        scale_factor = awn.safe_eval(config.get(sec, 'scale_factor'))
+    else:
+        scale_factor = 1.0
+    if config.has_option(sec, 'offset'):
+        offset = awn.safe_eval(config.get(sec, 'offset'))
+    else:
+        offset = 0.0
+
+    if mapping is not None:
+        if len(data) != len(mapping):
+            raise DataMappingException('Incorrect mapping size')
+        data = [data[i] for i in mapping]
+
+    r = []
+    for d in  data:
+        r.append((d * scale_factor) + offset)
+
+    if config.has_option(sec, 'appendtags'):
+        for app_sec in config.get(sec, 'appendtags').split():
+            a = app_sec.split(':')
+            app_data_type = a[0]
+            app_data_id = int(a[1])
+            if app_data_type == 'genericdata':
+                for tag_name in ('gen_data_s32',):
+                    if tag_name in message_tags:
+                        # There can be multiple tags of this type, but not necessarily with the correct data id
+                        for tag_data in message_tags[tag_name]:
+                            tmp_data = awn.message.decode_tag(tag_name, tag_data, epoch)
+                            tmp_data_id = tmp_data.pop(0)
+                            if tmp_data_id == app_data_id:
+                                # Found the data to append
+                                r.extend(manipulate_generic_data_array(app_sec, tmp_data, message_tags, epoch))
+
+    return r
+
 
 def iso_timestamp(t):
     """
