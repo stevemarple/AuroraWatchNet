@@ -167,6 +167,9 @@ def get_file_type_data():
         file_types = config.get(args.section, 'file_types').split()
     else:
         file_types = ['awnettextdata', 'awpacket', 'aurorawatchrealtime', 'cloud', 'logfile', 'raspitextdata', 'gnss']
+        for sec in config.sections():
+            if sec.startswith('genericdata:'):
+                file_types.append(sec)
 
     for ft in file_types:
         if not config.has_option(ft, 'filename') or \
