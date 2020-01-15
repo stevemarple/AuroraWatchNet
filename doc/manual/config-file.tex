@@ -303,6 +303,13 @@ Default: none.
   \code{Host awn-data}\\ \code{Hostname host.domain.com} \\%
   \code{User monty}}
 
+\subsection{\code{path}}
+Name of the target directory used on the remote host for \code{rsync}
+uploads. Ignored when the \code{method} is \code{http}, \code{https}
+or \code{rrsync}. If not given the default path is constructed from
+\filename{/data/aurorawatchnet/}, with the lower-case site
+abbreviation appended as the final directory in the path.
+
 \subsection{\code{url}}
 The \URL\ to which \http/\slash \https\ uploads are sent.
 
