@@ -345,7 +345,7 @@ if method in ['rsync', 'rrsync']:
         # rrsync script in use on remote host. Assume that the target
         # directory for this site is correctly enforced.
         remote_site_dir = ''
-    elif config.has_section(args.section, 'path'):
+    elif config.has_option(args.section, 'path'):
         remote_site_dir = config.get(args.section, 'path')
     else:
         remote_site_dir = '/data/aurorawatchnet/' + site_lc
