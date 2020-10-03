@@ -18,29 +18,36 @@ if [ -f "$CONFIG_FILE" ]; then
 		DUCKDNS_HOSTNAME=$(hostname -s)
 	fi
 	if [ -z "$INTERFACE" ]; then
-		INTERFACE="eth0"
+		# Find first interface that is up
+		for iface in /sys/class/net/*; do
+			echo $interface
+			if [ -f "${iface}/operstate" -a $(cat "${iface}/operstate") = "up" ]; then
+			   INTERFACE=$(basename "$iface")
+			   break
+			fi
+		done
 	fi
 else
 	echo "Config file $CONFIG_FILE missing"
 	exit 1
 fi
 
-
 # Request URL (see duckdns help)
 url="https://www.duckdns.org/update?domains=${DUCKDNS_HOSTNAME}&token=${TOKEN}"
 
 if [ -n "$USE_LOCAL_IP_ADDRESS" ]; then
-	# Retrieve local IP address. Uncomment below to use local (internal)
-	# IP address. Comment out line below to have duckdns use the external
-	# IP address.
+	# Retrieve local IP address.
+	if [ -z "$INTERFACE" ]; then
+		echo "Cannot identify IP address when interface is not known"
+		exit 1
+	fi
+
 	ip=$(/bin/ip addr show dev "$INTERFACE" | awk '($1=="inet" && $6=="global"){split($2,a,"/");print(a[1])}')
 	url="${url}&ip=${ip}"
 
-	if [ -n "USE_IPV6" ]; then
-		ipv6=$(/bin/ip addr show dev "$INTERFACE" | awk '($1=="inet6" && $4=="global"){split($2,a,"/");print(a[1])}')
-		if [ -n "$ipv6" ]; then
-			url="${url}&ipv6=${ipv6}"
-		fi
+	if [ -n "$USE_IPV6" ]; then
+		ipv6=$(/bin/ip addr show dev "$INTERFACE" | awk '($1=="inet6" && $4=="global"){split($2,a,"/");print(a[1])}' | sed 's/:/%3a/g;')
+		url="${url}&ipv6=${ipv6}"
 	fi
 fi
 
