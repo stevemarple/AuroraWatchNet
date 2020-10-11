@@ -5,6 +5,9 @@
 // which communication and other hardware to support. It is not used
 // by the Makefile.
 
+#define RTCX_EPOCH 2018
+#define AWPACKET_EPOCH RTCX_EPOCH
+
 // Select the communication hardware (one or more)
 //#define COMMS_XRF
 //#define COMMS_W5100
