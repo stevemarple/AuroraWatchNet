@@ -23,7 +23,7 @@
 
 #if 1
 // Include cloud detector sensors
-#define FEATURE_HIH61XX
+#define FEATURE_HIH61XX_SOFTWIRE
 #define FEATURE_MLX90614
 // #define FEATURE_AS3935
 #endif
