@@ -337,7 +337,6 @@ uint8_t dataQualityInputActiveLow = eeprom_read_byte((uint8_t*)EEPROM_DATA_QUALI
 volatile bool dataQualityChanged = false;
 #endif
 
-//uint8_t deviceSignature[3] = {0, 0, 0};
 uint32_t deviceSignature = 0;
 const __FlashStringHelper *deviceName = nullptr;
 
@@ -1242,27 +1241,33 @@ void generalCallLatch(void)
 }
 
 
-void createDeviceName(void)
+uint32_t getDeviceSignature(void)
 {
-    deviceName = F("Unknown MCU");
+	uint32_t r = 0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		for (uint8_t i = 0; i < 3; ++i) {
+		    r <<= 8;
+    		r |= (uint8_t)boot_signature_byte_get(i * 2);
+    	}
+	}
+	return r;
+}
 
-    // __FlashStringHelper *deviceName = F("Unknown MCU");
-#if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
+
+const __FlashStringHelper* getDeviceName(uint32_t deviceSignature)
+{
     switch (deviceSignature) {
         case DEVICE_SIG_ATMEGA644:
-            deviceName = F("atmega644");
-            break;
+            return F("atmega644");
         case DEVICE_SIG_ATMEGA644P:
-            deviceName = F("atmega644p");
-            break;
+            return F("atmega644p");
         case DEVICE_SIG_ATMEGA1284:
-            deviceName = F("atmega1284");
-            break;
+            return F("atmega1284");
         case DEVICE_SIG_ATMEGA1284P:
-            deviceName = F("atmega1284p");
-            break;
+            return F("atmega1284p");
+		default:
+			return F("Unknown MCU");
     }
-#endif
 }
 
 
@@ -1348,31 +1353,9 @@ void setup(void)
 	uint8_t extendedFuse = boot_lock_fuse_bits_get(GET_EXTENDED_FUSE_BITS);
 
     // Get (and print) the signature of the actual device, not what the code was compiled for!
-	for (uint8_t i = 0; i < 3; ++i) {
-	    deviceSignature <<= 8;
-    	deviceSignature |= (boot_signature_byte_get(i * 2) & 0xFF);
-    }
-
-    console << F("\n\n--------\nTarget MCU: " EXPAND_STR(CPU_NAME));
-
-#if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
-    switch (deviceSignature) {
-        case DEVICE_SIG_ATMEGA644:
-            deviceName = F("atmega644");
-            break;
-        case DEVICE_SIG_ATMEGA644P:
-            deviceName = F("atmega644p");
-            break;
-        case DEVICE_SIG_ATMEGA1284:
-            deviceName = F("atmega1284");
-            break;
-        case DEVICE_SIG_ATMEGA1284P:
-            deviceName = F("atmega1284p");
-            break;
-    }
-#endif
-
-    console << F("\nActual MCU: ") << deviceName;
+	deviceSignature = getDeviceSignature();
+    console << F("\n\n--------\nTarget MCU: " EXPAND_STR(CPU_NAME))
+    		<< F("\nActual MCU: ") << getDeviceName(deviceSignature);
 
 #ifdef __AVR__
 	console << F("\nSignature: ") << _HEX(deviceSignature)
