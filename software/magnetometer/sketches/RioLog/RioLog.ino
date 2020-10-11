@@ -1865,8 +1865,8 @@ void setup(void)
 
 #ifdef FEATURE_GNSS
 	gnss_clock.set1ppsCallback(gnssPpsCallback);
-	gnss_clock.getMicroNMEA().setBadChecksumHandler(unknownNmeaSentence);
-	gnss_clock.getMicroNMEA().setUnknownSentenceHandler(badNmeaChecksum);
+	gnss_clock.getMicroNMEA().setBadChecksumHandler(badNmeaChecksum);
+	gnss_clock.getMicroNMEA().setUnknownSentenceHandler(unknownNmeaSentence);
 #endif
 
 	console.println(F("Configuration complete"));
