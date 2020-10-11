@@ -1,16 +1,15 @@
 /*
  * RioLog
  *
- * Firmware to support AuroraWatchNet magnetometer and cloud detector
- * hardware.
+ * Firmware to support riometer data logging.
  *
  * Debugging and informational messages are sent to Serial. For 8MHz
  * and lower system clock frequencies the baud rate is 9600, otherwise
  * 115200 baud is used. Commands can be sent to Serial to alter the
  * behaviour from default; the behaviour is not persistent across
  * reboots, set EEPROM values for that. For the full list of commands
- * see CommandHandler.cpp. Commands should be terminated with a
- * carriage return or newline character.
+ * see the commands array defined below. Commands should be terminated with a
+ * carriage return and/or newline character.
  *
  * By default a minimal set of information is output to Serial, the
  * verbosity can be increased by sending "verbosity=n" where n is an
@@ -343,13 +342,13 @@ uint32_t deviceSignature = 0;
 const __FlashStringHelper *deviceName = nullptr;
 
 // Commands
-void cmdEepromRead(const char *s);
-void cmdEepromWrite(const char *s);
-void cmdVerbosity(const char *s);
-void cmdReboot(const char *s);
-void cmdSamplingInterval(const char *s);
+bool cmdEepromRead(const char* s, Stream& stream, const CommandOption& opt);
+bool cmdEepromWrite(const char *s, Stream& stream, const CommandOption& opt);
+bool cmdVerbosity(const char *s, Stream& stream, const CommandOption& opt);
+bool cmdReboot(const char *s, Stream& stream, const CommandOption& opt);
+bool cmdSamplingInterval(const char *s, Stream& stream, const CommandOption& opt);
 #if USE_SD_CARD
-void cmdUseSd(const char *s);
+bool cmdUseSd(const char *s, Stream& stream, const CommandOption& opt);
 #endif
 void unknownCommand(const char *s);
 void commandTooLong(int);
@@ -366,7 +365,7 @@ CommandOption commands[numCommands] = {
     CommandOption("eepromRead=", cmdEepromRead),
     CommandOption("eepromWrite=", cmdEepromWrite),
     CommandOption("verbosity", cmdVerbosity),
-    CommandOption("reboot=TRUE", cmdReboot),
+    CommandOption("reboot=TRUE", cmdReboot, false),
     CommandOption("samplingInterval_16th_s", cmdSamplingInterval),
 #if USE_SD_CARD
     CommandOption("useSd"), cmdUseSd),
@@ -2610,7 +2609,7 @@ Stream& printEepromContents(Stream &s, uint16_t address, uint16_t size)
 
 
 // Commands
-void cmdEepromRead(const char *s)
+bool cmdEepromRead(const char *s, Stream& stream, const CommandOption&)
 {
     const char *ep = s;
     char *ep2;
@@ -2621,16 +2620,17 @@ void cmdEepromRead(const char *s)
 		ep = ++ep2;
 		size = strtol(ep, &ep2, 0);
 		if (size > 0 && (address + size) <= E2END && ep2 != ep && *ep2 == '\0') {
-			printEepromContents(console, (uint16_t)address, (uint16_t)size);
+			printEepromContents(stream, (uint16_t)address, (uint16_t)size);
 			return;
 		}
 	}
 
-	console.println(F("ERROR: bad values for eepromRead"));
+	stream.println(F("ERROR: bad values for eepromRead"));
+	return true;
 }
 
 
-void cmdEepromWrite(const char *s)
+bool cmdEepromWrite(const char *s, Stream& stream, const CommandOption&)
 {
     const char *ep = s;
     char *ep2;
@@ -2663,16 +2663,17 @@ void cmdEepromWrite(const char *s)
                     break;
             }
 		}
-        printEepromContents(console, (uint16_t)(address-size), (uint16_t)size);
+        printEepromContents(stream, (uint16_t)(address-size), (uint16_t)size);
 
 		return;
 	}
 
-	console.println(F("ERROR: bad values for eepromWrite"));
+	stream.println(F("ERROR: bad values for eepromWrite"));
+	return true;
 }
 
 
-void cmdVerbosity(const char *s)
+bool cmdVerbosity(const char *s, Stream& stream, const CommandOption&)
 {
     if (*s++ == '=') {
         char *ep;
@@ -2680,20 +2681,17 @@ void cmdVerbosity(const char *s)
         if (v >= 0 && v <= 255 && ep != s && *ep == '\0')
             verbosity = v;
     }
-    console << F("verbosity: ") << verbosity << endl;
+    stream << F("verbosity: ") << verbosity << endl;
+	return true;
 }
 
 
-void cmdReboot(const char *s)
+bool cmdReboot(const char *s, Stream& stream, const CommandOption&)
 {
-    if (*s == '\0') {
-		console << F("Reboot command received from console\n");
-		console.flush();
-		reboot();
-    }
-    else {
-        unknownCommand(commandBuffer);
-    }
+	stream << F("Reboot command received from console\n");
+	stream.flush();
+	reboot();
+	return true;
 }
 
 void reboot(void) {
@@ -2702,7 +2700,7 @@ void reboot(void) {
 	xboot_reset();
 }
 
-void cmdSamplingInterval(const char *s)
+bool cmdSamplingInterval(const char *s, Stream& stream, const CommandOption&)
 {
     if (*s++ == '=') {
         char *ep;
@@ -2717,9 +2715,10 @@ void cmdSamplingInterval(const char *s)
 
         }
     }
-    console << F("samplingInterval_16th_s: ")
-            << ((samplingInterval.getSeconds() * 16) +
+    stream << F("samplingInterval_16th_s: ")
+		   << ((samplingInterval.getSeconds() * 16) +
                 (samplingInterval.getFraction() >> (CounterRTC::fractionsPerSecondLog2 - 4))) << endl;
+	return true;
 }
 
 
@@ -2737,23 +2736,24 @@ void cmdUseSd(const char *s)
             // TODO: call SD.begin(sdSelect) if necessary
         }
     }
-    console << F("useSd: ")
-            <<  useSd << F(" (current), ")
-            << eeprom_read_byte((const uint8_t*)EEPROM_USE_SD)
-            << F(" (EEPROM)\n");
+    stream << F("useSd: ")
+           <<  useSd << F(" (current), ")
+           << eeprom_read_byte((const uint8_t*)EEPROM_USE_SD)
+           << F(" (EEPROM)\n");
+	return true;
 }
 #endif
 
 
-void unknownCommand(const char *s)
+void unknownCommand(const char *s, Stream& stream)
 {
-    console << F("Unknown command: ") << s << endl;
+    stream << F("Unknown command: ") << s << endl;
 }
 
 
-void commandTooLong(int)
+void commandTooLong(Stream& stream)
 {
-    console << F("Previous command was too long for buffer\n");
+    stream << F("Previous command was too long for buffer\n");
 }
 
 
