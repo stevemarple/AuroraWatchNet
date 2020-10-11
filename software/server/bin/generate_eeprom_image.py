@@ -122,14 +122,19 @@ for k in eeprom:
             # Convert into numeric data
             data = awn.safe_eval(s)
 
-        if pfmt[1] > 1 and pfmt[2] != 's':
-            # Multiple values required
-            struct.pack_into(eeprom[k]['format'], eeprom_data,
-                             eeprom[k]['address'], *data)
-        else:
-            struct.pack_into(eeprom[k]['format'], eeprom_data,
-                             eeprom[k]['address'], data)
-
+        try:
+            if pfmt[1] > 1 and pfmt[2] != 's':
+                # Multiple values required
+                logger.debug('Format: %s' % eeprom[k]['format'])
+                logger.debug('Data: %s' % repr(data))
+                struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                 eeprom[k]['address'], *data)
+            else:
+                struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                 eeprom[k]['address'], data)
+        except Exception as e:
+            logger.exception('Could not pack %s: %s' % (k, str(e)))
+            raise
 
 eeprom_image_filename = args.file + '.bin'
 fh = open(eeprom_image_filename, 'wb')
