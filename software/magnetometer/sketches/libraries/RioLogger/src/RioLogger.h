@@ -65,10 +65,6 @@ public:
 		return timestamp;
 	}
 
-	inline int16_t getSensorTemperature(void) const {
-		return sensorTemperature;
-	}
-
 	inline bool getAdcPresent(uint8_t n) const {
 		if (n >= maxNumAdcs)
 			return false;
@@ -207,7 +203,6 @@ private:
 
 	// Data fields
 	CounterRTC::time_t timestamp;
-	int16_t sensorTemperature; // hundredths of degrees Celsius
 	int32_t data[maxNumBeams];  // averaged from a number of samples
 	int32_t dataSamples[maxNumAdcs][maxSamples]; // individual results from one row
 

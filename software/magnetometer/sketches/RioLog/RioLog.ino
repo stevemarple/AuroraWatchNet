@@ -2149,11 +2149,11 @@ void loop(void)
 				console << F("Timestamp: ") << sampleStartTime.getSeconds()
 						<< sep << sampleStartTime.getFraction() << endl;
 #ifdef FEATURE_HOUSEKEEPING
-                console << F("System temp.: ") << houseKeeping.getSystemTemperature();
+                console << F("System temp.: ") << houseKeeping.getSystemTemperature() << endl;
 #endif
-#if defined (FEATURE_FLC100) || defined (FEATURE_RIOMETER)
+#if defined (FEATURE_FLC100)
 			if (verbosity && sensorShieldPresent)
-				console << F("\n" SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature() << endl;
+				console << F(SENSOR_FLASH_STRING " temp.: ") << sensorShield.getSensorTemperature() << endl;
 #endif
 
 #ifdef FEATURE_HOUSEKEEPING
@@ -2321,7 +2321,7 @@ void loop(void)
 				sensorShield.getNumSamples(numSamples, median, trimmed);
 
 #if defined (FEATURE_FLC100)
-				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i)
+				for (uint8_t i = 0; i < SensorShield_t::maxNumAdcs; ++i) {
 					if (sensorShield.getAdcPresent(i)) {
 						packet.putMagData(buffer, sizeof(buffer),
 										  AWPacket::tagMagDataX + i,
@@ -2334,6 +2334,16 @@ void loop(void)
 												AWPacket::tagMagDataAllX + i, 4,
 												numSamples, sensorShield.getDataSamples(i));
 					}
+				}
+				packet.putDataInt16(buffer, sizeof(buffer),
+									AWPacket::tagSensorTemperature,
+									sensorShield.getSensorTemperature());
+				packet.putDataUint16(buffer, sizeof(buffer),
+									 AWPacket::tagNumSamples,
+									 (uint16_t(numSamples) << 8) |
+									 (uint16_t(trimmed) << 1) |
+									 median);
+
 #elif defined (FEATURE_RIOMETER)
                 packet.putGenData(buffer, sizeof(buffer), 8, sensorShield.getNumBeams(), sensorShield.getData());
                 for (uint8_t rn = 0; rn < sensorShield.maxRows; ++rn) {
@@ -2345,15 +2355,6 @@ void loop(void)
 #else
 #error Bad logic
 #endif
-
-				packet.putDataInt16(buffer, sizeof(buffer),
-									AWPacket::tagSensorTemperature,
-									sensorShield.getSensorTemperature());
-				packet.putDataUint16(buffer, sizeof(buffer),
-									 AWPacket::tagNumSamples,
-									 (uint16_t(numSamples) << 8) |
-									 (uint16_t(trimmed) << 1) |
-									 median);
 
 			}
 #endif

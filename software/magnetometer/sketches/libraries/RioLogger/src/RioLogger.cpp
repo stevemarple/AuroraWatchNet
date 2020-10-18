@@ -174,7 +174,6 @@ void RioLogger::process(void)
 
 	case poweringUp:
 		timestamp = 0;
-		sensorTemperature = INT_MIN; // Clear previous readings
 		for (uint8_t i = 0; i < getNumBeams(); ++i)
 			data[i] = LONG_MIN;
 
