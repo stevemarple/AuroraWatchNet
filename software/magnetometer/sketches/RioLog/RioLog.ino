@@ -1546,7 +1546,7 @@ void setup(void)
 								   aggregate & EEPROM_AGGREGATE_TRIM_SAMPLES);
 
 		for (int i = 0; i < SensorShield_t::maxNumAdcs; ++i)
-			console << F("ADC[") << i << F("]: Ox") << _HEX(adcAddressList[i])
+			console << F("ADC[") << i << F("]: 0x") << _HEX(adcAddressList[i])
 					<< F(" ch. ") << (adcChannelList[i])
 					<< (sensorShield.getAdcPresent(i) ? F(" present\n") : F(" missing\n"));
 
@@ -1743,7 +1743,7 @@ void setup(void)
 
 	// Warn, if it stops at this point it means the jumper isn't fitted.
 	// TODO: test if jumper for RTC output is fitted.
-	console << F("Configuring system clock\n");
+	console << F("Configuring RTC clocks\n");
 	console.flush();
 
 
@@ -1776,7 +1776,7 @@ void setup(void)
 
 #endif /* Matches #if defined(COMMS_XRF) && (F_CPU) == 8000000L */
 
-	console << F("System clock: ") << counter2Frequency << "Hz\n";
+	console << F("Software RTC clock: ") << counter2Frequency << "Hz\n";
 
 
 	// Set counter RTC time from the hardware RTC
@@ -1787,7 +1787,7 @@ void setup(void)
 		t.setSeconds(RTCx::mktime(tm));
 		cRTC.setTime(t);
 		lastAcknowledgement = t;
-		console << F("System clock set from hardware RTC\n");
+		console << F("Software RTC set from hardware RTC\n");
 	}
 	else
 		console << F("Could not get time from hardware RTC\n");
