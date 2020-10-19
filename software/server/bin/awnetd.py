@@ -195,6 +195,42 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
         print('Could not write aurorawatchnet format data: ' + str(e))
 
 
+# File object to which AuroraWatchNet text data format files are written
+system_temperature_file = None
+
+
+def write_system_temperature(t, message_tags, fstr, extension):
+    global system_temperature_file
+    try:
+        data = []
+        found = False
+        if 'system_temperature' in message_tags:
+            found = True
+            data.append(struct.unpack(awn.message.tag_data['system_temperature']['format'],
+                                      str(message_tags['system_temperature'][0]))[0] / 100.0)
+        else:
+            data.append(float('NaN'))
+
+        # Write to the file only if relevant tags found
+        if found:
+            system_temperature_file = get_file_for_time(t, system_temperature_file, fstr,
+                                                        extension=extension)
+            # Write the time
+            system_temperature_file.write('%.06f' % t)
+
+            system_temperature_file.write('\t')
+            system_temperature_file.write('\t'.join(map(str, data)))
+            system_temperature_file.write('\n')
+            system_temperature_file.flush()
+            global close_after_write
+            if close_after_write:
+                system_temperature_file.close()
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        print('Could not write system temperature data: ' + str(e))
+
+
 # AuroraWatch realtime file
 cloud_file = None
 
@@ -1367,6 +1403,13 @@ while running:
                                                    config.get('awnettextdata',
                                                               'filename'),
                                                    data_quality_extension)
+
+                if (config.has_option('system_temperature', 'filename') and
+                    not awn.message.is_response_message(message)):
+                    write_system_temperature(timestamp_s,
+                                             message_tags,
+                                             config.get('system_temperature', 'filename'),
+                                             data_quality_extension)
 
                 if (config.has_option('magnetometerrawsamples', 'filename')
                         and not awn.message.is_response_message(message)):
