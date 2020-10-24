@@ -328,7 +328,7 @@ def write_raw_magnetometer_samples(t, message_tags, fstr, extension):
 gnss_file = None
 
 
-def write_gnss_data(message_tags, fstr):
+def write_gnss_data(timetamp_s, message_tags, fstr):
     global gnss_file
     found = False
     t = None
@@ -338,7 +338,12 @@ def write_gnss_data(message_tags, fstr):
             epoch = awn.message.get_epoch(message)
             if len(message_tags[tag_name]) != 1:
                 raise DuplicatedTagException('Tag "%s" occurs more than once' % tag_name)
-            t, is_valid, nav_system, num_sat, hdop = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
+            gps_t, is_valid, nav_system, num_sat, hdop = awn.message.decode_tag(tag_name, message_tags[tag_name][0], epoch)
+
+            # If the GPS fix is valid then use the GPS fix time for timestamp and to compute the file name, otherwise
+            # use the message time. This should stop files with bad time being created when the system starts up with
+            # no time.
+            t = gps_t if is_valid else int(timetamp_s)
 
             if 'gnss_location' in message_tags:
                 data = awn.message.decode_tag_array_of_longs('gnss_location', len(message_tags['gnss_location'][0]),
@@ -1418,7 +1423,7 @@ while running:
                                                    data_quality_extension)
 
                 if config.has_option('gnss', 'filename') and not awn.message.is_response_message(message):
-                    write_gnss_data(message_tags,
+                    write_gnss_data(timestamp_s, message_tags,
                                     config.get('gnss', 'filename'))
 
                 if not awn.message.is_response_message(message):
