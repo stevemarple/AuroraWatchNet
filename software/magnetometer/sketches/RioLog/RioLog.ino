@@ -1271,6 +1271,23 @@ const __FlashStringHelper* getDeviceName(uint32_t deviceSignature)
 }
 
 
+const __FlashStringHelper* getXbootErrorString(uint8_t xb_error)
+{
+	switch (xb_error) {
+		case XB_SUCCESS:
+			return F("Success");
+		case XB_ERR_NO_API:
+			return F("No API");
+		case XB_ERR_NOT_FOUND:
+			return F("Not found");
+		case XB_INVALID_ADDRESS:
+			return F("Invalid address");
+		default:
+			return F("Unknown error code");
+	}
+}
+
+
 #ifdef FEATURE_GNSS
 uint32_t getBaudRate(void* eepromAddress, uint32_t defaultValue)
 {
@@ -1370,18 +1387,29 @@ void setup(void)
 					((FUSE_CKSEL3 & FUSE_CKSEL2 & FUSE_CKSEL0) & ckselMask));
 	console << F("\nRC osc.: ") << isRcOsc
 			<< F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
-			<< F("\nMCUSR: ") << _HEX(mcusrCopy);
-#endif
+			<< F("\nMCUSR: ") << _HEX(mcusrCopy)
+			<< F("\nMCU clock: " F_CPU_STR);
 
+	uint16_t xbootVersion;
+	uint8_t xerr = xboot_get_version(&xbootVersion);
+	console << F("\nXboot: ");
+	if (xerr != XB_SUCCESS) {
+		console << getXbootErrorString(xerr);
+	} else {
+		console << int((xbootVersion >> 8) & 0xff) << '.' << int(xbootVersion & 0xff);
+		uint8_t xbootApiVersion;
+		if (xboot_get_api_version(&xbootApiVersion) == XB_SUCCESS) {
+			console << F(", API: ") << int(xbootApiVersion);
+		}
+	}
+#endif
 
 	// Print the firmware version, clock speed and supported
 	// communication protocols. Place in one long string to minimise
 	// flash usage.
-	console << F(
-	        "\n"
-             "MCU clock: " F_CPU_STR "\n"
-             "Firmware: " FIRMWARE_VERSION "\n"
-             "Epoch: " STRINGIFY(RTCX_EPOCH) "\n")
+	console << F("\n"
+				 "Firmware: " FIRMWARE_VERSION "\n"
+				 "Epoch: " STRINGIFY(RTCX_EPOCH) "\n")
             << ((__FlashStringHelper*)comms_P) << endl
             << ((__FlashStringHelper*)features_P) << endl;
 
