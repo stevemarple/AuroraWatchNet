@@ -2085,6 +2085,12 @@ void loop(void)
 		// readClock() returns current time at second boundary, adjust to
 		// get true time of position fix
 		--gnssFixTime;
+		if (!gnssFixValid) {
+			// These values were not altered by readClock() but are sent to
+			// the server in the GNSS status message so must be cleared.
+			navSystem = '?';
+			hdop = numSat = 0;
+		}
 #endif
 
 #ifdef FEATURE_DATA_QUALITY
