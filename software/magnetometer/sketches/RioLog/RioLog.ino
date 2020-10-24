@@ -338,7 +338,6 @@ volatile bool dataQualityChanged = false;
 #endif
 
 uint32_t deviceSignature = 0;
-const __FlashStringHelper *deviceName = nullptr;
 
 // Commands
 bool cmdEepromRead(const char* s, Stream& stream, const CommandOption& opt);
@@ -1936,7 +1935,7 @@ void setup(void)
     packet.putString(buffer, sizeof(buffer), AWPacket::tagCurrentFirmware, firmwareVersion);
     packet.putLogMessage_P(buffer, sizeof(buffer), F("Target MCU: " EXPAND_STR(CPU_NAME)));
     strlcpy_P(actualMcu, PSTR("Actual MCU: "), sizeof(actualMcu));
-    strlcat_P(actualMcu, (const char*)deviceName, sizeof(actualMcu)); // Device name is stored in flash
+    strlcat_P(actualMcu, (const char*)getDeviceName(deviceSignature), sizeof(actualMcu)); // Device name is stored in flash
     packet.putLogMessage(buffer, sizeof(buffer), actualMcu);
     packet.putLogMessage_P(buffer, sizeof(buffer), PSTR("Frequency: " F_CPU_STR));
     packet.putLogMessage_P(buffer, sizeof(buffer), comms_P);
