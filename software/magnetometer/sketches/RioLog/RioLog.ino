@@ -1287,6 +1287,23 @@ const __FlashStringHelper* getXbootErrorString(uint8_t xb_error)
 }
 
 
+uint8_t getXbootVersion(char* buffer, uint8_t sz)
+{
+	uint16_t xbootVersion;
+	uint8_t xerr = xboot_get_version(&xbootVersion);
+	if (xerr != XB_SUCCESS) {
+		strlcpy_P(buffer, (const char*)getXbootErrorString(xerr), sz);
+		return xerr;
+	} else {
+		uint8_t xbootApiVersion;
+		if (xboot_get_api_version(&xbootApiVersion) != XB_SUCCESS) {
+			xbootApiVersion = 0;
+		}
+		snprintf_P(buffer, sz, PSTR("Xboot: %d.%d; API %d"), int((xbootVersion >> 8) & 0xff), int(xbootVersion & 0xff), int(xbootApiVersion));
+	}
+}
+
+
 #ifdef FEATURE_GNSS
 uint32_t getBaudRate(void* eepromAddress, uint32_t defaultValue)
 {
@@ -1371,10 +1388,8 @@ void setup(void)
     // Get (and print) the signature of the actual device, not what the code was compiled for!
 	deviceSignature = getDeviceSignature();
     console << F("\n\n--------\nTarget MCU: " EXPAND_STR(CPU_NAME))
-    		<< F("\nActual MCU: ") << getDeviceName(deviceSignature);
-
-#ifdef __AVR__
-	console << F("\nSignature: ") << _HEX(deviceSignature)
+    		<< F("\nActual MCU: ") << getDeviceName(deviceSignature)
+			<< F("\nSignature: ") << _HEX(deviceSignature)
 	        << F("\nLow fuse: ") << _HEX(lowFuse)
 			<< F("\nHigh fuse: ") << _HEX(highFuse)
 			<< F("\nExtended fuse: ") << _HEX(extendedFuse);
@@ -1387,21 +1402,12 @@ void setup(void)
 	console << F("\nRC osc.: ") << isRcOsc
 			<< F("\nCKSEL: ") << _HEX(lowFuse & ckselMask)
 			<< F("\nMCUSR: ") << _HEX(mcusrCopy)
-			<< F("\nMCU clock: " F_CPU_STR);
+			<< F("\nMCU clock: " F_CPU_STR "\n");
 
-	uint16_t xbootVersion;
-	uint8_t xerr = xboot_get_version(&xbootVersion);
-	console << F("\nXboot: ");
-	if (xerr != XB_SUCCESS) {
-		console << getXbootErrorString(xerr);
-	} else {
-		console << int((xbootVersion >> 8) & 0xff) << '.' << int(xbootVersion & 0xff);
-		uint8_t xbootApiVersion;
-		if (xboot_get_api_version(&xbootApiVersion) == XB_SUCCESS) {
-			console << F(", API: ") << int(xbootApiVersion);
-		}
-	}
-#endif
+	// Print Xboot information, useful for finding bootloaders without API support (and so cannot do OTA updates)
+	char xbootVersion[20];
+	getXbootVersion(xbootVersion, sizeof(xbootVersion));
+	console << xbootVersion;
 
 	// Print the firmware version, clock speed and supported
 	// communication protocols. Place in one long string to minimise
@@ -1927,17 +1933,19 @@ void setup(void)
     commsHandler.addMessage(buffer, AWPacket::getPacketLength(buffer));
 
     // Send hardware and firmware details
-    char actualMcu[40];
+    char tmpBuffer[40];
     packet.setKey(hmacKey, sizeof(hmacKey));
     packet.setTimestamp(t.getSeconds(), t.getFraction());
     packet.putHeader(buffer, sizeof(buffer));
     packet.putDataUint8(buffer, sizeof(buffer), AWPacket::tagRebootFlags, mcusrCopy);
     packet.putString(buffer, sizeof(buffer), AWPacket::tagCurrentFirmware, firmwareVersion);
     packet.putLogMessage_P(buffer, sizeof(buffer), F("Target MCU: " EXPAND_STR(CPU_NAME)));
-    strlcpy_P(actualMcu, PSTR("Actual MCU: "), sizeof(actualMcu));
-    strlcat_P(actualMcu, (const char*)getDeviceName(deviceSignature), sizeof(actualMcu)); // Device name is stored in flash
-    packet.putLogMessage(buffer, sizeof(buffer), actualMcu);
+    strlcpy_P(tmpBuffer, PSTR("Actual MCU: "), sizeof(tmpBuffer));
+    strlcat_P(tmpBuffer, (const char*)getDeviceName(deviceSignature), sizeof(tmpBuffer)); // Device name is stored in flash
+    packet.putLogMessage(buffer, sizeof(buffer), tmpBuffer);
     packet.putLogMessage_P(buffer, sizeof(buffer), PSTR("Frequency: " F_CPU_STR));
+	getXbootVersion(tmpBuffer, sizeof(tmpBuffer));
+	packet.putLogMessage(buffer, sizeof(buffer), tmpBuffer);
     packet.putLogMessage_P(buffer, sizeof(buffer), comms_P);
     packet.putLogMessage_P(buffer, sizeof(buffer), features_P);
     packet.putSignature(buffer, sizeof(buffer), commsBlockSize);
