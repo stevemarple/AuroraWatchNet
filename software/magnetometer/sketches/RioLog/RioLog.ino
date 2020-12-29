@@ -171,7 +171,7 @@
 #define STRINGIFY(a) STRINGIFY2(a)
 #define STRINGIFY2(a) #a
 
-#define FIRMWARE_VERSION "RioLog-1.2e"
+#define FIRMWARE_VERSION "RioLog-1.2f"
 //                        1234567890123456
 // Firmware version limited to 16 characters
 
