@@ -1,5 +1,10 @@
 \documentclass[twoside,a4paper,openany,12pt]{book}
 
+%% Disable ligatures in tt fonts, because we want to stop "--" being converted
+%% to an en dash.
+\usepackage{microtype}
+\DisableLigatures[-]{family=tt*}
+
 %%\documentclass[twoside,a4paper,12pt]{article}
 %\documentclass[twoside,a4paper,openany,12pt]{report}
 
