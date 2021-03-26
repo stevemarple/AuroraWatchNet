@@ -5,8 +5,17 @@
 \section{Introduction}
 The \eeprom\ settings determine the default behaviour of the remote
 sensor unit, controlling various features such as the sampling
-interval and site ID. The settings are also select important
-features such as the radio or ethernet controller.
+interval and site ID. The settings are also used to select important
+features such as the radio or Ethernet controller. The settings are
+described using the Python option name that is passed to the
+\filename{generate_eeprom_settings.py} program. Boolean values should
+be passed as a \code{0} (false) or \code{1} (true). Numerical values
+are interpreted as decimal unless preceded with \code{0x} in which
+case they are interpreted as hexadecimal.
+
+\helpbox{%
+  The firmware should indicate on startup what communication methods
+  and features are compiled in.}
 
 \warningbox{%
   Misconfiguration of the \eeprom\ settings can prevent the remote
@@ -15,43 +24,39 @@ features such as the radio or ethernet controller.
   restablished correct settings must be uploaded manually. See the
   section on recovering bad \eeprom\ settings,
   \secname~\ref{sec:bad-eeprom-settings}.
-}
 
+\item The \eeprom\ settings are common to all systems derived from the
+  original AuroraWatchNet magnetometer design. This includes the
+  prototype cloud detector and the riometer. Hardware support for
+  features listed below may not exist for a given hardware design,
+  and\slash or the software support may not be compiled into the
+  relevant firmware.}
 
-\section{Settings}
-The settings are described below using the Python option name that is
-passed to the \filename{generate_eeprom_settings.py} and
-\filename{send_cmd.py} programs.
+\helpbox{Typically the manual you are reading has been tailored for a
+  specific instrument type. As there is a great deal of flexibility of
+  over which options can be included this section describes all of the
+  available options.}
 
-\subsection{\code{--eeprom-adc-address-list}}
-A comma-separated list of the 3 \itwoc\ addresses for the magnetometer
-sensor \adc(s). Addresses may be given in hexadecimal format if
-preceded with \code{0x}, otherwise decimal is assumed. Missing \adc s
-should be indicated by giving the value 255. 
+%%% Generic settings %%%
+\section{Generic settings}
 
-\optionexample{--eeprom-adc-address-list 0x6E,0x6A,0x6C}
+The settings described in this section are common to all sensor types.
 
-\subsection{\code{--eeprom-adc-channel-list}}
-A comma-separated list of the 3 \itwoc\ channels for the magnetometer
-sensor \adc(s). Unless there is a good reason to swap the \adc s all
-channels should be 1.
+\subsection[adc-ref-type]{\code{adc-ref-type NUMBER}}
+\label{sec:eeprom-adc-ref-type}
 
-\optionexample{--eeprom-adc-channel-list 1,1,1}
+Select the \adc\ reference that will be used for any house-keeping
+data that is sampled by the ATmega1284P's interval \adc. See also
+\ref{sec:eeprom-adc-ref-voltage-mv} and
+\ref{sec:eeprom-mcu-voltage-mv}.
 
-\subsection{\code{--eeprom-adc-gain-list}}
-A comma-separated list of the 3 \itwoc\ gains for the magnetometer
-sensor \adc(s). Valid values for the gain are 1, 2, 4, and 8. If the
-gain is set too high there is a possibility that the output value will
-saturate. With the standard \nT{100000} range FLC100 sensors the gain
-should normally be set to 1 or 2. With HEZ alignment the E channel may
-be set as high as 8.
+\subsection[adc-ref-voltage-mv]{\code{adc-ref-voltage-mv ADC_REF_VOLTAGE_MV}}
+\label{sec:eeprom-adc-ref-voltage-mv}
+Indicate the true voltage of the \adc\ reference used by the
+ATmega1284P's internal \adc. Enables correction of internal voltage
+references. See \ref{sec:eeprom-adc-ref-type}.
 
-\optionexample{--eeprom-adc-channel-list 1,8,1}
-
-% \subsection{\code{--eeprom-adc-ref-type EEPROM_ADC_REF_TYPE
-% \subsection{\code{--eeprom-adc-ref-voltage-mv EEPROM_ADC_REF_VOLTAGE_MV
-% \subsection{\code{--eeprom-adc-resolution-list BITS
-\subsection{\code{--eeprom-aggregate {0,1,2}}}
+\subsection[aggregate]{\code{aggregate NUMBER}}
 \label{sec:eeprom-aggregate}
 Select the method used to compute the sample value when oversampling
 is in operation. Valid values are:
@@ -60,91 +65,611 @@ is in operation. Valid values are:
 \item[1] Median.
 \item[2] Trimmed mean.
 \end{enumerate}
-\subsection{\code{--eeprom-all-samples {0,1}}}
-\label{sec:eeprom-all-samples}
-When oversampling is in operation have all data samples returned. Note
-that this can cause the messages to become too large to send correctly
-when a large number of oversamples are taken, particularly with a 3
-axis magnetometer system.
-% \subsection{\code{--eeprom-as3935-present {0,1}
 
-\subsection{\code{--eeprom-comms-type {0,1,2}}}
+\subsection[all-samples]{\code{all-samples BOOLEAN}}
+\label{sec:eeprom-all-samples}
+When oversampling is in operation report all of the data samples, not
+just the aggregated value. Note that this can cause the messages to
+become too large to send correctly when a large number of samples are
+taken.
+
+\subsection[comms-type]{\code{comms-type NUMBER}}
 The installed firmware may support multiple methods of communication
 between the remote sensor unit and the base station. If so this option
 indicates which method should be used. It is vital that this setting
 is correct otherwise the remote sensor unit will not function until
 reprogrammed. Valid values are:
 \begin{enumerate}
-\item[0] XRF radio.
-\item[1] RFM12B radio.
-\item[2] W5100 Ethernet, using \udp\ packets.
+\item[0] XRF radio. Requires \code {XRF} communications option.
+\item[1] RFM12B radio. Requires \code {RFM12B} communications option.
+\item[2] Ethernet (W5100 or W5500), using \udp\ packets.
 \end{enumerate}
-Note that automatic selection may not work correctly in all cases and
-is included as an option of last resort (e.g. when encountering an
-unprogrammed \eeprom).
 
-% \subsection{\code{--eeprom-fan-pin EEPROM_FAN_PIN
-% \subsection{\code{--eeprom-fan-temperature EEPROM_FAN_TEMPERATURE
-% \subsection{\code{--eeprom-fan-temperature-hysteresis EEPROM_FAN_TEMPERATURE_HYSTERESIS
-% \subsection{\code{--eeprom-flc100-power-up-delay-50ms DURATION_50ms
-% \subsection{\code{--eeprom-flc100-present {0,1}
-% \subsection{\code{--eeprom-hih61xx-present {0,1}
-\subsection{\code{--eeprom-hmac-key EEPROM_HMAC_KEY}}
+\warningbox{Note that automatic selection (255) may not work correctly in all cases and
+  is included as an option of last resort (e.g. when encountering an
+  unprogrammed \eeprom).
+\item For Ethernet support it is necessary to use the correct W5100 or W5500
+  firmware.}
+
+\subsection[console-baud-rate]{\code{console-baud-rate BAUDRATE}}
+The baud rate to be used for debug serial console from the ATmega1284P. 
+
+\warningbox{Higher rates mean that the micontrocontroller wasts less
+  time waiting for serial output to be sent from its single character
+  buffer, but requires lower-latency to correctly read incoming
+  data. Change with caution and confirm correct operation.}
+
+\subsection[data-quality-input-pin]{\code{data-quality-input-pin PIN}}
+\label{sec:eeprom-data-quality-input-pin}
+The Arduino pin number that is sensed to detect when data quality
+violations occur. With this pin it is possible to use an external
+circuit or switch to temporarily pause normal data recording, for
+instance so that real time alerts are not generated by activities that
+might be expected to cause interference in the data. See also \ref
+{sec:eeprom-data-quality-input-active-low}.
+
+\subsection[data-quality-input-active-low]{\code{data-quality-input-active-low PIN}}
+\label{sec:eeprom-data-quality-input-active-low}
+Indicate if the data quality input pin (see
+\ref{sec:eeprom-data-quality-input-pin}) should be regarded as active
+during a low logic level.
+
+\subsection[hmac-key]{\code{hmac-key KEY}}
 \label{sec:eeprom-hmac-key}
-The \hmac-\mdfive\ key used to sign communication messages sent
-between the magnetometer and data recording daemon. \textbf{This key
-  should be kept secret.} The key is a sequence of 16 numbers between
-0 and 255 (inclusive). Values may be given in hexadecimal format if
-preceded with \code{0x}, otherwise decimal is assumed. The key used
-here must match that described in
-\secname~\ref{sec:config-file-mag-key}.
+
+The \hmac-\mdfive\ key used to sign communication messages sent between the
+sensor unit and data recording daemon. \textbf{This key should be kept secret.}
+The key is a sequence of 16 numbers between 0 and 255 (inclusive). Values may be
+given in hexadecimal format if preceded with \code{0x}, otherwise decimal is
+assumed. The key used here must match that described in
+\secname~\ref{sec:config-file-hmac-key}.
+
+\subsection[magic]{\code{magic STRING}}
+
+String to identify \eeprom\ contents and version. The only recognised value is
+\code{AuroraWatch v1.0}.
+
+\subsection[max-message-no-ack]{\code{max-message-no-ack NUMBER}}
+\label{sec:eeprom-max-message-no-ack}
+The maximum number unacknowledged messages that the sensor unit is
+willing to accept. On reaching this number the sensor unit will reboot
+in the hope of recovering communications with the data logger. The
+count is reset whenever a message acknowledgement is received.See also
+\ref{sec:eeprom-max-time-no-ack}.
+
+\subsection[max-messages-led]{\code{max-messages-led NUMBER}}
+
+After startup following some kind of human interaction\footnote{This
+  means a manual reset, firmware programming or power
+  applied. Watchdog resets and brownout resets are excluded.} the
+sensor unit will light its activity \led, and turn it off when the
+message acknowledgement has been received, for NUMBER
+operartions. This is to show the entire system is functioning. A value
+of \code{0} indicates that the \led\ should always
+operate. \helpbox{On battery-powered sensor units NUMBER should be a
+  small non-zero value to limit unnecessary power usage.}
+
+\subsection[max-time-no-ack]{\code{max-time-no-ack SECONDS}}
+\label{sec:eeprom-max-time-no-ack}
+The maximum duration, in seconds, that the sensor unit is willing run
+without receiving an acknowledgement from the base unit. On reaching
+this duration the sensor unit will reboot in the hope of recovering
+communications with the data logger. The count is reset whenever a
+message acknowledgement is received. See also
+\ref{sec:eeprom-max-message-no-ack}.
 
 
+\subsection[mcp7941x-cal]{\code{mcp7941x-cal NUMBER}}
 
-% \subsection{\code{--eeprom-local-ip-address IP_ADDRESS
-% \subsection{\code{--eeprom-local-ip-port NUMBER
-% \subsection{\code{--eeprom-local-mac-address MAC_ADDRESS
-% \subsection{\code{--eeprom-magic STRING
-% \subsection{\code{--eeprom-max-message-no-ack NUMBER
-% \subsection{\code{--eeprom-max-messages-led NUMBER
-% \subsection{\code{--eeprom-mcp7941x-cal NUMBER
-% \subsection{\code{--eeprom-mcu-voltage-mv NUMBER
-% \subsection{\code{--eeprom-mlx90614-present {0,1}
-\subsection{\code{--eeprom-num-samples NUMBER}}
+When the internal real time clock is a Microchip MCP7941x set its internal
+calibration value to the signed NUMBER. Has no effect for other real time
+clocks, or when a software clock is used. If unsure set to \code{0}.
+
+\subsection[mcu-voltage-mv]{\code{mcu-voltage-mv NUMBER}}
+\label{sec:eeprom-mcu-voltage-mv}
+
+The operating voltage of the microcontroller unit in millivolts. See
+\ref{sec:eeprom-adc-ref-type}.
+
+\subsection[num-samples]{\code{num-samples NUMBER}}
 \label{sec:eeprom-num-samples}
+
 Enable oversampling; take NUMBER samples and compute an aggregate
-value. See also sections {sec:eeprom-aggregate} and
-{sec:eeprom-all-samples}.
-% \subsection{\code{--eeprom-radio-local-id LOCAL_ID
-% \subsection{\code{--eeprom-radio-remote-id REMOTE_ID
-% \subsection{\code{--eeprom-radio-rfm12b-band BAND_NUMBER
-% \subsection{\code{--eeprom-radio-rfm12b-channel CHANNEL_NUMBER
-% \subsection{\code{--eeprom-radio-xrf-band {1,2,3,4,5,6}
-% \subsection{\code{--eeprom-radio-xrf-channel CHANNEL_NUMBER
-% \subsection{\code{--eeprom-remote-ip-address IP_ADDRESS
-% \subsection{\code{--eeprom-remote-ip-port NUMBER
-\subsection{\code{--eeprom-sampling-interval-16th-s DURATION}}
+value. See also sections \ref{sec:eeprom-aggregate} and
+\ref{sec:eeprom-all-samples}.
+
+
+\subsection[rtc-device-address]{\code{rtc-device-address ADDRESS}}
+
+The 7 bit \itwoc\ address of the on-board real time clock. The correct
+address can usually be sensed automatically. Set to 255 (\code{0xFF})
+to disable and use automatic selection.
+
+\subsection[rtcx-device-type]{\code{rtcx-device-type NUMBER}}
+Override the automatic real time clock device identification. This may
+be required for non-standard \itwoc\ addresses or devices. Valud
+values are:
+\begin{enumerate}
+\item[0] Dallas Semiconductor DS1307 or compatible devices (such as
+  DS1338).
+\item[1] Devices in the Microchip MCP7941x family of real time clocks.
+\item[2] Philips PCF85263 real time clock.
+\item[255] Enable automatic device type selection.
+\end{enumerate}
+
+
+
+\subsection[sampling-interval-16th-s]{\code{sampling-interval-16th-s DURATION}}
 \label{sec:eeprom-sampling-interval}
+
 The initial sampling interval, defined in units of
 $\frac{1}{16}$\SI{}{s}. The \filename{send_cmd.py} command, when used with
 its \code{--sampling-interval} option, can be used to modify sampling
 interval without requiring a reboot.
 
-% \subsection{\code{--eeprom-sd-select EEPROM_SD_SELECT
-\subsection{\code{--eeprom-site-id EEPROM_SITE_ID}}
-Set the unique site identifier number.
-% \subsection{\code{--eeprom-use-sd {0,1}
-% \subsection{\code{--eeprom-vin-divider NUMBER
+\subsection[site-id]{\code{site-id NUMBER}}
+Set the unique site identifier number, in the range 0 to 65535 inclusive.
 
+\subsection[vin-divider]{\code{vin-divider NUMBER}}
+
+An integer value indicating the scaling reduction applied to the input voltage
+before measurement. That is, the actual measured value should be multiple by
+NUMBER to obtain the true input voltage.
+
+
+\section{XRF communication settings}
+
+The settings described in this section are common to all systyems
+which use (or can use) a Ciseco XRF radio module. The firmware must be
+compiled with \code{COMMS_XRF} communications support enabled.
+
+\subsection[radio-local-id]{\code{radio-local-id NUMBER}}
+
+Local radio identifier for XRF radio communication.
+
+\subsection[radio-remote-id]{\code{radio-remote-id NUMBER}}
+
+Remote radio identifier for XRF radio communication. 
+
+\subsection[radio-xrf-band]{\code{radio-xrf-band NUMBER}}
+
+Select the XRF radio band (1 to 7 inclusive). Not implemented in
+existing firmware.
+
+\subsection[radio-xrf-channel]{\code{radio-xrf-channel NUMBER}}
+
+Select the XRF radio channel. 
+
+
+\section{RFM12B communication settings}
+
+The settings described in this section are common to all systyems
+which use (or can use) a Hope RFM12B module. The firmware must be
+compiled with \code{COMMS_RFM12B} communication support enabled.
+
+\subsection[radio-rfm12b-band]{\code{radio-rfm12b-band NUMBER}}
+
+Select the band number to use for radio communications. 
+
+\subsection[radio-rfm12b-channel]{\code{radio-rfm12b-channel NUMBER}}
+
+Select the channel number to use for radio communications.
+
+
+\section{Ethernet communication settings}
+
+The settings described in this section are common to all systyems
+which use (or can use) Ethernet for communication to the base unit.
+The firmware must be compiled with \code{W5100} or \code{W5500}
+communications support enabled.
+
+\subsection[dns1, dns2, dns3]{\code{dns1 A,B,C,D}\newline \code{dns2 A,B,C,D}\newline \code{dns3 A,B,C,D}}
+The sensor unit supports the use of up to three \dns\ servers for host
+name resolution. Each server \ip\ address must be set separately as a
+comma-separated list (\code{A, B, C, D}).
+
+Set the \dns\ server \ip\ addresses used for name resolution, up to
+three different servers may be specified. When \dhcp\ configuration is
+in operation any \dns\ servers given take priority. If only two
+servers are given by \dhcp\ and a third server is specified in the
+\eeprom\ settings it will also be used. It is permissable to include
+repeated server addresses. To disable a particular \dns\ setting set
+to \code{255, 255, 255, 255}.
+
+\subsection[gateway]{\code{gateway A,B,C,D}}
+
+Set the network gateway, given as a comma-separated list of 4
+integers. The value is ignored when \dhcp\ is in operation.
+
+\subsection[local-ip-address]{\code{local-ip-address A,B,C,D}}
+
+The local \ip\ address, given as a comma-separated list of 4
+integers. Use the value \code{255, 255, 255, 255} to indicate an
+address should be obtained using \dhcp.
+
+\subsection[local-ip-port]{\code{local-ip-port NUMBER}}
+The \udp\ port number from which the sensor unit will communicate.
+
+\subsection[local-mac-address]{\code{local-mac-address A,B,C,D,E,F}}
+
+Assign the \macAddress\ that the sensor unit should use on the
+network, give as a comma-separated list of 6 integers (you may need to use the
+\code{0x} prefix on each value to indicate hexadecimal).
+\warningbox{\macAddress es must be unique on a network. You
+  may use one assigned by the original equipment manufactuer for the
+  Ethernet shield or a locally-assigned value. If using a
+  locally-assigned \macAddress\ check with your network manager that
+  the assignment is unique.}
+
+\subsection[netmask]{\code{netmask A,B,C,D}}
+
+Set the network mask, given as a comma-separated list of 4
+integers. The value is ignored when \dhcp\ is in operation.
+
+
+\subsection[remote-hostname]{\code{remote-hostname HOSTNAME}}
+\label{sec:eeprom-remote-hostname}
+
+Set the hostname of the data logger to which the sensor unit should send its
+\udp\ data packets. The hostname is looked up once from \dns\ at startup. If
+multiple values are returned from \dns\ only the first value is used. If the
+name cannot be looked up then a fallback \ip\ address may be used, see
+\ref{sec:eeprom-remote-ip-address}. Requires \code {W5100} or \code{W5500}
+communication options.
+
+
+\subsection[remote-ip-address]{\code{remote-ip-address A,B,C,D}}
+\label{sec:eeprom-remote-ip-address}
+
+Set the remote \ip\ address to which the sensor unit should send its
+\udp\ data packets, given as a comma-separated list of 4 integers. Note that is
+a remote hostname is set (\ref{sec:eeprom-remote-hostname}), and can be
+resolved, its value takes
+precedence. Requires \code {W5100} or \code{W5500}
+communication options.
+
+
+\subsection[remote-ip-port]{\code{remote-ip-port NUMBER}}
+
+Set the remote \ip\ port number to which the sensor unit should send its \udp\
+data packets. Replies are exp[ected to originate from the same port number.
+Requires \code {W5100} or \code{W5500} communication options.
+
+
+%%% MCP342x settings %%%
+\section{MCP342x ADC settings}
+\label{sec:eeprom-mcp342x-adc}
+
+The settings described in this section are used to configure Microchip
+MCP342x \adc s. Depending on the hardware there may be one or more
+\adc s of this type present. The firmware must be compiled with
+code{FEATURE_FLC100} or \code{FEATURE_RIOMETER} features enabled.
+
+\subsection[adc-address-list]{\code{adc-address-list ADDRESS_LIST}}
+
+A comma-separated list of the \itwoc\ address(es) for the sensor
+MCP3424 \adc(s).  Addresses may be given in hexadecimal format if
+preceded with \code{0x}, otherwise decimal is assumed. Missing \adc s
+should be indicated by giving the value 255.
+
+\optionexample{adc-address-list 0x6E,0x6A,0x6C}
+
+\subsection[adc-channel-list]{\code{adc-channel-list CHANNEL_LIST}}
+
+A comma-separated list of the channels for the sensor MCP3424
+\adc(s). Unless there is a good reason to swap the \adc s all channels
+should be 1.
+
+\optionexample{adc-channel-list 1,1,1}
+
+\subsection[adc-gain-list]{\code{adc-gain-list GAIN_LIST}}
+
+A comma-separated list of the gains for the sensor MCP3424
+\adc(s). Valid values for the gain are 1, 2, 4, and 8. If the gain is
+set too high there is a possibility that the output value will
+saturate. %
+\ifIsInstrument{magnetometer}{%
+  With the standard \nT{100000} range FLC100 sensors the gain should
+  normally be set to 1 or 2. With HEZ alignment the E channel may be
+  set as high as 8.}
+
+\optionexample{adc-channel-list 1,8,1}
+
+\subsection[adc-resolution-list]{\code{adc-resolution-list BITS}}
+
+A comma-separated list of the resolutions for the sensor MCP3424
+\adc(s). Valid values for the resolution are 12, 14, 16, and
+18. Higher resolution sampling requires longer sample times, consult
+for the MCP3424 data sheet for more information.
+
+\section{GNSS settings}
+
+When \gnss\ support is included the sensor unit can derive and
+maintain accurate time keeping independently of the base unit. The
+firmware must be compiled withe the \code{FEATURE_GNSS} feature
+enabled.
+
+\subsection[gnss-default-baud-rate]{\code{gnss-default-baud-rate BAUDRATE}}
+
+This setting is the default baud rate of the \gnss\ module immediately
+after power is applied. If the desired baud rate for the \gnss\ module
+differs then the microcontroller must communicate with the \gnss\
+module at this baud rate initially in order to instruct it to change
+its baud rate.
+
+\subsection[gnss-desired-baud-rate]{\code{gnss-desired-baud-rate BAUDRATE}}
+
+This setting is the desired baud for the microcontroller and \gnss\
+module to communicate during normal operation.
+
+\subsection[use-gnss]{\code{use-gnss BOOLEAN}}
+
+Indicates if \gnss\ timing should be used whenever possible. If set
+the microcontroller will still fall back to other timing sources if
+the \gnss\ result is not valid.
+
+\section{FLC100 magnetometer settings}
+
+The FLC100 magnetometer settings affect the operation for systems
+which use the Stefan Mayer Instruments FLC100 magnetometer
+sensor(s). For data sampling settings see
+\ref{sec:eeprom-mcp342x-adc}.
+
+\subsection[flc100-power-up-delay-50ms]{\code{flc100-power-up-delay-50ms DELAY}}
+Set the delay, in units of \SI{50}{\milli\second}, from powering on
+the FLC100 magnetometer sensor to when it is ready for samples to be
+taken. Set to \code{0} to disable power control and leave powered
+permenently.
+
+\subsection[flc100-present]{\code{flc100-present BOOLEAN}}
+Indicate if FLC100 magnetometer sensor(s) are present.
+
+\section{Riometer settings}
+The data logger is capable of supporting imaging riometers of up to 64
+beams (8 \ensuremath{\times} 8). The number of rows
+($N_\mathrm{rows}$) and columns ($N_\mathrm{cols}$) are specified
+independently, although normally they would be the same value
+(scanning systems where $N_\mathrm{rows} = 1$ or $N_\mathrm{cols} = 1$
+are supported) . After the Butler matrix has been commanded to output
+a different riometer row the sampling must be delayed in order for the
+riometers to settle to the new signal value. During this settling time
+the Microchip MCP324x \adc s can be instructed to record additional
+house-keeping data such as riometer operating voltages or data logger
+temperature. The number of house-keeping `slots' available is the same
+as the number of imaging riometer rows. For programming convenience
+the rows are numbered from zero. Each slot can be configured
+independently, to avoid repetition in the riometer settings $n$ $n$ is
+used to indicate the house-keeping slot number where
+$0 <= n < N_\mathrm{rows}$, $n \in \mathbb{Z}$.
+
+It follows that for a wide beam riometer system (1 \ensuremath{\times}
+1) only a single house-keeping slot is available. Values in unused rows and
+columns should be set to 255 (\code{0xFF}), which is the value of
+unprogrammed \eeprom\ memory.
+
+Riometer support requires the firmware to be compiled with
+\code{FEATURE_RIOMETER} enabled.
+
+For data sampling settings see also \ref{sec:eeprom-mcp342x-adc}.
+
+\subsection[generic-adc-address-list]{\code{generic-adc-address-list ADDRESS_LIST}}
+Set the \adc\ \itwoc\ addresses used for each \adc. Order is
+important, the first address dictates which\adc\ is considered the
+first. Addresses defined here apply for house-keeping data captured
+during the riometer house-keeping slots and the main riometer data.
+
+\subsection[rio-present]{\code{rio-present BOOLEAN}}
+Indicate if the riometer \adc\ board is present.
+
+\subsection[rio-housekeeping-n-adc-channel-list]{\code{rio-housekeeping-$n$-adc-channel-list CHANNEL_LIST}}
+Define the MCP324x \adc\ channel numbers that are to be used for each
+\adc\ during house-keeping slot $n$. Channel numbers should be given
+as a comma-separated list of the values 1, 2, 3, or 4.
+
+\subsection[rio-housekeeping-n-adc-gain-list]{\code{rio-housekeeping-$n$-adc-gain-list GAIN_LIST}}
+Define the MCP324x \adc\ gain values that are to be used for each
+\adc\ during house-keeping slot $n$. Gains should be given as a
+comma-separated list of the values 1, 2, 4, or 8.
+
+\subsection[rio-housekeeping-n-adc-mask]{\code{rio-housekeeping-$n$-adc-mask ADC_MASK}}
+A bitmask defining which \adc s are to be used during house-keeping
+slot $n$. Bit 0 (\lsb) is the first \adc, bit 7 the last possible
+\adc.
+
+\subsection[rio-housekeeping-n-adc-resolution]{\code{rio-housekeeping-$n$-adc-resolution NUMBER}}
+Define the MCP324x \adc\ resolution value that is to be used for all
+active \adc s during house-keeping slot $n$. The resolution should be
+given as a single number from the values 12, 14, 16, or 18.
+
+\helpbox{As the resolution determines the conversion time, at active
+  \adc s will use the same resolution.}
+
+\subsection[rio-housekeeping-n-num-samples]{\code{rio-housekeeping-$n$-num-samples NUMBER}}
+
+Define the number of samples to be taken for the house-keeping data
+during slot $n$. NUMBER should be at least 1 and a maximum of 16.
+
+
+\subsection[rio-housekeeping-n-aggregate]{\code{rio-housekeeping-$n$-aggregate NUMBER}}
+
+Define the method by which multiple samples should be reduced to a
+single value. See the description in \ref{sec:eeprom-aggregate}.
+
+\subsection[rio-riometer-adc-channel-list]{\code{rio-riometer-adc-channel-list CHANNEL_LIST}}
+
+Define the MCP324x \adc\ channel numbers that are to be used for each
+\adc\ during the main riometer data acquisition. Channel numbers
+should be given as a comma-separated list of the values 1, 2, 3, or 4.
+
+\subsection[rio-riometer-adc-gain-list]{\code{rio-riometer-adc-gain-list GAIN_LIST}}
+
+Define the MCP324x \adc\ gain values that are to be used for each
+\adc\ during the main roimeter data acquisition. Gains should be given
+as a comma-separated list of the values 1, 2, 4, or 8.
+
+\subsection[rio-riometer-num-samples]{\code{rio-riometer-num-samples NUMBER}}
+
+Define the number of samples to be taken during the main roimeter data
+acquisition. NUMBER should be at least 1 and a maximum of 16.
+
+\subsection[rio-riometer-aggregate]{\code{rio-riometer-aggregate NUMBER}}
+
+Define the method by which multiple samples of the main riometer data
+should be reduced to a single value. See the description in
+\ref{sec:eeprom-aggregate}.
+
+\subsection[rio-riometer-adc-resolution]{\code{rio-riometer-adc-resolution RESOLUTION}}
+
+Define the MCP324x \adc\ resolution value that is to be used for all
+active \adc s during the main roimeter data acquisition. The
+resolution should be given as a single number from the values 12, 14,
+16, or 18.
+
+\helpbox{As the resolution determines the conversion time, at active
+  \adc s will use the same resolution.}
+
+
+\subsection[rio-riometer-adc-mask]{\code{rio-riometer-adc-mask ADC_MASK}}
+
+A bitmask defining which \adc s are to be used during the main
+riometer data acquisition. Bit 0 (\lsb) is the first \adc, bit 7 the
+last possible \adc.
+
+\subsection[rio-num-rows]{\code{rio-num-rows NUMBER}}
+
+Set the number of rows in the imaging riometer. NUMBER must be at
+least 1, and no more than 8.
+
+\subsection[rio-num-columns]{\code{rio-num-columns NUMBER}}
+
+Set the number of rows in the imaging riometer. NUMBER must be at
+least 1, and no more than 8.
+
+\subsection[rio-scan-pins]{\code{rio-scan-pins PINS}}
+\label{sec:eeprom-rio-scan-pins}
+
+Define the Arduino pins used for the riometer scan control. The pin nunbers
+should be given as a comma-separated list of integers.
+
+\subsection[rio-presample-delay-ms]{\code{rio-presample-delay-ms DELAY_MS}}
+
+Define the delay, in milliseconds, from when the imaging riometer row has been
+selected to when riometer sampling starts. For widebeam or scanning riometers
+without row scanning the delay should be set to 0.
+
+\subsection[rio-row-scan-interval-ms]{\code{rio-row-scan-interval-ms INTERVAL_MS}}
+
+Define the interval, in milliseconds, between riometer row scans. For widebeam
+or scanning riometers without row scanning the delay should be set to 0.
+
+\subsection[rio-gpio-address]{\code{rio-gpio-address ADDRESS}}
+
+Define the 7 bit \itwoc\ address of the Microchip MCP23008 IO expander. Only
+applicable to imaging riometer systems using the external 8 input \adc\ board.
+Set to 255 (\code{0xFF}) for other systems.
+
+\subsection[rio-scan-mapping]{\code{rio-scan-mapping MAPPING}}
+\label{sec:eeprom-rio-scan-mapping}
+
+Define the mapping from riometer row number to the pin outputs required to
+select the row. The mapping must be given as a comma-separated list of integers.
+See also \ref{sec:eeprom-rio-scan-pins}.
+\section{Honeywell HIH61xx humidity sensor}
+
+A Honeywell HIH61xx humidity sensor may be present in the cloud
+detector or imaging riometer systems. Support requires
+\code{FEATURE_HIH61XX_WIRE} to be enabled for hardware \itwoc\ support
+or \code{FEATURE_HIH61XX_SOFTWIRE} to be enabled for software \itwoc\
+support.
+
+\subsection[hih61xx-present]{\code{hih61xx-present BOOLEAN}}
+
+Indicate if a Honeywell HIH61xx humidity sensor is fitted. Requires
+
+\ifIsInstrument{riometer}{Hardware support is present only for imaging
+  riometer systems. Firmware support may be present for all riometer
+  systems.}
+
+\section{Melexis MLX90614 settings}
+
+The Melexis MLX90614 digital non-contact thermometer is used by the
+cloud detector for measurements of sky temperature. Support requires
+\code{FEATURE_MLX90614} feature to be enabled.
+
+
+\subsection[mlx90614-present]{\code{mlx90614-present BOOLEAN}}
+
+Indicate if the Melexis MLX90614 digital non-contact thermometer is fitted.
+
+\section{Lightning sensor settings}
+
+Lightning detection using the Austria Micro Systems AMS3935 sensor
+requires the firmware to be compiled with \code{FEATURE_AS3935}
+enabled.
+
+\subsection[as3935-present]{\code{as3935-present BOOLEAN}}
+Indicate if Austria Micro Systems AS3935 lightning detector is
+fitted. Hardware support is not available for all designs. Requires
+\code{FEATURE_AS3935} for firmware support.
+
+
+\section{Environmental settings}
+Some systems may include options to help regulate the internal sensor
+unit temperature.
+
+\subsection[fan-pin]{\code{fan-pin NUMBER}}
+The Arduino pin number that should be switched when cooling fan
+support is included. Set to 255 (\code{0xFF}) to
+disable this option.
+
+\subsection[fan-temperature]{\code{fan-temperature NUMBER}}
+The temperature (in \degC{}) at which the cooling fan should be
+enabled. When multiple temperature sensors are included it is the
+house-keeping system temperature value that is used.
+
+\subsection[fan-temperature-hysteresis]{\code{fan-temperature-hysteresis NUMBER}}
+The hysteresis (in \degC{}) used when cooling fan support is included.
+
+\subsection[heater-pin]{\code{heater-pin PIN}}
+The Arduino pin used to enable the heater. Set to 255 (\code{0xFF}) to
+disable this option.
+
+\section[(Micro)SD card settings]{(Micro)\sd\ card settings}
+
+An experimental feature exists to save data to a \sd\ card instead of
+sending to the base unit. This was intended for use in magnetomter
+site surveys and is not optimized for production usage or low-power
+operation. Requires \code{FEATURE_SD_CARD} feature to be enabled.
+
+\warningbox{Some hardware designs contain a \sd\ card interface that
+  can only be used when the operating voltage is set to \volt{3.3}. Do
+  not attempt to use such an interface when the operating voltage is
+  set to \volt{5}. Ethernet operation generally requires \volt{5}
+  operation and so is incompatible with this feature.}
+
+
+\subsection[sd-select]{\code{sd-select PIN}}
+
+The Arduino pin number connected to the select line of the \sd\ card interface.
+Requires \code{FEATURE_SD_CARD}.
+
+\subsection[use-sd]{\code{use-sd BOOLEAN}}
+
+Indicate if the \sd\ card interface (if fitted) should be used. Requires
+\code{FEATURE_SD_CARD} for firmware support.
+
+
+
+%%% ======================================
 \section[Recovering bad EEPROM settings]{%
   Recovering bad \eeprom\ settings}
 \label{sec:bad-eeprom-settings}
 
-The easiest method to recover from bad \eeprom\ settings is to
-generate new settings using the \filename{generate_eeprom_image.py}
-program. The original settings used at manufacture should only be used
-if the firmware has not been updated, otherwise the settings may be
-missing values required by the newer firmware. Further information on
-generating and uploading new \eeprom\ settings can be found in
-\secname~\ref{sec:generate-eeprom-settings}.
+The easiest method to recover from bad \eeprom\ settings is to generate new
+settings using the \filename{generate_eeprom_image.py} program. The original
+settings used at manufacture should only be used if the firmware has not been
+updated, otherwise the settings may be missing values required by the newer
+firmware. Further information on generating new \eeprom\ settings can be found
+by running the \code{generate_eeprom_image.py} program with the \code{--help}
+option.
 

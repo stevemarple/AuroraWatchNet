@@ -7,7 +7,7 @@ CP = cp -a
 
 
 .PHONY : doc
-doc : calunium-mag-manual raspi-mag-manual bgs-mag-manual
+doc : calunium-mag-manual raspi-mag-manual bgs-mag-manual riometer-manual
 
 .PHONY : calunium-mag-manual
 calunium-mag-manual : calunium-mag-images makeabbrev gitlog.tex
@@ -30,6 +30,12 @@ bgs-mag-manual : bgs-mag-images makeabbrev gitlog.tex
 #	$(BIBTEX) bgs-mag-manual
 	$(PDFLATEX) -jobname bgs-mag-manual manual
 
+.PHONY : riometer-manual
+riometer-manual : riometer-images makeabbrev gitlog.tex
+	$(PDFLATEX) -jobname riometer-manual manual
+	$(MAKEABBREV) riometer-manual
+#	$(BIBTEX) riometer-manual
+	$(PDFLATEX) -jobname riometer-manual manual
 
 .PHONY : clean
 clean :
@@ -69,6 +75,10 @@ raspi-mag/images/system-overview.pdf : raspi-mag/images/src/system-overview.odg
 # images : raspi-mag/images/system-overview.pdf
 bgs-mag-images :
 
+
+.PHONY :  riometer-images
+# images : riometer/images/system-overview.pdf
+riometer-images :
 
 makeabbrev : makeabbrev.c
 

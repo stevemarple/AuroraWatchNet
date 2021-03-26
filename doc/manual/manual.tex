@@ -1,5 +1,5 @@
 \documentclass[twoside,a4paper,openany,12pt]{book}
-
+\usepackage{amsfonts}
 %% Disable ligatures in tt fonts, because we want to stop "--" being converted
 %% to an en dash.
 \usepackage{microtype}
@@ -59,6 +59,9 @@
 
 %% Conditional sections
 \usepackage{ifthen}
+\newcommand{\ifIsInstrument}[2]{\ifthenelse{\equal{\instrumentType}{#1}}{#2}{}}
+\newcommand{\ifIsNotInstrument}[2]{\ifthenelse{\equal{\instrumentType}{#1}}{}{#2}}
+
 \usepackage{etoolbox}
 
 %% URLs
@@ -119,7 +122,7 @@
 % package for details)
 \newcommand{\UnderscoreCommands}{%
   \do\VerbatimInput
-  \do\BVerbatimInput 
+  \do\BVerbatimInput
   \do\IncludeMatlabFileVerb
   \do\IncludeShellFileVerb
 }
@@ -224,6 +227,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newcommand{\bit}[1]{\mbox{\ensuremath{#1}\,bit}}
 
 %%\newcommand{\degrees}[1]{\ensuremath{#1^\circ}}
+\newcommand{\degC}[1]{\ensuremath{#1^\circ}C}
 
 \renewcommand{\textohm}{\ensuremath{\Omega}}
 \newcommand{\ohm}[1]{\SI{#1}{\ohm}}
@@ -252,7 +256,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newenvironment{warninglist}{%
   \begin{list}{\Stopsign}{}}{%
     \end{list}}
-\newcommand{\warningbox}[1]{\noindent%
+\newcommand{\warningbox}[1]{\noindent\newline%
   \colorbox{MyLightRed}{\parbox{\textwidth}{%
       \begin{warninglist}\item #1\end{warninglist}}} \newline}
 
@@ -261,10 +265,10 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 \newenvironment{helplist}{%
   \begin{list}{\Info}{}}{%
     \end{list}}
-\newcommand{\helpbox}[1]{\noindent
+\newcommand{\helpbox}[1]{\noindent\newline%
   \colorbox{MyLightBlue}{\parbox[l]{\textwidth}{%
       \begin{helplist}\item #1\end{helplist}}} \newline}
-\newcommand{\examplebox}[2][]{\noindent
+\newcommand{\examplebox}[2][]{\noindent\newline%
   \colorbox{MyYellow}{\parbox[l]{\textwidth}{\ifthenelse{\equal{#1}{}}%
       {Example: }{#1}\vspace*{1ex} \newline %
       #2 %
@@ -321,28 +325,43 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 %   \begin{enumerate}[itemsep=0pt,parskip=0pt,resume*]}{\end{enumerate}}
 
 \newcommand{\copyrightyear}{%
-  \ifthenelse{\equal{\gitCommitYear}{2014}}{2014}{2014--\gitCommitYear}}
-\newcommand{\documentAttribution}{``AuroraWatchNet magnetometer
-  manual. Steve R. Marple, Lancaster University. \gitCommitYear.''}
+  \ifthenelse{\equal{\gitCommitYear}{2014}}{2014}{2014--\gitCommitYear}
+}
+\newcommand{\documentAttribution}{%
+\ifthenelse{\equal{\instrumentType}{magnetometer}}{%
+``AuroraWatchNet magnetometer manual. Steve R. Marple. \gitCommitYear.''}{%
+``Riometer manual. Steve R. Marple. \gitCommitYear.''}}
 
 \typeout{Job is \jobname}
 \expandafter\ifstrequal\expandafter{\jobname}{calunium-mag-manual}{%
   \typeout{Making Calunium manual}%
   \def\caluniumMagManual{}
+  \def\instrumentType{magnetometer}
+  \def\usesMicrocontroller{}
 }{%
   \typeout{Not Calunium manual!}
 }
 \expandafter\ifstrequal\expandafter{\jobname}{raspi-mag-manual}{%
   \typeout{Making AuroraWatchNet Raspberry Pi manual}%
   \def\raspiMagManual{}
+  \def\instrumentType{magnetometer}
 }{%
   \typeout{Not AuroraWatchNet Raspberry Pi manual!}
 }
 \expandafter\ifstrequal\expandafter{\jobname}{bgs-mag-manual}{%
   \typeout{Making BGS Raspberry Pi manual}%
   \def\bgsMagManual{}
+  \def\instrumentType{magnetometer}
 }{%
   \typeout{Not BGS Raspberry Pi manual!}
+}
+\expandafter\ifstrequal\expandafter{\jobname}{riometer-manual}{%
+  \typeout{Making riometer manual}%
+  \def\riometerManual{}
+  \def\instrumentType{riometer}
+  \def\usesMicrocontroller{}
+}{%
+  \typeout{Not riometer manual!}
 }
 
 
@@ -358,6 +377,10 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 }{}
 \ifdef{\bgsMagManual}{%
   \title{BGS Raspberry Pi magnetometer\\
+  \Large Software configuration and operation manual}%
+}{}
+\ifdef{\riometerManual}{%
+  \title{Riometer manual\\
   \Large Software configuration and operation manual}%
 }{}
 \author{Steve R. Marple, \\
@@ -422,7 +445,9 @@ Please attribute this work as \documentAttribution
 \ifdef{\bgsMagManual}{%
   \include{bgs-mag/hardware-overview}
 }{}
-
+\ifdef{\riometerManual}{%
+  \include{riometer/hardware-overview}
+}{}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
@@ -451,7 +476,6 @@ Please attribute this work as \documentAttribution
 %%% INSTALLATION
 %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\part{Installation}
 
 \ifdef{\caluniumMagManual}{%
   \include{calunium-mag/site-requirements}
@@ -475,7 +499,7 @@ Please attribute this work as \documentAttribution
   \include{bgs-mag/installation-procedure}
 }{}
 
-\include{contributing-data}
+\ifIsInstrument{magnetometer}{\include{contributing-data}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
@@ -490,10 +514,10 @@ Please attribute this work as \documentAttribution
 \appendix
 \include{config-file}
 
-\ifdef{\caluniumMagManual}{%
-  %% Specific to the Calunium hardware
+\ifdef{\usesMicrocontroller}{%
   \include{eeprom-settings}
 }{}
+
 
 %%\include{custom-ras-pi-images}
 \end{document}

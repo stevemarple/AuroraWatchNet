@@ -68,11 +68,10 @@ Default: none.
 }
 
 \section{\code{[awpacket]}}
-Options associated with the standard binary output format. This format
-is incovenient to read but preserves the received data messages from
-the magnetometer, and the responses sent back from the recording
-daemon. It is possible to play back these files to the recording
-daemon and regenerate other data formats.
+Options associated with the standard binary output format. This format is
+incovenient to read but preserves the received data messages from the sensor
+unit, and the responses sent back from the recording daemon. It is possible to
+play back these files to the recording daemon and regenerate other data formats.
 
 \subsection{filename}
 
@@ -84,16 +83,16 @@ Default: none.
   Typically set to \\
   \code{filename =
     /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.awp}
-  }
+}
 
 \subsection{key}
-By default the binary data packets are written out with their original
-signing key. If you plan to make the binary data format available then
-for security reasons you should probably set a different signing
-key. You will then be able to share this key without compromising the
-communication channel with the magnetometer and others will be able to
-use the error-checking capabilities provide by \hmac-\mdfive. The key
-is a 32 character hexadecial string, without any \code{0x} prefix.
+By default the binary data packets are written out with their original signing
+key. If you plan to make the binary data format available then for security
+reasons you should probably set a different signing key. You will then be able
+to share this key without compromising the communication channel to the sensor
+unit, and others will be able to use the error-checking capabilities provide by
+\hmac-\mdfive. The key is a 32 character hexadecial string, without any
+\code{0x} prefix.
 
 Default: none.
 
@@ -122,9 +121,9 @@ Default: none.
 Options relating to the data-recording daemon.
 
 \subsection{\code{connection}}
-Defines the connection between the daemon and the magnetometer. Radio
-communication emulates a serial port connection. If the magnetometer
-is \PoE\ model the communication should be set to \code{ethernet}.
+Defines the connection between the daemon and the sensor unit. Radio
+communication emulates a serial port connection. If the sensor unit is a \PoE\
+model the communication should be set to \code{ethernet}.
 
 Default: \code{serial}
 
@@ -139,7 +138,7 @@ daemons where the data files are also received by \code{rsync} or
 
 \subsection{\code{acknowledge}}
 If set to \code{false} then acknowledgements are not sent in response
-to magnetometer data messages.
+to sensor unit data messages.
 
 Default: \code{true}
 
@@ -152,13 +151,13 @@ of the setting of the \code{acknowledge} option.
 
 Default: \code{false}
 
-\ifdef{\caluniumMagManual}{%
+\ifdef{\usesMicrocontroller}{%
   \section{\code{[serial]}}
   Options relating to serial data communication between the
-  magnetometer and data recording daemon. This section is not used
-  when communication uses ethernet.
+  sensor unit and data recording daemon. This section is not used
+  when communication uses Ethernet.
 
-  \subsection{\code{port}} 
+  \subsection{\code{port}}
   The filename of the serial port. For the Ciseco \emph{Slice of
     Radio} module this should be set to \filename{/dev/ttyAMA0}, for
   the Ciseco \emph{URF} module this will probably be
@@ -181,12 +180,12 @@ Default: \code{false}
 
   Typically set to \code{ATRE;ATCN 25;ATLI R;ATAC}. Ensure that the
   channel number defined here matches the setting programmed into the
-  magnetometer's \eeprom.
+  sensor unit's \eeprom.
 
   \section{\code{[ethernet]}}
 
   These configuration options are used by the data recording daemon
-  only when an ethernet connection with the magnetometer is in use.
+  only when an Ethernet connection with the sensor unit is in use.
 
   \subsection{\code{local_address}}
   The local \ip\ address used for the data recording daemon. By
@@ -195,28 +194,27 @@ Default: \code{false}
   Default: empty string.
 
   \subsection{\code{local_port}}
-  The port number of which the recording
-  daemon should listen for magnetometer data packets.
+  The port number of which the recording daemon should listen for sensor unit
+  data packets.
 
   Default: \code{6588}
 
   \subsection{\code{remote_address}}
-  The \ip\ address of the magnetometer.
+  The \ip\ address of the sensor unit.
 
   \subsection{\code{remote_port}}
-  The port on which the magnetometer expects to receive
-  acknowledgements.  
+  The port on which the sensor unit expects to receive acknowledgements.
 }{}
 
 
 \section{\code{[controlsocket]}}
 
 It is possible for the \filename{send_cmd.py} program to send commands
-to the magnetometer via the data recording daemon. Communication is
-via a \udp\ socket or a unix domain socket.
+to the sensor unit via the data recording daemon. Communication is
+via a \udp\ socket or a Unix domain socket.
 
 \subsection{\code{filename}}
-Use a unix domain socket for communication with the data recording
+Use a Unix domain socket for communication with the data recording
 daemon, with the given filename. If set to \code{none} then a
 control socket will not be created. If the \code{filename} option is
 present it takes priority over any \code{port} option.
@@ -235,27 +233,33 @@ Default: \code{6587}
 
 \section{\code{[magnetometer]}}
 
-Settings associated with the magneometer.
+Settings associated with the sensor unit.
+
+\ifdef{\riometerManual}{%
+  \helpbox{With the benefit of hindsight this section should have been called
+    \code{sensorunit}. To maintain compatibility with existing installations the
+    original name is retained, even when used in riometer systems.}
+}{}
 
 \subsection{\code{siteid}}
 
-The numeric site identifier for the magnetometer. The recording daemon
+The numeric site identifier for the \instrumentType. The recording daemon
 will ignore data packets where the site ID does not match the value
 set in the configuration file. The site ID should be set as an integer
-number in the range 0 to 255 inclusive.
+number in the range 0 to 65535 inclusive.
 
 Default: none.
 
 %% Magnetometer communication key only relevant for systems using
-%% Calunium microcontroller.
-\ifdef{\caluniumMagManual}{%
+%% microcontroller.
+\ifdef{\usesMicrocontroller}{%
   \subsection{\code{key}}
-  \label{sec:config-file-mag-key}
-  The \hmac-\mdfive\ key used to sign communication messages sent
-  between the magnetometer and data recording daemon. \textbf{This key
-    should be kept secret.} The key is a 32 character hexadecimal
-  string, without any \code{0x} prefix. The key used here must match
-  that described in \secname~\ref{sec:eeprom-hmac-key}.
+  \label{sec:config-file-hmac-key}
+  The \hmac-\mdfive\ key used to sign communication messages sent between the
+  sensor unit and data recording daemon. \textbf{This key should be kept
+    secret.} The key is a 32 character hexadecimal string, without any \code{0x}
+  prefix. The key used here must match that described in
+  \secname~\ref{sec:eeprom-hmac-key}.
 
   Default: none.
 
@@ -264,13 +268,13 @@ Default: none.
 
 %% Firmware settings relevant only for systems using Calunium
 %% microcontroller.
-\ifdef{\caluniumMagManual}{%
+\ifdef{\usesMicrocontroller}{%
   \section{\code{[firmware]}}
   Configuration details for firmware upgrades.
   
   \subsection{\code{path}}
   The directory in which the firmware upgrades relevant to the
-  magnetometer hardware are stored. 
+  \instrumentType\ hardware are stored. 
   
   \warningbox{It is critical that this path is set correctly, otherwise
     incompatible firmware upgrades could be delivered.}
@@ -353,7 +357,7 @@ The \udp\ port to which data packets are sent.
 
 \subsection{\code{remote_key}}
 The \hmac-\mdfive\ key used to sign the data packets. This should be
-different to the key used to communicate with the magnetometer.
+different to the key used to communicate with the sensor unit.
 
 \section{\code{[dataqualitymonitor]}}
 
@@ -369,17 +373,17 @@ again and real time data transfer resume as normal.
 Defines the serial port used by the \filename{awnetd_monitor.py}
 daemon. If using a \usb\ device it is recommended to modify the
 \code{udev} rules so that a fixed device name is generated based on
-the serial number. 
+the serial number.
 
 \helpbox{Example \code{udev} rule to create a symbolic link for an
-FTDI \usb\ serial adaptor, save to
-\filename{/etc/udev/rules.d/90-usb_serial.rules} or similar:\\%
-\\
-\small
-\# Have symlinks based on serial number for FTDI devices. Used for \\
-\# awnetd_monitor\\
-SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", \textbackslash \\
-ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"}
+  FTDI \usb\ serial adaptor, save to
+  \filename{/etc/udev/rules.d/90-usb_serial.rules} or similar:\\%
+  \\
+  \small
+  \# Have symlinks based on serial number for FTDI devices. Used for \\
+  \# awnetd_monitor\\
+  SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", \textbackslash \\
+  ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"}
 
 Default: none.
 
@@ -439,6 +443,5 @@ The maximum allowable age in seconds for the semaphore file to be
 considered valid. The presence of a file older than this age is
 ignored. Required for \filename{check_ntp_status}. Not required by
 \filename{awnetd.py} and if missing \ntp\ status is not checked.
-
 
 
