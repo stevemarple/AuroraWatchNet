@@ -1,0 +1,106 @@
+\chapter{Serial port interface}
+
+\section{Introduction}
+
+The sensor unit microcontroller contains a serial port interface that
+can be used for observing its network status and debugging its
+behaviour. By default only a limited set of information is printed,
+since the time taken to print could interfere with the data
+acquisition tasks of the microcontroller.
+
+The serial port also accepts commands that can be used to modify the
+system behaviour. Access to the serial port is not required for normal
+operation, and \eeprom\ settings
+(\chaptername~\ref{chapter:eeeprom-settings}) should normally be
+changed using the \code{send_cmd.py} command.
+
+\section{Connection information}
+
+The serial port interfaces sends 8 bit data, with no parity and 1 stop
+bit (8N1). The normal baud rate is 115200 baud, or 9600 baud for
+battery-powered systems. The default baud rate can be changed with an
+\eeprom\ setting (\ref{sec:eeprom-console-baud-rate}).
+
+\section{Commands}
+
+The serial port accepts the following commands.
+
+\helpbox{%
+  Numerical values are interpreted as hexadecimal when preceded by
+  \code{0x} or \code{0X}, and interpreted as octal when preceded by
+  \code{0}. Number which do no start with \code{0x}, \code{0X} or
+  \code{0} are interpreted as decimal.
+}
+
+\subsection[eepromRead]{\code{eepromRead=ADDRESS,NUMBER}}
+
+Print the value of NUMBER bytes of \eeprom\ memory, starting at
+address ADDRESS.
+
+\subsection[eepromRead]{\code{eepromWrite=ADDRESS,VALUES}}
+
+Set the value of \eeprom\ memory, starting at address ADDRESS. If the
+VALUES string is prefixed with \code{'} then the remaining values are
+interpreted as a literal string. Otherwise the VALUES string is
+interpreted as a comma-separated list of integer values, each of which
+must be in the range 0 to 255 inclusive. Values can be independently
+prefixed as described above and will then be interpreted as octal,
+decimal, or hexadecimal as appropriate. After writing to \eeprom\
+memory the values are read back and printed.
+
+\warningbox{%
+  This command is analogous to the early BASIC command \code{POKE},
+  but more dangerous since its effects last beyond a reboot. Use with
+  extreme caution! The Raspberry Pi \code{send_cmd.py} command
+  performs the same role but with a safer interface and should be
+  preferred over \code{eepromWrite}.
+}
+
+
+\subsection[verbosity]{\code{verbosity}\newline\code{verbosity=NUMBER}}
+
+The bare \code{verbosity} command can be used to print the current
+verbosity level. The assignment form is used to set the verbosity
+level to NUMBER. Valid values are:
+\begin{enumerate}
+\item[0] Minimal console output. Sensor data values are not
+  printed. \dhcp\ messages about renewal, rebinding and failures are
+  always printed (where applicable).
+\item[1] Print basic sensor and house-keeping data values. This is the
+  default setting.
+\item[>1] Print the local clock and server clock times.
+\item[10] Print the server acknowledgement packet.
+\item[11] Print the raw data values used to obtain the aggregate
+  data value.
+\item[12] Print \nmea\ sentences from the \gnss\ receiver. The
+  firmware must be compiled withe the \code{FEATURE_GNSS} feature
+  enabled.
+\end{enumerate}
+
+\subsection[reboot]{\code{reboot=TRUE}}
+
+Reboot the microcontroller after first printing the message
+\code{Reboot command received from console}. The command must be given
+exactly as shown, with \code{TRUE} in upper-case.
+
+\subsection[samplingInterval_16th_s]{\code{samplingInterval_16th_s}\newline%
+  \code{samplingInterval_16th_s=NUMBER}}
+
+Print or set the data sampling interval in units of
+$\frac{1}{16}$\SI{}{\second}. The data sampling change will occur
+immediately on the next sampling period and unlike the comparable
+\eeprom\ setting (\ref{sec:eeprom-sampling-interval}) does not require
+a microcontroller reboot. Not applicable to riometer systems.
+
+\helpbox{%
+  This setting does not persist after a reboot. Use the \eeprom\
+  setting (\ref{sec:eeprom-sampling-interval}) to make the sampling
+  interval change permanent.  }
+
+\subsection[useSd]{\code{useSd}\newline%
+  \code{useSd=NUMBER}}
+
+Query or enable\slash disable saving data to the \sd\ card. When
+NUMBER is \code{0} saving data to the \sd\ card is disabled, and any other
+value enables. The firmware must be compiled with the
+\code{FEATURE_SD_CARD} feature enabled.

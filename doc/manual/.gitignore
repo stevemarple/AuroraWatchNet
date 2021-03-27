@@ -35,6 +35,7 @@
 *.vrb
 *.xdy
 *.tdo
+*.upb
 _region_.*
 makeabbrev
 gitlog.tex

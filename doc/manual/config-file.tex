@@ -9,8 +9,8 @@ typically located at \filename{/etc/awnet.ini}. The configuration file
 is broken into sections, each of which starts with a section header in
 square brackets (\code{[like_this]}). Other lines contain key names
 and values, written as \code{key = value}. Leading and trailing
-whitespace around both the key and value is ignored. Section headers
-and key names do not contain whitespace, words may be separated with an
+white space around both the key and value is ignored. Section headers
+and key names do not contain white space, words may be separated with an
 underscore. The configuration file can also contain comments, which
 are entered with a hash (\code{\#}) or semi-colon (\code{;}) as the
 first character.
@@ -69,7 +69,7 @@ Default: none.
 
 \section{\code{[awpacket]}}
 Options associated with the standard binary output format. This format is
-incovenient to read but preserves the received data messages from the sensor
+inconvenient to read but preserves the received data messages from the sensor
 unit, and the responses sent back from the recording daemon. It is possible to
 play back these files to the recording daemon and regenerate other data formats.
 
@@ -91,7 +91,7 @@ key. If you plan to make the binary data format available then for security
 reasons you should probably set a different signing key. You will then be able
 to share this key without compromising the communication channel to the sensor
 unit, and others will be able to use the error-checking capabilities provide by
-\hmac-\mdfive. The key is a 32 character hexadecial string, without any
+\hmac-\mdfive. The key is a 32 character hexadecimal string, without any
 \code{0x} prefix.
 
 Default: none.
@@ -130,7 +130,7 @@ Default: \code{serial}
 \subsection{\code{close_after_write}}
 Have the daemon close the data and log files after each write. It is
 recommended that this option only be used on an \nfs\ file system,
-when used on a file sytem store on flash memory (such as the Raspberry
+when used on a file system store on flash memory (such as the Raspberry
 Pi) this may cause excessive writes and early failure of the flash
 memory. This option may be required for real-time data collection
 daemons where the data files are also received by \code{rsync} or
@@ -287,7 +287,7 @@ Configuration details for the \filename{upload_data.py} program.
 Define the upload method in use. Valid options are: \code{rsync},
 \code{rrsync}, \code{http}, and \code{https}. \code{rsync} uses the
 \filename{rsync} program to efficiently transfer only the portions of
-data files which have changed since the last upoad; \code{rrsync} is
+data files which have changed since the last upload; \code{rrsync} is
 similar but the server restricts which directories may be written
 to. Both are tunnelled through \ssh\ and thus require the network to
 permit outward \tcp\ connections to port 22.
@@ -323,7 +323,7 @@ authentication is used.
 
 \subsection{\code{username}}
 The upload username for \http\ and \https\ methods. If not specified
-it defaults to the site abbreivation prefixed with \code{awn-}.
+it defaults to the site abbreviation prefixed with \code{awn-}.
 
 \subsection{\code{realm}}
 The \emph{realm} used for digest authentication when uploading data
@@ -347,7 +347,7 @@ Real-time transfer uses three keys, \code{remote_host},
 \code{remote_port} and \code{remote_key}. To send data to multiple
 hosts a suffix is applied to each of this keys to group the settings
 together, \eg, \code{remote_host2}, \code{remote_port2} and
-\code{remote_key2}. The suffix must not contain whitespace characters.
+\code{remote_key2}. The suffix must not contain white space characters.
 
 \subsection{\code{remote_host}}
 The hostname or \ip\ address to which data packets are sent.

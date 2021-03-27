@@ -1,4 +1,5 @@
 \chapter[EEPROM settings]{\eeprom\ settings}
+\label{chapter:eeeprom-settings}
 
 \newcommand{\optionexample}[1]{\examplebox{\code{#1}}}
 
@@ -11,26 +12,35 @@ described using the Python option name that is passed to the
 \filename{generate_eeprom_settings.py} program. Boolean values should
 be passed as a \code{0} (false) or \code{1} (true). Numerical values
 are interpreted as decimal unless preceded with \code{0x} in which
-case they are interpreted as hexadecimal.
+case they are interpreted as hexadecimal. Settings can be updated with
+the \code{send_cmd.py} program; you will need to prefix the names
+below with \code{--read-eeprom-} to read the setting, or
+\code{--eeprom-} to update the setting. Note that \code{send_cmd.py}
+can only update one setting at once, so be sure it has completed
+before sending the next command. If changing multiple network settings
+then be careful not to reboot the system and end up with a non-working
+configuration.
 
 \helpbox{%
   The firmware should indicate on startup what communication methods
-  and features are compiled in.}
-
-\warningbox{%
-  Misconfiguration of the \eeprom\ settings can prevent the remote
-  sensor unit operating correctly, possibly even preventing it from
-  communicating with the base unit. If communication cannot be
-  restablished correct settings must be uploaded manually. See the
-  section on recovering bad \eeprom\ settings,
-  \secname~\ref{sec:bad-eeprom-settings}.
+  and features are compiled in.
 
 \item The \eeprom\ settings are common to all systems derived from the
   original AuroraWatchNet magnetometer design. This includes the
   prototype cloud detector and the riometer. Hardware support for
   features listed below may not exist for a given hardware design,
   and\slash or the software support may not be compiled into the
-  relevant firmware.}
+  relevant firmware.
+}
+
+\warningbox{%
+  Misconfiguration of the \eeprom\ settings can prevent the remote
+  sensor unit operating correctly, possibly even preventing it from
+  communicating with the base unit. If communication cannot be
+  reestablished correct settings must be uploaded manually. See the
+  section on recovering bad \eeprom\ settings,
+  \secname~\ref{sec:bad-eeprom-settings}.
+}
 
 \helpbox{Typically the manual you are reading has been tailored for a
   specific instrument type. As there is a great deal of flexibility of
@@ -92,9 +102,12 @@ reprogrammed. Valid values are:
   firmware.}
 
 \subsection[console-baud-rate]{\code{console-baud-rate BAUDRATE}}
-The baud rate to be used for debug serial console from the ATmega1284P. 
+\label{sec:eeprom-console-baud-rate}
 
-\warningbox{Higher rates mean that the micontrocontroller wasts less
+The baud rate to be used for debug serial console from the
+ATmega1284P.
+
+\warningbox{Higher rates mean that the microcontroller wastes less
   time waiting for serial output to be sent from its single character
   buffer, but requires lower-latency to correctly read incoming
   data. Change with caution and confirm correct operation.}
@@ -144,7 +157,7 @@ After startup following some kind of human interaction\footnote{This
   applied. Watchdog resets and brownout resets are excluded.} the
 sensor unit will light its activity \led, and turn it off when the
 message acknowledgement has been received, for NUMBER
-operartions. This is to show the entire system is functioning. A value
+operations. This is to show the entire system is functioning. A value
 of \code{0} indicates that the \led\ should always
 operate. \helpbox{On battery-powered sensor units NUMBER should be a
   small non-zero value to limit unnecessary power usage.}
@@ -187,7 +200,7 @@ to disable and use automatic selection.
 
 \subsection[rtcx-device-type]{\code{rtcx-device-type NUMBER}}
 Override the automatic real time clock device identification. This may
-be required for non-standard \itwoc\ addresses or devices. Valud
+be required for non-standard \itwoc\ addresses or devices. Valid
 values are:
 \begin{enumerate}
 \item[0] Dallas Semiconductor DS1307 or compatible devices (such as
@@ -203,9 +216,9 @@ values are:
 \label{sec:eeprom-sampling-interval}
 
 The initial sampling interval, defined in units of
-$\frac{1}{16}$\SI{}{s}. The \filename{send_cmd.py} command, when used with
-its \code{--sampling-interval} option, can be used to modify sampling
-interval without requiring a reboot.
+$\frac{1}{16}$\SI{}{\second}. The \filename{send_cmd.py} command, when
+used with its \code{--sampling-interval} option, can be used to modify
+sampling interval without requiring a reboot.
 
 \subsection[site-id]{\code{site-id NUMBER}}
 Set the unique site identifier number, in the range 0 to 65535 inclusive.
@@ -219,7 +232,7 @@ NUMBER to obtain the true input voltage.
 
 \section{XRF communication settings}
 
-The settings described in this section are common to all systyems
+The settings described in this section are common to all systems
 which use (or can use) a Ciseco XRF radio module. The firmware must be
 compiled with \code{COMMS_XRF} communications support enabled.
 
@@ -243,7 +256,7 @@ Select the XRF radio channel.
 
 \section{RFM12B communication settings}
 
-The settings described in this section are common to all systyems
+The settings described in this section are common to all systems
 which use (or can use) a Hope RFM12B module. The firmware must be
 compiled with \code{COMMS_RFM12B} communication support enabled.
 
@@ -258,7 +271,7 @@ Select the channel number to use for radio communications.
 
 \section{Ethernet communication settings}
 
-The settings described in this section are common to all systyems
+The settings described in this section are common to all systems
 which use (or can use) Ethernet for communication to the base unit.
 The firmware must be compiled with \code{W5100} or \code{W5500}
 communications support enabled.
@@ -272,7 +285,7 @@ Set the \dns\ server \ip\ addresses used for name resolution, up to
 three different servers may be specified. When \dhcp\ configuration is
 in operation any \dns\ servers given take priority. If only two
 servers are given by \dhcp\ and a third server is specified in the
-\eeprom\ settings it will also be used. It is permissable to include
+\eeprom\ settings it will also be used. It is permissible to include
 repeated server addresses. To disable a particular \dns\ setting set
 to \code{255, 255, 255, 255}.
 
@@ -296,7 +309,7 @@ Assign the \macAddress\ that the sensor unit should use on the
 network, give as a comma-separated list of 6 integers (you may need to use the
 \code{0x} prefix on each value to indicate hexadecimal).
 \warningbox{\macAddress es must be unique on a network. You
-  may use one assigned by the original equipment manufactuer for the
+  may use one assigned by the original equipment manufacturer for the
   Ethernet shield or a locally-assigned value. If using a
   locally-assigned \macAddress\ check with your network manager that
   the assignment is unique.}
@@ -331,9 +344,10 @@ communication options.
 
 \subsection[remote-ip-port]{\code{remote-ip-port NUMBER}}
 
-Set the remote \ip\ port number to which the sensor unit should send its \udp\
-data packets. Replies are exp[ected to originate from the same port number.
-Requires \code {W5100} or \code{W5500} communication options.
+Set the remote \ip\ port number to which the sensor unit should send
+its \udp\ data packets. Replies are expected to originate from the
+same port number.  Requires \code {W5100} or \code{W5500}
+communication options.
 
 
 %%% MCP342x settings %%%
@@ -419,7 +433,7 @@ sensor(s). For data sampling settings see
 Set the delay, in units of \SI{50}{\milli\second}, from powering on
 the FLC100 magnetometer sensor to when it is ready for samples to be
 taken. Set to \code{0} to disable power control and leave powered
-permenently.
+permanently.
 
 \subsection[flc100-present]{\code{flc100-present BOOLEAN}}
 Indicate if FLC100 magnetometer sensor(s) are present.
@@ -472,7 +486,7 @@ Define the MCP324x \adc\ gain values that are to be used for each
 comma-separated list of the values 1, 2, 4, or 8.
 
 \subsection[rio-housekeeping-n-adc-mask]{\code{rio-housekeeping-$n$-adc-mask ADC_MASK}}
-A bitmask defining which \adc s are to be used during house-keeping
+A bit mask defining which \adc s are to be used during house-keeping
 slot $n$. Bit 0 (\lsb) is the first \adc, bit 7 the last possible
 \adc.
 
@@ -504,12 +518,12 @@ should be given as a comma-separated list of the values 1, 2, 3, or 4.
 \subsection[rio-riometer-adc-gain-list]{\code{rio-riometer-adc-gain-list GAIN_LIST}}
 
 Define the MCP324x \adc\ gain values that are to be used for each
-\adc\ during the main roimeter data acquisition. Gains should be given
+\adc\ during the main riometer data acquisition. Gains should be given
 as a comma-separated list of the values 1, 2, 4, or 8.
 
 \subsection[rio-riometer-num-samples]{\code{rio-riometer-num-samples NUMBER}}
 
-Define the number of samples to be taken during the main roimeter data
+Define the number of samples to be taken during the main riometer data
 acquisition. NUMBER should be at least 1 and a maximum of 16.
 
 \subsection[rio-riometer-aggregate]{\code{rio-riometer-aggregate NUMBER}}
@@ -521,7 +535,7 @@ should be reduced to a single value. See the description in
 \subsection[rio-riometer-adc-resolution]{\code{rio-riometer-adc-resolution RESOLUTION}}
 
 Define the MCP324x \adc\ resolution value that is to be used for all
-active \adc s during the main roimeter data acquisition. The
+active \adc s during the main riometer data acquisition. The
 resolution should be given as a single number from the values 12, 14,
 16, or 18.
 
@@ -531,7 +545,7 @@ resolution should be given as a single number from the values 12, 14,
 
 \subsection[rio-riometer-adc-mask]{\code{rio-riometer-adc-mask ADC_MASK}}
 
-A bitmask defining which \adc s are to be used during the main
+A bit mask defining which \adc s are to be used during the main
 riometer data acquisition. Bit 0 (\lsb) is the first \adc, bit 7 the
 last possible \adc.
 
@@ -548,7 +562,7 @@ least 1, and no more than 8.
 \subsection[rio-scan-pins]{\code{rio-scan-pins PINS}}
 \label{sec:eeprom-rio-scan-pins}
 
-Define the Arduino pins used for the riometer scan control. The pin nunbers
+Define the Arduino pins used for the riometer scan control. The pin numbers
 should be given as a comma-separated list of integers.
 
 \subsection[rio-presample-delay-ms]{\code{rio-presample-delay-ms DELAY_MS}}
@@ -637,7 +651,7 @@ disable this option.
 \section[(Micro)SD card settings]{(Micro)\sd\ card settings}
 
 An experimental feature exists to save data to a \sd\ card instead of
-sending to the base unit. This was intended for use in magnetomter
+sending to the base unit. This was intended for use in magnetometer
 site surveys and is not optimized for production usage or low-power
 operation. Requires \code{FEATURE_SD_CARD} feature to be enabled.
 

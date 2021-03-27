@@ -1,0 +1,100 @@
+\chapter{Overview of the hardware}
+
+\section{Introduction}
+
+The riometer data logger is an extension of the AuroraWatchNet project, an
+open-source magnetometer designed for generating real-time alerts when aurora
+might be visible by lower-latitude observers. The magnetometer was originally
+designed with a battery-powered remote sensor unit that was located outdoors and
+away from human disturbance. It connected via a radio link to a base unit indoors
+that contained a Raspberry Pi single board computer. Later a Power over Ethernet
+(PoE) remote sensor unit was designed. The hardware and software have had
+extensive testing and operation since the project's inception in 2012. 
+
+In the riometer data logger all of the electronics are located indoors. For
+convenience the sensor unit and Raspberry Pi are contained in the same
+enclosure. For single-beam riometer systems the riometer is also contained in
+the same enclosure. For imaging riometer systems the riometers and Butler matrix
+units are contained in their own enclosures.
+
+\section{Hardware description}
+
+The riometer data logger makes uses of the existing Power over Ethernet sensor
+unit. All of the data acquisition, timing, temporary storage, collection of
+house-keeping data and transmission over Ethernet is performed by an Atmel
+ATmega1284P microcontroller running at \MHz{20}. 
+
+Analogue signals are converted to digital values by a Microchip MCP3424
+analogue to digital converter and stored in a buffer for transmission over
+Ethernet to a Python data logger daemon running on a Raspberry Pi. The
+microcontroller is responsible for the real-time data acquisition
+
+All of the riometer electronics are positioned indoors, so the remote sensor
+unit and the Raspberry Pi single board computer are contained in the same
+enclosure. The sensor unit is
+
+The riometer data logger unit contains an Atmel ATmega1284P microcontroller
+board, an analogue-to-digital converter board and the Raspberry Pi single-board
+computer in the same enclosure.
+
+\section{Clock sources}
+
+The sensor unit has a number of clock sources available and will use
+the best source available to timestamp the data. The clock
+sources are:
+\begin{itemize}
+\item The onboard real time clock \ic. The clock runs from a
+  \Hz{32768} watch crystal with a typical accuracy of
+  \SI{20}{ppm}. The time can only be read back with a precision of one
+  second.
+\item The \gnss\ combined clock source. When multiple satellite
+  constellations are in use the \gnss\ module derives its time and
+  location fix from all of the suitable satellites in view. Clock
+  accuracy is excellent, the pulse-per-second output has an accuracy
+  of \SI{\pm15}{\nano\second} (requires the correct antenna delay
+  compensation for this accuracy to be achieved). Requires the
+  firmware to be compiled with \code{FEATURE_GNSS} enabled.
+\item The server clock, obtained from the acknowledgement message. The
+  server clock time is sent only when the Raspberry Pi \ntp\ service
+  has a valid time.
+\end{itemize}
+
+To manage these different clock sources the microcontroller contains a
+software real time clock. On start up the clock is initialized from
+the onboard real time clock \ic, with the limitation that the
+precision is limited to one second. However the software clock uses
+the \Hz{32768} square wave output to achieve higher internal
+resolution.
+
+When the server clock time is available it is compared to the internal
+software clock, and if necessary the software clock is adjusted. Time
+adjustments are limited to when the difference is deemed too large, to
+avoid adding unnecessary clock jitter to the acquired data samples.
+
+When the \gnss\ module has a valid position and time fix its next
+pulse-per-second output is used to set the internal software
+clock. Data acquisition commences immediately on receipt of a valid
+pulse-per-second edge, or if one is not available at the next
+prescribed sampling time using the internal software clock. Thus when
+the \gnss\ module has a valid fix data timestamps are placed at the
+second boundary, otherwise they will occur (to best effort) at $n$
+second intervals where $n$ is the sampling interval in seconds but not
+necessarily on a second boundary.
+
+The hardware real time clock \ic\ is set periodically to ensure
+accurate time-keeping from a cold-start when the Raspberry Pi does not
+have a valid time from \ntp\ and before the \gnss\ module has been
+able to acquire a position and time fix.
+
+\helpbox{%
+  The server time clock is never used for time-keeping whilst the
+  \gnss\ module has a valid position and time fix.
+\item The \gnss\ position, time and satellites in view information are
+  reported with the next data sample. Thus when monitoring the serial
+  console or \gnss\ data files it may appear that this information is
+  sent late. The microcontroller firmware uses the current \gnss\ time
+  to compute the time for the next pulse-per-per second signal to
+  ensure the correct data stamps are applied to the data. This can be
+  confirmed by monitoring a \gnss\ clock or the time at
+  \url{https://time.is/} and comparing with the incoming data
+  timestamps.}

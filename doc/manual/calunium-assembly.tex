@@ -24,8 +24,8 @@ omitted to lower power consumption (\eg, power LED, USB controller).
 
 Fit components in order:
 \begin{buildorder}
-\item IC2. The standard real-time clock is the MicroChip MCP90410 but
-  MicroChip MCP79411 or MCP79412 can be used without any other
+\item IC2. The standard real-time clock is the Microchip MCP90410 but
+  Microchip MCP79411 or MCP79412 can be used without any other
   changes.
   It is also possible to fit the Maxim DS1338-33 real-time clock,
   but see below for changes.
@@ -129,14 +129,14 @@ information.
 Power up the Calunium board and connect the programmer. Ensure the
 cable is correctly orientated at both ends. Change into the directory
 which holds the Calunium xboot firmware images. Be sure to identify
-the correct version based on the microconctroller and crystal
+the correct version based on the microcontroller and crystal
 fitted. The normal build should use
 \filename{calunium_ATmega1284P_12MHz.hex}.
 
 \begin{Cmd}
-  cd /home/pi/AuroraWatchNet/hardware/Calunium/software/arduino-1.6/calunium/avr/bootloaders/xboot
-  avrdude -c dragon_jtag -p atmega1284p -U lfuse:w:0xff:m -U hfuse:w:0x92:m -U efuse:w:0xfd:m
-  avrdude -c dragon_jtag -p atmega1284p -U flash:w:calunium_ATmega1284P_12MHz.hex
+cd /home/pi/AuroraWatchNet/hardware/Calunium/software/arduino-1.6/calunium/avr/bootloaders/xboot
+avrdude -c dragon_jtag -p atmega1284p -U lfuse:w:0xff:m -U hfuse:w:0x92:m -U efuse:w:0xfd:m
+avrdude -c dragon_jtag -p atmega1284p -U flash:w:calunium_ATmega1284P_12MHz.hex
 \end{Cmd}
 
 If the bootloader is correctly programmed the green \led\ connected to
@@ -153,9 +153,9 @@ Power up the Calunium board and connect the programmer. Ensure the
 cable is correctly orientated at both ends. The bootloader can be
 compiled and programmed simply, as user \piUser: \todo[Check directory]
 \begin{Cmd}
-  cd /home/pi/xboot
-  make clean
-  make SHELL=bash calunium_8MHz_RC_ISP.conf.mk program
+cd /home/pi/xboot
+make clean
+make SHELL=bash calunium_8MHz_RC_ISP.conf.mk program
 \end{Cmd}
 \todo: ignore lock bit verification errors.
 
@@ -167,20 +167,20 @@ Ensure that the shunt marked ``AUTO RST'' is fitted, and that the
 shunt marked ``FTDI PWR'' is omitted. Connect the FTDI cable and
 identify the USB device file; as user \piUser:
 \begin{Cmd}
-  dmesg | tail
+dmesg | tail
 \end{Cmd}
 
 Look for a line containing text similar to
 \begin{Cmd}
-  FTDI USB Serial Device converter now attached to ttyUSB0
+FTDI USB Serial Device converter now attached to ttyUSB0
 \end{Cmd}
 For the case above the device file \filename{/dev/ttyUSB0}. Now
 program the microcontroller using the xboot bootloader. Replace
 \filename{/dev/ttyUSB0} with the device file one your system. As user
 \piUser:
 \begin{Cmd}
-  cd /home/pi/AuroraWatchNet/firmware/magnetometer
-  avrdude -p atmega1284p -b 38400 -c avr109 -P /dev/ttyUSB0 \textbackslash
+cd /home/pi/AuroraWatchNet/firmware/magnetometer
+avrdude -p atmega1284p -b 38400 -c avr109 -P /dev/ttyUSB0 \textbackslash
       -U flash:w:xrf_rf12-0.10a.bin:r
 \end{Cmd}
 
