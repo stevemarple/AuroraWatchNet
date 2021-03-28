@@ -61,3 +61,6 @@
 [submodule "software/magnetometer/sketches/libraries/CommandHandler"]
 	path = software/magnetometer/sketches/libraries/CommandHandler
 	url = https://github.com/stevemarple/arduino-CommandHandler.git
+[submodule "hardware/PoE_magnetometer"]
+	path = hardware/PoE_magnetometer
+	url = https://github.com/stevemarple/PoE_magnetometer.git
