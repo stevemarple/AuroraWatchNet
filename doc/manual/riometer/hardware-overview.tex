@@ -2,46 +2,73 @@
 
 \section{Introduction}
 
-The riometer data logger is an extension of the AuroraWatchNet project, an
-open-source magnetometer designed for generating real-time alerts when aurora
-might be visible by lower-latitude observers. The magnetometer was originally
-designed with a battery-powered remote sensor unit that was located outdoors and
-away from human disturbance. It connected via a radio link to a base unit indoors
-that contained a Raspberry Pi single board computer. Later a Power over Ethernet
-(PoE) remote sensor unit was designed. The hardware and software have had
-extensive testing and operation since the project's inception in 2012. 
+The riometer data logger is an extension of the AuroraWatchNet
+project, an open-source magnetometer designed for generating real-time
+alerts when aurora might be visible by lower-latitude observers. The
+magnetometer was originally designed with a battery-powered remote
+sensor unit that was located outdoors and away from human
+disturbance. It connected via a radio link to a base unit indoors that
+contained a Raspberry Pi single board computer. Later a power over
+Ethernet (\PoE) remote sensor unit was designed. The hardware and
+software have had extensive testing and operation since the project's
+inception in 2012.
 
-In the riometer data logger all of the electronics are located indoors. For
-convenience the sensor unit and Raspberry Pi are contained in the same
-enclosure. For single-beam riometer systems the riometer is also contained in
-the same enclosure. For imaging riometer systems the riometers and Butler matrix
-units are contained in their own enclosures.
+In the riometer data logger all of the electronics are located
+indoors. For convenience the sensor unit and Raspberry Pi are
+contained in the same enclosure. For single-beam riometer systems the
+riometer is also contained in the same enclosure. For imaging riometer
+systems the riometers and Butler matrix units are contained in their
+own enclosures.
 
 \section{Hardware description}
 
-The riometer data logger makes uses of the existing Power over Ethernet sensor
-unit. All of the data acquisition, timing, temporary storage, collection of
-house-keeping data and transmission over Ethernet is performed by an Atmel
-ATmega1284P microcontroller running at \MHz{20}. 
+The sensor unit of the riometer data logger makes uses of the existing
+Power over Ethernet microcontroller board. It is itself a derivation
+of the Calunium project by the author to create an Atmel ATmega1284P
+Arduino clone. The benefit of the ATmega1284P is the larger memory
+available compared to most Arduino boards, yet still retains the
+convenience of a through-hole package for easy home assembly and
+tool-less replacement during servicing.
 
-Analogue signals are converted to digital values by a Microchip MCP3424
-analogue to digital converter and stored in a buffer for transmission over
-Ethernet to a Python data logger daemon running on a Raspberry Pi. The
-microcontroller is responsible for the real-time data acquisition
+All of the data acquisition, timing, temporary storage, collection of
+house-keeping data and transmission over Ethernet is performed by an
+Atmel ATmega1284P microcontroller running at \MHz{20}. The firmware
+was developed using the Arduino development environment. This was
+chosen at the beginning of the AuroraWatchNet project to foster an
+open environment conducive to collaboration. Many of the software
+modules used to support the data logger were written specifically for
+the project and have been released as independent open source
+software. Most of the software modules implement their own state
+machines to allow efficient and cooperative real time
+operation. Remote over the air firmware updates are made possible by
+the xboot bootloader; updates via the \usb\ interface are also
+supported.
 
-All of the riometer electronics are positioned indoors, so the remote sensor
-unit and the Raspberry Pi single board computer are contained in the same
-enclosure. The sensor unit is
+Analogue signals are converted to digital values by one or more
+Microchip MCP3424 analogue to digital converters (one for wide beam
+riometer systems, for imaging riometers each image column has its own
+\adc). In the case of multiple \adc s they are simultaneously
+commanded to being sampling. The microcontroller is responsible for
+initiating data sampling, using its internal software real time clock
+or a \gnss\ pulse-per-second signal. If over-sampling has been
+selected the samples are reduced to a single value for each beam. The
+resulting samples for each beam are stored in a buffer for subsequent
+transmission over Ethernet to a Python data logger daemon running on a
+Raspberry Pi.
 
-The riometer data logger unit contains an Atmel ATmega1284P microcontroller
-board, an analogue-to-digital converter board and the Raspberry Pi single-board
-computer in the same enclosure.
+The Ethernet interface uses a standard Arduino Ethernet shield. Either
+the older Wiznet W5100 model or the newer Wiznet W5500 model can be
+used but the correct firmware version must be programmed into the
+microcontroller.
+
 
 \section{Clock sources}
 
 The sensor unit has a number of clock sources available and will use
-the best source available to timestamp the data. The clock
-sources are:
+the best source available to timestamp the data. The timestamp
+corresponds to the beginning of the data sampling period (not
+necessarily the exact moment data sampling began as there may be a
+pre-sample delay configured). The clock sources are:
 \begin{itemize}
 \item The onboard real time clock \ic. The clock runs from a
   \Hz{32768} watch crystal with a typical accuracy of
@@ -59,12 +86,12 @@ sources are:
   has a valid time.
 \end{itemize}
 
-To manage these different clock sources the microcontroller contains a
-software real time clock. On start up the clock is initialized from
-the onboard real time clock \ic, with the limitation that the
-precision is limited to one second. However the software clock uses
-the \Hz{32768} square wave output to achieve higher internal
-resolution.
+To manage these different clock sources the microcontroller implements
+a software real time clock module. On start up the clock is
+initialized from the onboard real time clock \ic, with the limitation
+that the precision is limited to one second. However the software
+clock uses the \Hz{32768} square wave output to achieve higher
+internal resolution.
 
 When the server clock time is available it is compared to the internal
 software clock, and if necessary the software clock is adjusted. Time
