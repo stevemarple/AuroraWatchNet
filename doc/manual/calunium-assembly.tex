@@ -134,9 +134,12 @@ fitted. The normal build should use
 \filename{calunium_ATmega1284P_12MHz.hex}.
 
 \begin{Cmd}
-cd /home/pi/AuroraWatchNet/hardware/Calunium/software/arduino-1.6/calunium/avr/bootloaders/xboot
-avrdude -c dragon_jtag -p atmega1284p -U lfuse:w:0xff:m -U hfuse:w:0x92:m -U efuse:w:0xfd:m
-avrdude -c dragon_jtag -p atmega1284p -U flash:w:calunium_ATmega1284P_12MHz.hex
+cd /home/pi/AuroraWatchNet/hardware/Calunium/software/arduino-1.6/\textbackslash 
+    calunium/avr/bootloaders/xboot
+avrdude -c dragon_jtag -P usb -p atmega1284p -U lfuse:w:0xff:m\textbackslash
+    -U hfuse:w:0x92:m -U efuse:w:0xfd:m
+avrdude -c dragon_jtag -P usb -p atmega1284p \textbackslash
+    -U flash:w:calunium_ATmega1284P_12MHz.hex
 \end{Cmd}
 
 If the bootloader is correctly programmed the green \led\ connected to
