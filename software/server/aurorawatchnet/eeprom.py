@@ -26,6 +26,10 @@ def safe_eval_mull_100(s):
     return 100 * awn.safe_eval(s)
 
 
+def convert_bytearray(b):
+    return b
+
+
 def convert_ip_address(s):
     return s.replace('.', ',')
 
@@ -140,7 +144,7 @@ eeprom = {
         'address': 0x3B,
         'format': 'B',
         'default': 1,
-        'choices': range(1,7),
+        'choices': list(range(1,7)),
         'help': 'XRF radio band (not implemented)',
         },
     'radio_xrf_channel': {
@@ -380,7 +384,7 @@ eeprom = {
     'remote_hostname': {
         'address': 0x80,
         'format': '64s',
-        'type': bytearray,
+        'type': convert_bytearray,
         'help': 'Remote hostname',
         'metavar': 'HOSTNAME'
         },
@@ -928,7 +932,7 @@ eeprom = {
         'format': 'B',
         'type': int,
         'default': 8,
-        'choices': range(1,8),
+        'choices': list(range(1,8)),
         'help': 'Number of riometer rows',
     },
     'rio_num_columns': {
@@ -936,7 +940,7 @@ eeprom = {
         'format': 'B',
         'type': int,
         'default': 8,
-        'choices': range(1, 8),
+        'choices': list(range(1, 8)),
         'help': 'Number of riometer columns',
     },
     'rio_scan_pins': {
@@ -973,7 +977,7 @@ eeprom = {
         'address': 0x32a,
         'format': '8B',
         'type': awn.safe_eval,
-        'default': range(8),
+        'default': list(range(8)),
         'help': 'Map internal riometer scan number (0-7) to 3 bit output value',
     },
 

@@ -2,6 +2,7 @@
 
 # import datetime
 from datetime import datetime
+import hashlib
 import hmac
 import math
 import six
@@ -732,7 +733,7 @@ def put_signature(buf, hmac_key, retries, sequence_id):
     buf[i] = retries
     i += 1
     # Now add HMAC-MD5
-    hmac_md5 = hmac.new(hmac_key)  # , digestmod=hashlib.md5)
+    hmac_md5 = hmac.new(hmac_key, digestmod=hashlib.md5)
     hmac_md5.update(str(buf[0:(signed_len - hmac_length)]))
     
     # Take least significant bytes
@@ -1002,8 +1003,8 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
 
             if not ignore_digest:
                 # Compute HMAC-MD5
-                hmac_md5 = hmac.new(hmac_key)  # , digestmod=hashlib.md5)
-                hmac_md5.update(str(buf[0:(packet_length - hmac_length)]))
+                hmac_md5 = hmac.new(hmac_key, digestmod=hashlib.md5)
+                hmac_md5.update(buf[0:(packet_length - hmac_length)])
 
                 # Take least significant bytes
                 hmac_bytes = hmac_md5.digest()
@@ -1015,7 +1016,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                 received_hmac_bytes = buf[(packet_length - hmac_length):]
 
                 for i in range(hmac_length):
-                    valid = (ord(hmac_bytes[i]) == received_hmac_bytes[i]) and valid
+                    valid = (hmac_bytes[i] == received_hmac_bytes[i]) and valid
                 if not valid:
                     print('#########################')
                     print('Packet failed HMAC-MD5, computed as ' +

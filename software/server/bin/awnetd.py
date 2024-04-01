@@ -553,7 +553,7 @@ def write_to_log_file(t, s):
         # Open as binary, flush ourselves when finished here.
         aw_log_file = get_file_for_time(t, aw_log_file,
                                         config.get('logfile', 'filename'))
-        aw_log_file.write(s)
+        aw_log_file.write(s.encode('ascii'))
         aw_log_file.flush()
         global close_after_write
         if close_after_write:
@@ -1173,14 +1173,14 @@ if not config.has_option('magnetometer', 'key'):
     print('Config file missing key from magnetometer section')
     exit(1)
 
-hmac_key = config.get('magnetometer', 'key').decode('hex')
+hmac_key = binascii.unhexlify(config.get('magnetometer', 'key'))
 if len(hmac_key) != 16:
     print('key must be 32 characters long')
     exit(1)
 
 saved_hmac_key = None
 if config.has_option('awpacket', 'key'):
-    saved_hmac_key = config.get('awpacket', 'key').decode('hex')
+    saved_hmac_key = binascii.unhexlify(config.get('awpacket', 'key'))
     if len(saved_hmac_key) != 16:
         print('key must be 32 characters long')
         exit(1)
@@ -1243,8 +1243,7 @@ while running:
             #            else:
             #                print(hex(ord(s)))
 
-            message = awn.message.validate_packet(buf, hmac_key,
-                                                  args.ignore_digest)
+            message = awn.message.validate_packet(buf, hmac_key, args.ignore_digest)
             response = None
 
             if message is not None:
