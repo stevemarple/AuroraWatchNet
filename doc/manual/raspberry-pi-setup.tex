@@ -98,6 +98,12 @@ then \code{Change Timezone}. For geographic area select %
 
   Enable the Arm \itwoc\ interface.
 }{}
+\ifdef{\riometerManual}{%
+  If you plan to log into the Raspberry Pi remotely you should enable
+  the \ssh\ server. If you will only log in via keyboard and monitor
+  connected directly to the Pi then you can choose to disable the
+  \ssh\ server.
+}{}
 
 \subsubsection{Memory split}
 Select \code{Advanced Options} and then \code{Memory
@@ -243,6 +249,9 @@ As user \piUser
 \ifdef{\bgsMagManual}{%
   \IncludeShellFileVerb{raspi-mag/git-clone-cmds.sh}%
 }{}
+\ifdef{\riometerManual}{%
+  \IncludeShellFileVerb{riometer/git-clone-cmds.sh}%
+}{}
 
 
 \subsection{Create data directory}
@@ -262,6 +271,9 @@ chown pi.pi /data
 }{}
 \ifdef{\bgsMagManual}{%
   \input{bgs-mag/raspberry-pi-setup-awnet-ini.tex}%
+}{}
+\ifdef{\riometerManual}{%
+  \input{riometer/raspberry-pi-setup-awnet-ini.tex}%
 }{}
 
 In the editor find the \code{[DEFAULT]} section, edit the \code{site}
@@ -286,6 +298,9 @@ Create the inital crontab file, as user \piUser
   % Same as the AWN Raspberry Pi version
   \IncludeShellFileVerb{raspi-mag/crontab.sh}%
 }{}
+\ifdef{\riometerManual}{%
+  \IncludeShellFileVerb{calunium-mag/crontab.sh}%
+}{}%
 
 If you plan to use the FTDI-all-in-one programmer and switch to
 indicate periods of bad data then uncomment the line with the
