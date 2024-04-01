@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import logging
@@ -65,11 +65,10 @@ if args.original_image:
     if len(eeprom_data) < eeprom_size:
         # Extend, might be an image file generated from an earlier
         # version of the EEPROM settings.
-        eeprom_data.extend(bytearray('\xFF') * 
-                           (len(eeprom_size) - len(eeprom_data)))
+        eeprom_data.extend(bytearray(b'\xFF' * (len(eeprom_size) - len(eeprom_data))))
 else:
     # Create a blank EEPROM image of the correct size
-    eeprom_data = bytearray('\xFF') * eeprom_size
+    eeprom_data = bytearray(b'\xFF' * eeprom_size)
 
 # Calculate key length from the pattern, not the size reserved for it
 hmac_key_length = awn.eeprom.parse_unpack_format(eeprom['hmac_key']['format'])[1]
@@ -127,11 +126,21 @@ for k in eeprom:
                 # Multiple values required
                 logger.debug('Format: %s' % eeprom[k]['format'])
                 logger.debug('Data: %s' % repr(data))
-                struct.pack_into(eeprom[k]['format'], eeprom_data,
-                                 eeprom[k]['address'], *data)
+                if isinstance(data, str):
+                    struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                     eeprom[k]['address'], *map(lambda x: bytes(x, 'ascii'), data))
+                else:
+                    struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                     eeprom[k]['address'], *data)
             else:
-                struct.pack_into(eeprom[k]['format'], eeprom_data,
-                                 eeprom[k]['address'], data)
+                logger.debug('Format: %s' % eeprom[k]['format'])
+                logger.debug('Data: %s' % repr(data))
+                if isinstance(data, str):
+                    struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                     eeprom[k]['address'], bytes(data, 'ascii'))
+                else:
+                    struct.pack_into(eeprom[k]['format'], eeprom_data,
+                                     eeprom[k]['address'], data)
         except Exception as e:
             logger.exception('Could not pack %s: %s' % (k, str(e)))
             raise
