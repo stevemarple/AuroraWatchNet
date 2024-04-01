@@ -82,15 +82,13 @@ def main():
 
     for n in range(args.tries):
         try:
-            cmd = ['ntpq', '-np']
+            cmd = ['ntpstat']
             logger.debug(' '.join(cmd))
 
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode('ascii').rstrip()
+            exit_code, output = subprocess.getstatusoutput(*cmd)
             logger.info(output)
-
-            for line in output.splitlines():
-                if line.startswith('*'):
-                    sync = True
+            if exit_code == 0:
+                sync = True
 
         except Exception as e:
             logger.error(str(e))
