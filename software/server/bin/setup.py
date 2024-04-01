@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import logging
@@ -31,38 +31,37 @@ def query_sudo_cmd(cmd):
                     subprocess.check_call(cmd)
                     return True
                 elif response.lower() == 'n':
-                    return False;
-            except Exception as e:
+                    return False
+            except Exception:
                 pass
 
+
 def fix_symlinks(path, links):
-    '''
+    """
     path: the name of a directory
     links: dict of links names and targets
-    '''
+    """
     logger.info('Checking symlinks in ' + path)
-    for link_name,target in links.items():
-        symlink = os.path.join(path, link_name)
+    for link_name, t in links.items():
+        slink = os.path.join(path, link_name)
         # Check that target exists as expected
-        if os.path.exists(target):
-            if os.path.lexists(symlink):
-                if os.path.islink(symlink):
-                    if os.readlink(symlink) == target:
-                        logger.debug(symlink + ' correct (-> ' + target + ')')
+        if os.path.exists(t):
+            if os.path.lexists(slink):
+                if os.path.islink(slink):
+                    if os.readlink(slink) == t:
+                        logger.debug(slink + ' correct (-> ' + t + ')')
                     else:
-                        logger.warning('Deleting incorrect symlink ' + symlink)
-                        os.unlink(symlink)
+                        logger.warning('Deleting incorrect symlink ' + slink)
+                        os.unlink(slink)
                 else:
-                    logger.warning(symlink + 
+                    logger.warning(slink +
                                    ' exists but is not symlink, leaving alone')
 
-            if not os.path.lexists(symlink):
-                logger.info('Creating symlink ' + symlink + ' -> ' + target)
-                os.symlink(target, symlink)
+            if not os.path.lexists(slink):
+                logger.info('Creating symlink ' + slink + ' -> ' + t)
+                os.symlink(t, slink)
         else:
-            logger.error('Missing ' + target)
-
-    
+            logger.error('Missing ' + t)
 
 
 user = os.getlogin()
@@ -80,7 +79,7 @@ auroraplot_package_dir = \
     os.path.realpath(os.path.join(site.getusersitepackages(), 
                                   'auroraplot'))
     
-default_auroraplot_repo_path = os.path.realpath( \
+default_auroraplot_repo_path = os.path.realpath(
     re.sub(os.path.join('auroraplot', 'auroraplot') + '$', 'auroraplot', 
            auroraplot_package_dir, 1))
 
@@ -90,14 +89,13 @@ if not os.path.isdir(default_auroraplot_repo_path):
         os.path.join(os.path.expanduser('~' + user), 'auroraplot')
 
 
-
 # Guess AuroraWatchNet repository path. This is slightly harder since
 # the Python site package directory should contain a link to a
 # directory within the repository, not the base of the repository.
 aurorawatchnet_package_dir = \
     os.path.realpath(os.path.join(site.getusersitepackages(), 
                                   'aurorawatchnet'))
-default_awn_repo_path = os.path.realpath( \
+default_awn_repo_path = os.path.realpath(
     re.sub(os.path.join('software', 'server', 'aurorawatchnet') + '$',
            '', aurorawatchnet_package_dir, 1))
 
@@ -113,7 +111,7 @@ mcp342x_package_dir = \
     os.path.realpath(os.path.join(site.getusersitepackages(), 
                                   'MCP342x'))
     
-default_mcp342x_repo_path = os.path.realpath( \
+default_mcp342x_repo_path = os.path.realpath(
     re.sub(os.path.join('python-MCP342x', 'MCP342x') + '$', 'MCP342x', 
            mcp342x_package_dir, 1))
 
@@ -221,7 +219,7 @@ import aurorawatchnet as awn
 try:
     config = awn.read_config_file(args.config_file)
 except Exception as e:
-    config.error('Cannot read config file ' + args.config_file 
+    logger.error('Cannot read config file ' + args.config_file
                  + ', ' + str(e))
 
 bin_dir = os.path.join(os.path.expanduser('~' + user), 'bin')
@@ -269,8 +267,8 @@ elif daemon_name == 'raspimagd':
     target = os.path.join(args.aurorawatchnet_repository, 
                           'software', 'server', 'bin',  'raspimagd.sh')
 else:
-    logger.warning('Meaning of daemon name = ' + daemon_name +
-                   ' is not understood')
+    logger.error('Meaning of daemon name = ' + daemon_name + ' is not understood')
+    sys.exit(1)
 
 logger.info('Checking symlink ' + symlink + ' -> ' + target)
 if not os.path.lexists(symlink) or os.readlink(symlink) != target:
