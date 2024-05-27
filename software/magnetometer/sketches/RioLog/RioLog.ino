@@ -2646,7 +2646,7 @@ bool cmdEepromRead(const char *s, Stream& stream, const CommandOption&)
 		size = strtol(ep, &ep2, 0);
 		if (size > 0 && (address + size) <= E2END && ep2 != ep && *ep2 == '\0') {
 			printEepromContents(stream, (uint16_t)address, (uint16_t)size);
-			return;
+			return true;
 		}
 	}
 
@@ -2690,7 +2690,7 @@ bool cmdEepromWrite(const char *s, Stream& stream, const CommandOption&)
 		}
         printEepromContents(stream, (uint16_t)(address-size), (uint16_t)size);
 
-		return;
+		return true;
 	}
 
 	stream.println(F("ERROR: bad values for eepromWrite"));
@@ -2748,7 +2748,7 @@ bool cmdSamplingInterval(const char *s, Stream& stream, const CommandOption&)
 
 
 #if USE_SD_CARD
-void cmdUseSd(const char *s)
+bool cmdUseSd(const char *s)
 {
     if (*s++ == '=') {
         char *ep;
