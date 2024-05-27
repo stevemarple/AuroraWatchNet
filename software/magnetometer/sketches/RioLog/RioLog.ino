@@ -2713,6 +2713,7 @@ bool cmdVerbosity(const char *s, Stream& stream, const CommandOption&)
 
 bool cmdReboot(const char *s, Stream& stream, const CommandOption&)
 {
+	(void)s;
 	stream << F("Reboot command received from console\n");
 	stream.flush();
 	reboot();
