@@ -39,7 +39,7 @@ SPEED = 8MHz_RC
 WARN_PERCENTAGE = 45
 INSTRUMENT=riometer
 FIRMWARE_DIR = $(SKETCH_DIR)/firmware/$(INSTRUMENT)/ATmega1284P/$(SPEED)/$(HW_IDENT)
-FIRMWARE_NAME := $(shell awk '(match($$0, /^\#define\s+FIRMWARE_VERSION\s+"(.*)"/,a)){print a[1]}' RioLog.ino)
+FIRMWARE_NAME := $(shell awk '(match($$0, /^#define\s+FIRMWARE_VERSION\s+"(.*)"/,a)){print a[1]}' RioLog.ino)
 COPY = cp
 MKDIR = mkdir
 
