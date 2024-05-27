@@ -348,8 +348,8 @@ bool cmdSamplingInterval(const char *s, Stream& stream, const CommandOption& opt
 #if USE_SD_CARD
 bool cmdUseSd(const char *s, Stream& stream, const CommandOption& opt);
 #endif
-void unknownCommand(const char *s);
-void commandTooLong(int);
+void unknownCommand(const char *s, Stream& stream);
+void commandTooLong(Stream& stream);
 
 CommandHandler commandHandler;
 char commandBuffer[80];
