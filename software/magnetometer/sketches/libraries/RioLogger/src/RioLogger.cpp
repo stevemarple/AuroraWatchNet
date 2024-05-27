@@ -139,6 +139,9 @@ bool RioLogger::initialise(uint8_t pp, uint8_t adcAddressList[maxNumAdcs],
     }
 
 	tempConfig = MCP342x::Config(FLC100_TEMPERATURE_CHANNEL, false, 16, 1);
+	(void)adcChannelList;
+	(void)adcResolutionList;
+	(void)adcGainList;
 	return r;
 }
 
