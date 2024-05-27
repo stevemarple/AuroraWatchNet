@@ -245,7 +245,8 @@ uint8_t maxMessagesLed = eeprom_read_byte((uint8_t*)EEPROM_MAX_MESSAGES_LED);
 // planned for!
 uint8_t messageCount = 0;
 
-HardwareSerial& console = Serial;
+HardwareSerial& hwconsole(Serial);
+Stream& console(hwconsole);
 uint8_t radioType;
 
 #ifdef COMMS_XRF
@@ -1364,11 +1365,11 @@ void setup(void)
 	if (consoleBaudRate > 260000L || consoleBaudRate < 4800)
 		// Ignore EEPROM  value and use a sensible default
 		if (F_CPU > 8000000L)
-			console.begin(115200);
+			hwconsole.begin(115200);
 		else
-			console.begin(9600);
+			hwconsole.begin(9600);
 	else
-		console.begin(consoleBaudRate);
+		hwconsole.begin(consoleBaudRate);
 	console.flush();
 
 	// Explicitly set the pull-ups for the serial port in case the
