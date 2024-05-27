@@ -41,7 +41,8 @@ class DuplicatedTagException(Exception):
 
 
 def log_uncaught_exception(ex_cls, ex, tb):
-    logger.critical(''.join(traceback.format_tb(tb)))
+    # logger.critical(''.join(traceback.format_tb(tb)))
+    logger.critical('Uncaught exception', exc_info=(ex_cls, ex, tb))
     t = time.time()
     write_to_log_file(t, iso_timestamp(t) + ' D Uncaught exception:'
                       + ''.join(traceback.format_tb(tb)) + '\n')
@@ -207,7 +208,7 @@ def write_system_temperature(t, message_tags, fstr, extension):
         if 'system_temperature' in message_tags:
             found = True
             data.append(struct.unpack(awn.message.tag_data['system_temperature']['format'],
-                                      str(message_tags['system_temperature'][0]))[0] / 100.0)
+                                      message_tags['system_temperature'][0])[0] / 100.0)
         else:
             data.append(float('NaN'))
 
@@ -215,12 +216,15 @@ def write_system_temperature(t, message_tags, fstr, extension):
         if found:
             system_temperature_file = get_file_for_time(t, system_temperature_file, fstr,
                                                         extension=extension)
-            # Write the time
-            system_temperature_file.write('%.06f' % t)
+            # # Write the time
+            # system_temperature_file.write('%.06f' % t)
+            # system_temperature_file.write('\t')
+            # system_temperature_file.write('\t'.join(map(str, data)))
+            # system_temperature_file.write('\n')
+            data_columns = '\t'.join(map(str, data))
+            system_temperature_file.write(f'{t:.06f}\t{data_columns}\n'.encode('ascii'))
 
-            system_temperature_file.write('\t')
-            system_temperature_file.write('\t'.join(map(str, data)))
-            system_temperature_file.write('\n')
+            
             system_temperature_file.flush()
             global close_after_write
             if close_after_write:
@@ -357,10 +361,11 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
             alt = data[2] * 1e-3
             gnss_file = get_file_for_time(t, gnss_file, fstr)
 
-            gnss_file.write(('{t:d}\t{is_valid:d}\t{nav_system}\t' +
+            d = ('{t:d}\t{is_valid:d}\t{nav_system}\t' +
                              '{num_sat:02d}\t{hdop:03.1f}\t' +
                              '{lat:10.6f}\t{lon:11.6f}\t' +
-                             '{alt:8.3f}\n').format(**locals()))
+                             '{alt:8.3f}\n').format(**locals())
+            gnss_file.write(d.encode('ascii'))
 
             global close_after_write
             if close_after_write:
@@ -368,8 +373,8 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
     except KeyboardInterrupt:
         raise
     except Exception as e:
+        logger.exception('Could not save GNSS data')
         print('====> write_generic_data()')
-
         print('Could not save GNSS data: ' + str(e))
 
 generic_adc_data_file = None
@@ -474,8 +479,7 @@ def write_generic_data(t, message_tags, extension, message, config=None):
                         # a.append(format % ((d * scale_factor) + offset))
                         a.append(format % d)
 
-                    generic_data_files[data_id].write(sep.join(a))
-                    generic_data_files[data_id].write(eol)
+                    generic_data_files[data_id].write((sep.join(a) + eol).encode('ascii'))
 
                     global close_after_write
                     if close_after_write:
@@ -537,7 +541,11 @@ def iso_timestamp(t):
     :return:
     """
     us_str = '.%06d' % (int((t * 1e6) % 1e6))  # microseconds fraction
-    return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
+    try:
+        return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
+    except OverflowError:
+        #      'YYYY-MM-DDThh:mm:ss.ssssss'
+        return '<ERROR: timestamp too big>'
 
 
 aw_log_file = None
@@ -960,7 +968,7 @@ def add_current_time_tag(message):
             config.has_option('ntp_status', 'max_age') and
             (not os.path.exists(config.get('ntp_status', 'filename')) or
              time.time() - os.stat(config.get('ntp_status', 'filename')).st_mtime
-             > config.get('ntp_status', 'max_age'))):
+             > config.getfloat('ntp_status', 'max_age'))):
         # NTP status file is missing/old, assume NTP not running
         return
     awn.message.put_current_epoch_time(message)
