@@ -1301,6 +1301,7 @@ uint8_t getXbootVersion(char* buffer, uint8_t sz)
 		}
 		snprintf_P(buffer, sz, PSTR("Xboot: %d.%d; API %d"), int((xbootVersion >> 8) & 0xff), int(xbootVersion & 0xff), int(xbootApiVersion));
 	}
+	return XB_SUCCESS;
 }
 
 
