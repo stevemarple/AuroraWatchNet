@@ -2782,12 +2782,12 @@ void commandTooLong(Stream& stream)
 }
 
 
-void unknownNmeaSentence(const MicroNMEA &nmea)
+void unknownNmeaSentence(MicroNMEA &nmea)
 {
     console << F("Unknown NMEA sentence: ") << nmea.getSentence() << endl;
 }
 
-void badNmeaChecksum(const MicroNMEA &nmea)
+void badNmeaChecksum(MicroNMEA &nmea)
 {
     console << F("Bad NMEA checksum: ") << nmea.getSentence() << endl;
 }
