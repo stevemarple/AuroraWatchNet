@@ -52,12 +52,12 @@ def get_file_for_time(t, file_obj, fstr, mode='a+b', buffering=0,
                       extension=None):
     """
     :param t: seconds since unix epoch
-    :param file_obj: 
-    :param fstr: 
-    :param mode: 
-    :param buffering: 
-    :param extension: 
-    :return: 
+    :param file_obj:
+    :param fstr:
+    :param mode:
+    :param buffering:
+    :param extension:
+    :return:
     """
 
     tmp_name = time.strftime(fstr, time.gmtime(t))
@@ -142,7 +142,7 @@ def write_aurorawatch_realtime_data(t, message_tags, fstr, extension):
         print('Could not write realtime format data: ' + str(e))
 
 
-# File object to which AuroraWatchNet text data format files are written    
+# File object to which AuroraWatchNet text data format files are written
 awnet_text_file = None
 
 
@@ -224,7 +224,7 @@ def write_system_temperature(t, message_tags, fstr, extension):
             data_columns = '\t'.join(map(str, data))
             system_temperature_file.write(f'{t:.06f}\t{data_columns}\n'.encode('ascii'))
 
-            
+
             system_temperature_file.flush()
             global close_after_write
             if close_after_write:
@@ -360,8 +360,7 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
             lon = data[1] * 1e-6
             alt = data[2] * 1e-3
             gnss_file = get_file_for_time(t, gnss_file, fstr)
-
-            d = ('{t:d}\t{is_valid:d}\t{nav_system}\t' +
+            d = ('{t:f}\t{is_valid:d}\t{nav_system}\t' +
                              '{num_sat:02d}\t{hdop:03.1f}\t' +
                              '{lat:10.6f}\t{lon:11.6f}\t' +
                              '{alt:8.3f}\n').format(**locals())
@@ -667,14 +666,14 @@ def open_control_socket():
         control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         control_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # ord('A') = 65, ord('W') = 87 
+        # ord('A') = 65, ord('W') = 87
         control_socket.bind(('localhost', int(port_str)))
         control_socket.setblocking(False)
         control_socket.listen(0)
     return control_socket
 
 
-# Process any CR or LF terminated messages which are in the buffer    
+# Process any CR or LF terminated messages which are in the buffer
 def handle_control_message(buf, pending_tags):
     r = []
     while len(buf):
@@ -715,7 +714,7 @@ def handle_control_message(buf, pending_tags):
 
         elif cmd.startswith('read_eeprom='):
             if 'eeprom_contents' in pending_tags:
-                # The EEPROM write and EEPROM read both result in the same 
+                # The EEPROM write and EEPROM read both result in the same
                 # tag being returned; allow only one at once.
                 r.append('ERROR: EEPROM write pending, cannot read')
             else:
@@ -732,7 +731,7 @@ def handle_control_message(buf, pending_tags):
 
         elif cmd.startswith('write_eeprom='):
             if 'read_eeprom' in pending_tags:
-                # The EEPROM write and EEPROM read both result in the same 
+                # The EEPROM write and EEPROM read both result in the same
                 # tag being returned; allow only one at once.
                 r.append('ERROR: EEPROM read pending, cannot write')
             else:
@@ -808,7 +807,7 @@ def get_firmware_details(version):
     stated_crc = int(struct.unpack('>H',
                                    binascii.unhexlify(stated_crc_hex))[0])
 
-    # The CRC check must be computed over the entire temporary 
+    # The CRC check must be computed over the entire temporary
     # application section; extend as necessary
     temp_app_size = int((131072 - 4096) / 2)
     if len(firmware) < temp_app_size:
@@ -1218,9 +1217,9 @@ while running:
     except socket.error as e:
         print('socket error: ' + str(e))
         break
-    
+
     for fd in inputready:
-        # print('FD: ' + str(fd)) 
+        # print('FD: ' + str(fd))
 
         if fd in [device, device_socket]:
             if fd == device:
@@ -1331,7 +1330,7 @@ while running:
                     # Add current time, subject to NTP running
                     add_current_time_tag(response)
 
-                    # Handle packet requests. These tags live only for the 
+                    # Handle packet requests. These tags live only for the
                     # duration between receiving the request and sending the
                     # response.
                     requested_tags = {}

@@ -80,11 +80,11 @@ firmware_block_size = 128
 
 
 def decode_tag_array_of_longs(tag_name, data_len, payload, epoch):
-    return list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
+    return list(struct.unpack('!' + str(data_len//4) + 'l', payload))
 
 
 def format_tag_array_of_longs(tag_name, data_len, payload, epoch):
-    return repr(list(struct.unpack('!' + str(data_len/4) + 'l', str(payload))))
+    return repr(list(struct.unpack('!' + str(data_len//4) + 'l', payload)))
 
 
 def format_padding(tag_name, data_len, payload, epoch):
@@ -96,7 +96,7 @@ def format_tag_blank(tag_name, data_len, payload, epoch):
 
 
 def format_null_terminated_string(tag_name, data_len, payload, epoch):
-    return "'" + str(payload.split('\0')[0]) + "'"
+    return "'" + str(payload.split(b'\x00')[0]) + "'"
 
 
 def format_unix_epoch_32678(tag_name, data_len, payload, epoch):
@@ -225,7 +225,7 @@ def format_gnss_status(tag_name, data_len, payload, epoch):
 
 
 def format_gnss_location(tag_name, data_len, payload, epoch):
-    data = list(struct.unpack('!' + str(data_len/4) + 'l', str(payload)))
+    data = list(struct.unpack('!' + str(data_len//4) + 'l', payload))
     if len(data) == 2:
         alt = '?'
     else:
@@ -285,7 +285,7 @@ def format_gen_data_s32(tag_name, data_len, payload, epoch):
 # Description of the radio communication protocol tags. The different
 # types of data are identified by a tag, sent numerically in the
 # protocol but elsewhere referred to by name. In tag_data the keys are
-# the tag names. 
+# the tag names.
 #
 # Lengths are given including the tag itself (one byte). Some tags
 # have variable length are are entered as zero bytes for length; they
@@ -521,7 +521,7 @@ def decode_cloud_temp(tag_name, payload):
 
     # Convert to deg C
     temp = float(raw_temp) / 100
-    
+
     # Convert any absolute temperatures to deg C
     if temp > 173.15:
         temp -= 273.15
@@ -658,7 +658,7 @@ def put_header(buf, site_id, timestamp, magic=default_magic, version=default_ver
 
 
 def put_data(buf, tag_id, data):
-    packet_length = get_packet_length(buf) 
+    packet_length = get_packet_length(buf)
     i = packet_length
     buf[i] = tag_id
     i += 1
@@ -673,7 +673,7 @@ def put_data(buf, tag_id, data):
     else:
         data_len = tag_len - 1
         packet_length += tag_len
-        
+
     # TODO: optimise? Use buffer?
     for n in range(data_len):
         buf[i + n] = data[n]
@@ -702,10 +702,10 @@ def put_current_epoch_time(buf):
         # buf[i + n] = timestamp & 0xff
         # timestamp >>= 8
         buf[i + n] = 0
-    data = bytearray(struct.pack(tag_data['current_epoch_time']['format'], 
+    data = bytearray(struct.pack(tag_data['current_epoch_time']['format'],
                                  seconds, frac))
     buf[packet_length + 1: packet_length + tag_len] = data
-    
+
     set_packet_length(buf, packet_length + tag_len)
 
 
@@ -730,7 +730,7 @@ def put_signature(buf, hmac_key, retries, sequence_id):
         set_packet_length(buf, signed_len)
 
     buf[flags_offset] |= (1 << flags_signed_message_bit)
-  
+
     i = signed_len - signature_block_length
     buf[i] = sequence_id
     i += 1
@@ -739,7 +739,7 @@ def put_signature(buf, hmac_key, retries, sequence_id):
     # Now add HMAC-MD5
     hmac_md5 = hmac.new(hmac_key, digestmod=hashlib.md5)
     hmac_md5.update(buf[0:(signed_len - hmac_length)])
-    
+
     # Take least significant bytes
     hmac_bytes = hmac_md5.digest()
     buf[(signed_len - hmac_length):signed_len] = \
@@ -780,21 +780,21 @@ def parse_packet(buf):
         else:
             data_len = tag_len - 1
         data = buf[i:(i+data_len)]
-              
+
         if tag_name not in r:
             r[tag_name] = []
         r[tag_name].append(data)
         i += data_len
-        
+
     return r
 
 
 def tidy_pending_tags(pending_tags, message_tags):
     del_list = []
-    for tag_name in pending_tags:  
+    for tag_name in pending_tags:
         if tag_name == 'reboot' and 'reboot_flags' in message_tags:
             del_list.append(tag_name)
-            
+
         elif tag_name == 'upgrade_firmware' and 'current_firmware' in message_tags:
             current_firmware = str(message_tags['current_firmware'][0]).split('\0', 1)[0]
             upgrade_firmware = '' + str(pending_tags[tag_name]).split('\0', 1)[0]
@@ -802,17 +802,17 @@ def tidy_pending_tags(pending_tags, message_tags):
                 # Current firmware version matches so cancel
                 print('Firmware already at version ' + upgrade_firmware)
                 del_list.append(tag_name)
-        
+
         elif tag_name == 'all_samples' and bool(ord(pending_tags[tag_name][0])) == \
             any(t in message_tags for t in ['mag_data_all_x', 'mag_data_all_y',
                                             'mag_data_all_z']):
             # pending_tags[all_samples][0] must match whether
             # mag_data_all_{x,y,z} exists in message_tags
             del_list.append(tag_name)
-            
+
         elif tag_name in ['read_eeprom', 'eeprom_contents'] and \
                 'eeprom_contents' in message_tags:
-            # TODO: check correct data has been received. NB: if key was sent 
+            # TODO: check correct data has been received. NB: if key was sent
             # it won't be confirmed!
             del_list.append(tag_name)
 
@@ -847,10 +847,10 @@ def header_to_str_array(buf):
             'Flags: ' + hex(get_flags(buf)) + '  (epoch=' + str(epoch) + ')',
             'Packet length: ' + str(get_packet_length(buf)),
             'Site ID: ' + str(get_site_id(buf)),
-            ('Timestamp: ' + str(t[0]) + ',' + str(t[1]) 
+            ('Timestamp: ' + str(t[0]) + ',' + str(t[1])
              + ' (' + dt.isoformat() + ')')]
 
-  
+
 def print_header(buf):
     print('\n'.join(header_to_str_array(buf)))
 
@@ -937,7 +937,7 @@ def print_packet(buf, message_time=None):
     except KeyboardInterrupt:
         raise
     except Exception:
-        separator = '============= Invalid Message' 
+        separator = '============= Invalid Message'
 
     if message_time is not None:
         separator += sent_received + str(time.time())
@@ -973,19 +973,19 @@ def print_packet(buf, message_time=None):
 def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
     complete_message = False
 
-    valid = True    
+    valid = True
     while len(buf):
         valid = True
-        
+
         # Check magic
         for i in range(min(len(magic), len(buf))):
             if buf[i] != magic[i]:
                 valid = False
                 break
-        
+
         if len(buf) < len(magic):
             break
-        
+
         # Check message is signed
         if is_signed_message(buf) is None:
             break
@@ -993,7 +993,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
         if not is_signed_message(buf):
             # All transmitted messages must be signed
             valid = False
-        
+
         if valid:
             packet_length = get_packet_length(buf)
             if packet_length is None:
@@ -1003,7 +1003,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                 valid = False
         else:
             packet_length = 0
-            
+
         if valid and len(buf) >= packet_length:
             complete_message = True
 
@@ -1016,7 +1016,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                 hmac_bytes = hmac_md5.digest()
                 hmac_bytes = hmac_bytes[(len(hmac_bytes)-hmac_length):]
 
-                # Compare. To prevent timing attacks don't stop the 
+                # Compare. To prevent timing attacks don't stop the
                 # comparison early and aim to have all outcomes take the
                 # same time.
                 received_hmac_bytes = buf[(packet_length - hmac_length):]
@@ -1036,7 +1036,7 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
                     except Exception:
                         pass
                     print('#########################')
-            
+
         # All tests done
         if valid:
             if complete_message:
@@ -1049,8 +1049,8 @@ def validate_packet(buf, hmac_key, ignore_digest=False, magic=default_magic):
             # Remove the first character and try the next
             del buf[0]
             return None
-    
-    return None  
+
+    return None
 
 
 def crc16(data, crc=0):
@@ -1063,11 +1063,11 @@ def crc16(data, crc=0):
                 crc = (crc >> 1)
     return crc & 0xffff
 
-   
+
 def adc_counts_to_tesla(val, tesla_per_volt=50e-6):
     # Data is normalised too allow for maximum resolution of 18 bits and
     # 8x gain. Thus largest possible normalised magnitude is 2^17 * 8.
-    # Largest magnitude of ADC output is from +/- 2.048V   
+    # Largest magnitude of ADC output is from +/- 2.048V
 
     scale_factor = 2.048 * tesla_per_volt / (pow(2, 17) * 8)
     return val * scale_factor

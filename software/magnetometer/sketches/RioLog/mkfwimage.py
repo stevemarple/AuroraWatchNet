@@ -44,20 +44,22 @@ except subprocess.CalledProcessError as e:
     os.sys.exit(1)
         
 # Windows support doubtful but use binary mode anyway
-bin_file = open(bin_filename, 'a+b') 
+bin_file = open(bin_filename, 'r+b') 
 bin_contents = bin_file.read()
 
 block_size = awn.message.firmware_block_size
+print(f'mkfwimage.py: bin file: {len(bin_contents)}')
 if len(bin_contents) % block_size:
     # Pad the file to the block size used for transmission
     padding = b'\xff' * (block_size - (len(bin_contents) % block_size))
+    print(f'Adding {len(padding)} padding byte(s)')
     bin_contents += padding
     bin_file.write(padding)
 bin_file.close()
 
 # The CRC check must be computed over the entire temporary 
 # application section; extend as necessary
-temp_app_size = (131072 - 4096) // 2;
+temp_app_size = (131072 - 4096) // 2
 if len(bin_contents) < temp_app_size:
     padding = b'\xff' * (temp_app_size - len(bin_contents))
     bin_contents += padding
@@ -73,3 +75,4 @@ print(binascii.hexlify(crc_str).decode('ascii') + '  ' + options.firmware_versio
       file=crc_file)
 crc_file.close()
 
+print('mkfwimage.py done')
