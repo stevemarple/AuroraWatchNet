@@ -58,7 +58,7 @@ Default: none.
 
 \configexample{
   \code{filename = /data/aurorawatchnet/\%(site)s/\%\%Y/\%\%m/\%(site)s_\%\%Y\%\%m\%\%d.txt}%
-  \newline \newline % 
+  \newline \newline %
   \code{\%(site)} is replaced with the site abbreviation which was
   defined previously in the \code{[DEFAULT]} section. Notice how the
   \code{strftime} format specifiers require two \% characters.\newline
@@ -102,7 +102,7 @@ Default: none.
 }
 
 \section{\code{[logfile]}}
-Options associated with the recorded log files. 
+Options associated with the recorded log files.
 
 \subsection{filename}
 
@@ -271,11 +271,11 @@ Default: none.
 \ifdef{\usesMicrocontroller}{%
   \section{\code{[firmware]}}
   Configuration details for firmware upgrades.
-  
+
   \subsection{\code{path}}
   The directory in which the firmware upgrades relevant to the
-  \instrumentType\ hardware are stored. 
-  
+  \instrumentType\ hardware are stored.
+
   \warningbox{It is critical that this path is set correctly, otherwise
     incompatible firmware upgrades could be delivered.}
 }{}
@@ -294,7 +294,7 @@ permit outward \tcp\ connections to port 22.
 
 The \code{http} and \code{https} upload methods make use of the standard
 \http(s) protocol, and therefore require outgoing \tcp\ connections to
-port 80 and 443 respectively. 
+port 80 and 443 respectively.
 
 \subsection{\code{rsync_host}}
 Name of the \filename{rsync} host. No facility to set the user is

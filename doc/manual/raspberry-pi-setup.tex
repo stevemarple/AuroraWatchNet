@@ -43,7 +43,7 @@ sudo raspi-config
 \textbf{If the default password has not been changed then do so now to keep
 your system secure.}
 
-\subsubsection{Hostname} 
+\subsubsection{Hostname}
 If you wish change the hostname of your Raspberry Pi select
 \code{Advanced Options} and then \code{Hostname}.
 
@@ -58,7 +58,8 @@ set the hostname to %%
 where \code{xxx} is the abbreviation (typically 3 letters) used for
 the site.
 
-\subsubsection{Boot options} 
+\subsubsection{Boot options}
+\typeout{raspberry-pi-setup.tex:section boot options}
 Configure the Pi for console access (text console, requiring the user
 to login). The console can be started manually when required with the
 \filename{startx} command which saves memory when an interactive login
@@ -80,7 +81,7 @@ then \code{Change Timezone}. For geographic area select %
   the \ssh\ server. If you will only log in via keyboard and monitor
   connected directly to the Pi then you can choose to disable the
   \ssh\ server.
-  
+
   If the Raspberry Pi is to be fitted with the Ciseco \emph{Slice of
     Radio} module then the serial interface must be enabled and the
   login shell over the serial port must be disabled.
@@ -114,7 +115,7 @@ The filesystem should be expanded to use all of the (micro)\sd\
 card. Advanced users planning to make a backup of the card may wish to
 perform this step last so that the backup can be smaller.
 
-Select \code{Advanced Options} and then \code{Expand Filesystem}. Choose 
+Select \code{Advanced Options} and then \code{Expand Filesystem}. Choose
 \code{Finish} and then reboot.
 
 
@@ -125,7 +126,7 @@ the setting should be configured in two places.
 
 As user \rootUser
 \begin{Cmd}
-nano /etc/environment  
+nano /etc/environment
 \end{Cmd}
 
 At the end of the file add a line similar to
@@ -178,7 +179,7 @@ apt-get dist-upgrade
 To prolong the life of the \sd\ card a swap file is not used. As user
 \rootUser
 \begin{Cmd}
-apt-get remove dphys-swapfile  
+apt-get remove dphys-swapfile
 \end{Cmd}
 
 \subsection{Remove Wolfram Engine}
@@ -205,12 +206,12 @@ apt-get install screen git git-doc git-man \textbackslash
 
 As user \rootUser
 \begin{Cmd}
-nano /etc/fstab  
+nano /etc/fstab
 \end{Cmd}
 
 At the end of the \filename{/etc/fstab} add the following lines:
 \begin{Cmd}[fontsize=\relsize{-2.5}]
-# tmpfs for AuroraWatchNet temporary files. Files will be deleted on 
+# tmpfs for AuroraWatchNet temporary files. Files will be deleted on
 # a reboot, which is desirable for the NTP status files.
 tmpfs  /home/pi/tmpfs  tmpfs  rw,size=100k,nr_inodes=1k,noexec,nodev,nosuid,uid=pi,gid=pi,mode=1700  0  0
 \end{Cmd}
@@ -231,9 +232,9 @@ nano /etc/udev/rules.d/90-usb_serial.rules
 
 Insert the following lines into the file if they are not present:
 \begin{Cmd}[fontsize=\relsize{-3}]
-# Have symlinks based on serial number for FTDI devices. Used for 
+# Have symlinks based on serial number for FTDI devices. Used for
 # awnetd_monitor
-SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"  
+SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"
 \end{Cmd}
 
 \section{Installing the AuroraWatchNet server software}
@@ -323,7 +324,7 @@ If the \filename{cron} table is to be modified then do with the the
 following command, as \piUser:
 
 \begin{Cmd}
-crontab -e  
+crontab -e
 \end{Cmd}
 
 

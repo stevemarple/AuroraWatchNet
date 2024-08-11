@@ -4,47 +4,65 @@ MAKEABBREV = ./makeabbrev
 
 CP = cp -a
 
-
+MANUALS = calunium-mag-manual raspi-mag-manual bgs-mag-manual riometer-manual
 
 .PHONY : doc
+.NOTPARALLEL : doc
 doc : calunium-mag-manual raspi-mag-manual bgs-mag-manual riometer-manual
 
 .PHONY : calunium-mag-manual
-calunium-mag-manual : calunium-mag-images makeabbrev gitlog.tex
-	$(PDFLATEX) -jobname calunium-mag-manual manual 
+calunium-mag-manual : clean calunium-mag-images makeabbrev gitlog.tex
+	$(RM) $@.pdf
+	$(PDFLATEX) -jobname calunium-mag-manual manual
 	$(MAKEABBREV) calunium-mag-manual
 #	$(BIBTEX) calunium-mag-manual
-	$(PDFLATEX) -jobname calunium-mag-manual manual 
+	$(PDFLATEX) -jobname calunium-mag-manual manual
+	$(PDFLATEX) -jobname calunium-mag-manual manual
+	$(PDFLATEX) -jobname calunium-mag-manual manual
 
 .PHONY : raspi-mag-manual
-raspi-mag-manual : raspi-mag-images makeabbrev gitlog.tex
+raspi-mag-manual : clean raspi-mag-images makeabbrev gitlog.tex
+	$(RM) $@.pdf
 	$(PDFLATEX) -jobname raspi-mag-manual manual
 	$(MAKEABBREV) raspi-mag-manual
 #	$(BIBTEX) raspi-mag-manual
 	$(PDFLATEX) -jobname raspi-mag-manual manual
+	$(PDFLATEX) -jobname raspi-mag-manual manual
+	$(PDFLATEX) -jobname raspi-mag-manual manual
 
 .PHONY : bgs-mag-manual
-bgs-mag-manual : bgs-mag-images makeabbrev gitlog.tex
+.NOTPARALLEL : bgs-mag-manual
+bgs-mag-manual : clean bgs-mag-images makeabbrev gitlog.tex
+	$(RM) $@.pdf
 	$(PDFLATEX) -jobname bgs-mag-manual manual
 	$(MAKEABBREV) bgs-mag-manual
 #	$(BIBTEX) bgs-mag-manual
 	$(PDFLATEX) -jobname bgs-mag-manual manual
+	$(PDFLATEX) -jobname bgs-mag-manual manual
+	$(PDFLATEX) -jobname bgs-mag-manual manual
 
 .PHONY : riometer-manual
-riometer-manual : riometer-images makeabbrev gitlog.tex
+riometer-manual : clean riometer-images makeabbrev gitlog.tex
+	$(RM) $@.pdf
 	$(PDFLATEX) -jobname riometer-manual manual
 	$(MAKEABBREV) riometer-manual
 #	$(BIBTEX) riometer-manual
 	$(PDFLATEX) -jobname riometer-manual manual
+	$(PDFLATEX) -jobname riometer-manual manual
+	$(PDFLATEX) -jobname riometer-manual manual
+
+
+CLEAN_EXTS = abb abr atfi aux bbl blg dvi fdb_latexmk fls lof log lot out toc tpt upa
+# CLEAN_DOT_EXTS = $(foreach ext,$(CLEAN_EXTS),.$(ext))
 
 .PHONY : clean
 clean :
 # .tpt: PDF thumbnails from thumbpdf
-	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux _region_.tex calunium-mag-manual.{abb,abr,atfi,aux,lof,log,out,toc,upa} raspi-mag-manual.{abb,abr,atfi,aux,lof,log,out,toc,upa} bgs-mag-manual.{abb,abr,atfi,aux,lof,log,out,toc,upa}
+	$(RM) -- *.atfi *.aux *.bbl *.blg *.dvi *.lof *.log *.lot *.tpt *.toc */*.aux $(foreach ext,$(CLEAN_EXTS),$(addsuffix .$(ext), manual $(MANUALS))) manual.pdf manual.synctex.gz
 
 .PHONY : realclean
 realclean : clean
-	$(RM) calunium-mag-manual.pdf raspi-mag-manual.pdf bgs-mag-manual.pdf
+	$(RM) calunium-mag-manual.pdf raspi-mag-manual.pdf bgs-mag-manual.pdf riometer-manual.pdf
 
 .PHONY : calunium-mag-images
 calunium-mag-images : calunium-mag/images/FLC100-shield-v1-0-sch.pdf \

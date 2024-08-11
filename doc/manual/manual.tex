@@ -169,7 +169,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 % No indents at start of paragraph, but paragraphs have blank lines
 % between them
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{2ex} 
+\setlength{\parskip}{2ex}
 
 
 %% \filename allows for _ but otherwise is formatted identically to
@@ -245,7 +245,7 @@ pdfborderstyle={/S/U/W 1}]{hyperref}
 
 \newcommand{\MB}[1]{\SI{#1}{\mebi\byte}}
 
-%% Some simple abbreviations  
+%% Some simple abbreviations
 \newcommand{\ie}{i.e.}
 \newcommand{\eg}{e.g.}
 \newcommand{\etal}{\latin{et al.}}
@@ -392,8 +392,8 @@ Lancaster University.}
 \frontmatter
 \pagestyle{headings}
 
-% \clearpage  
-% \phantomsection  
+% \clearpage
+% \phantomsection
 % % \thispagestyle{empty}
 \chapter{Licence}
 This document is made available under the \href{\ccBySaFourUrl}{Creative
@@ -405,24 +405,24 @@ This document is made available under the \href{\ccBySaFourUrl}{Creative
 
 Please attribute this work as \documentAttribution
 
-\clearpage  
-\phantomsection  
-\addcontentsline{toc}{chapter}{\contentsname}  
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{\contentsname}
 \tableofcontents
 
 \newpage
-\phantomsection  
-\addcontentsline{toc}{chapter}{\listfigurename}  
+\phantomsection
+\addcontentsline{toc}{chapter}{\listfigurename}
 \listoffigures
 
 %% -----------------------------
 % \newpage
-% \phantomsection  
-% \addcontentsline{toc}{chapter}{\listtablename}  
+% \phantomsection
+% \addcontentsline{toc}{chapter}{\listtablename}
 % \listoftables
 
 \newpage
-\phantomsection  
+\phantomsection
 \printabbrev
 
 \mainmatter
@@ -487,7 +487,7 @@ Please attribute this work as \documentAttribution
   \include{bgs-mag/site-requirements}
 }{}
 
-\include{raspberry-pi-setup}
+% \include{raspberry-pi-setup}
 
 \ifdef{\caluniumMagManual}{%
   \include{calunium-mag/installation-procedure}
@@ -512,7 +512,7 @@ Please attribute this work as \documentAttribution
 \include{updates}
 
 \appendix
-\include{config-file}
+\input{config-file}
 
 \ifdef{\usesMicrocontroller}{%
   \include{eeprom-settings}
