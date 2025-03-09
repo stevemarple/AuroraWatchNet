@@ -1,0 +1,28 @@
+[Unit]
+Description=AuroraWatchNet service
+After=network-online.target
+ConditionPathExists=/etc/awnet.ini
+
+[Service]
+EnvironmentFile=-/etc/default/%N
+User=pi
+WorkingDirectory=/home/pi
+
+# For debugging and development run via a screen session.
+# Type must be set to "forking".
+# As user pi use "screen -d -r awnetd" to connect and view
+# Type=forking
+# ExecStart=/usr/bin/screen -d -m -S awnetd /home/pi/bin/awnetd.py -c /etc/awnet.ini $DAEMON_ARGS
+
+# For production use run the emulator as a normal process. Type must be set
+# to "simple". Warnings and errors will be logged to systemd's journal.
+Type=simple
+ExecStart=/home/pi/bin/awnetd.py -c /etc/awnet.ini $DAEMON_ARGS
+
+StandardOutput=journal
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+
