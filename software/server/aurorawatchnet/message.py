@@ -187,7 +187,12 @@ def format_eeprom_contents_inner(tag_name, address, eeprom_data, epoch):
         if len(data) == 1:
             data = data[0]
             if elem_type == 's':
-                data = data.rstrip('\x00')
+                data = data.rstrip(b'\x00')
+                try:
+                    data = data.decode('ascii')
+                except UnicodeDecodeError as e:
+                    logger.warning(f'Could not decode byte sequence {data!r} to ASCII')
+                    data = repr(data)
         r += repr(data)
     else:
         r += '(unknown %d bytes)  0x  %s' % (eeprom_data_len, ' '.join(map(byte_hex, eeprom_data)))

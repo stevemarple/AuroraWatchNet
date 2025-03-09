@@ -668,20 +668,15 @@ def open_control_socket():
     return control_socket
 
 
-# Process any CR or LF terminated messages which are in the buffer
+# Process any CR or LF terminated messages which are in the buffer. Return a
+# list of processed commands and any unused part of the buffer.
 def handle_control_message(buf, pending_tags):
-    r = []
-    while len(buf):
-        cmds = buf.splitlines()
-        if cmds[0] == buf:
-            # no newlines
-            # return None
-            break
+    responses = []
 
-        cmd = cmds[0]
-        # Assign back to the input reference
-        buf[:] = '\n'.join(cmds[1:])
-
+    while '\n' in buf:
+        r = None
+        unknown_control_message = False
+        [cmd, buf] = buf.split(sep='\n', maxsplit=1)
         if cmd == '' or cmd.startswith('#'):
             continue
 
@@ -691,44 +686,53 @@ def handle_control_message(buf, pending_tags):
             pending_tags['sampling_interval'] = \
                 struct.pack(awn.message.tag_data['sampling_interval']['format'],
                             val)
-            r.append('sampling_interval:' + str(val / 16))
+            r = 'sampling_interval:' + str(val / 16)
 
         elif cmd.startswith('upgrade_firmware='):
             version = str(cmd.replace('upgrade_firmware=', '', 1))
             try:
                 handle_cmd_upgrade_firmware(version)
-                r.append('upgrade_firmware:' + version)
+                r = 'upgrade_firmware:' + version
             except KeyboardInterrupt:
                 raise
             except Exception as e:
-                r.append('ERROR: ' + str(e))
+                logger.error(f'Cannot process upgrade firmware control message {cmd!r}')
+                logger.exception(e)
 
         elif cmd == 'reboot=TRUE':
             pending_tags['reboot'] = []
-            r.append('reboot:TRUE')
+            r = 'reboot:TRUE'
 
         elif cmd.startswith('read_eeprom='):
             if 'eeprom_contents' in pending_tags:
                 # The EEPROM write and EEPROM read both result in the same
                 # tag being returned; allow only one at once.
-                r.append('ERROR: EEPROM write pending, cannot read')
+                logger.warning('Incoming control message requested "read_eeprom" but a write_eeprom command is pending')
+                r = 'ERROR: EEPROM write pending, cannot read'
+            elif 'read_eeprom' in pending_tags:
+                logger.warning('Incoming control message requested "read_eeprom" but a read_eeprom command is already pending')
+                r = 'ERROR: an EEPROM read is already pending'
             else:
                 edata = str(cmd.replace('read_eeprom=', '', 1)).split(',')
                 address = int(edata[0], 0)
                 sz = int(edata[1], 0)
                 if sz < 1:
-                    r.append('ERROR: bad value for size')
+                    r = 'ERROR: bad value for size'
                 else:
                     pending_tags['read_eeprom'] = struct \
                         .pack(awn.message.tag_data['read_eeprom']['format'],
                               address, sz)
-                    r.append('read_eeprom:' + str(address) + ',' + str(sz))
+                    r = 'read_eeprom:' + str(address) + ',' + str(sz)
 
         elif cmd.startswith('write_eeprom='):
             if 'read_eeprom' in pending_tags:
                 # The EEPROM write and EEPROM read both result in the same
                 # tag being returned; allow only one at once.
-                r.append('ERROR: EEPROM read pending, cannot write')
+                logger.warning('Incoming control message requested "write_eeprom" but a read_eeprom command is pending')
+                r = 'ERROR: EEPROM read pending, cannot write'
+            elif 'eeprom_contents' in pending_tags:
+                logger.warning('Incoming control message requested "write_eeprom" but a write_eeprom command is already pending')
+                r = 'ERROR: EEPROM write command is already pending'
             else:
                 edata = [int(x, 0) for x in
                          str(cmd.replace('write_eeprom=', '', 1)).split(',')]
@@ -736,9 +740,9 @@ def handle_control_message(buf, pending_tags):
                     pending_tags['eeprom_contents'] = \
                         struct.pack('!H' + str(len(edata) - 1) + 'B',
                                     *edata)
-                    r.append('write_eeprom:' + ','.join(map(str, edata)))
+                    r = 'write_eeprom:' + ','.join(map(str, edata))
                 else:
-                    r.append('ERROR: no data to send')
+                    r = 'ERROR: no data to send'
 
         elif cmd.startswith('num_samples='):
             num_ctrl = map(int,
@@ -746,29 +750,38 @@ def handle_control_message(buf, pending_tags):
             pending_tags['num_samples'] = \
                 struct.pack(awn.message.tag_data['num_samples']['format'],
                             num_ctrl[0], num_ctrl[1])
-            r.append('num_samples:' + str(num_ctrl[0]) + ',' + str(num_ctrl[1]))
+            r = 'num_samples:' + str(num_ctrl[0]) + ',' + str(num_ctrl[1])
 
         elif cmd.startswith('all_samples='):
             flag = (int(cmd.replace('all_samples=', '', 1)) != 0)
             pending_tags['all_samples'] = \
                 struct.pack(awn.message.tag_data['all_samples']['format'],
                             flag)
-            r.append('all_samples:' + str(flag))
+            r = 'all_samples:' + str(flag)
         elif cmd.startswith('rio_freeze_scan='):
             scan_num = int(cmd.replace('rio_freeze_scan=', '', 1))
             if scan_num < 0 or scan_num > 255:
                 scan_num = 255
             pending_tags['rio_freeze_scan'] = struct.pack(awn.message.tag_data['rio_freeze_scan']['format'], scan_num)
-            r.append('rio_freeze_scan:' + str(scan_num))
+            r = 'rio_freeze_scan:' + str(scan_num)
         elif cmd.startswith('rio_connect='):
             rio_connect = int(cmd.replace('rio_connect=', '', 1))
             pending_tags['rio_connect'] = struct.pack(awn.message.tag_data['rio_freeze_scan']['format'], rio_connect)
         elif cmd == 'pending_tags':
-            r.append('pending_tags:' + describe_pending_tags())
+            r = 'pending_tags:' + describe_pending_tags()
+        elif cmd == 'clear_pending_tags':
+            r = 'clear_pending_tags'
         else:
-            r.append('ERROR: do not understand "' + str(cmd) + '"')
-    print('\n'.join(r))
-    return r
+            unknown_control_message = True
+            logger.error(f'Unknown control message {cmd!r}')
+            r = f'ERROR: unknown control message {cmd!r}'
+
+        if not unknown_control_message:
+            print(f'Received control message {cmd!r}')
+        if r:
+            responses.append(r)
+
+    return responses, buf
 
 
 def get_firmware_details(version):
@@ -875,9 +888,9 @@ def packet_req_get_firmware_page(data):
         fw_page = image_file.read(awn.message.firmware_block_size)
     except KeyboardInterrupt:
         raise
-    except Exception:
-        print('SOME ERROR')
-        # Some error, so don't try adding to requested_tags
+    except Exception as e:
+        logger.error('Could not get firmware page')
+        logger.exception(e)
         return
     finally:
         # Ensure file is closed in all circumstances
@@ -1069,7 +1082,6 @@ if args.daemon:
             exit(1)
     daemon.DaemonContext(pidfile=pidfile).open()
 
-print('Done')
 comms_block_size = int(config.get('serial', 'blocksize'))
 
 close_after_write = config.getboolean('daemon', 'close_after_write')
@@ -1157,7 +1169,7 @@ elif device:
         acknowledge = False
 
 control_socket_conn = None
-control_buffer = None
+control_buffer = ''
 
 # Pending tags are persistent and are removed when acknowledged
 pending_tags = {}
@@ -1458,20 +1470,22 @@ while running:
             try:
                 (control_socket_conn, client_address) = control_socket.accept()
                 control_socket_conn.settimeout(10)
-                control_buffer = bytearray()
             except KeyboardInterrupt:
                 raise
             except Exception as e:
-                print('ERROR: ' + str(e))
+                logger.error('Control socket error')
+                logger.exception(e)
                 control_socket_conn = None
 
         elif fd == control_socket_conn:
             try:
                 s = control_socket_conn.recv(1024)
                 if s:
+                    s = s.decode('ascii')
                     control_buffer += s
-                    mesg = handle_control_message(control_buffer, pending_tags)
-                    fd.send('\n'.join(mesg) + '\n')
+                    mesg, control_buffer = handle_control_message(control_buffer, pending_tags)
+                    if mesg:
+                        fd.send(('\n'.join(mesg) + '\n').encode('ascii'))
                 else:
                     # EOF on control socket connection
                     control_socket_conn.shutdown(socket.SHUT_RDWR)
@@ -1480,7 +1494,8 @@ while running:
             except KeyboardInterrupt:
                 raise
             except Exception as e:
-                print('ERROR: ' + str(e))
+                logger.error('Could not process control messages in {control_buffer!r}')
+                logger.exception(e)
                 control_socket_conn = None
         else:
             print('Other: ' + str(fd))

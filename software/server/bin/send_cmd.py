@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import argparse
 import logging
@@ -75,20 +75,23 @@ for k in eeprom.eeprom.keys():
     for k2 in eeprom.eeprom[k]:
         if k2 not in ['default']:
             aw_cmds['eeprom_' + k][k2] = eeprom.eeprom[k][k2]
-    
+
 # Parse command line options
 parser = \
     argparse.ArgumentParser(description='Send commands to recording daemon.',
-                            epilog='EEPROM settings only take effect ' + 
+                            epilog='EEPROM settings only take effect ' +
                             'after a reboot.')
-parser.add_argument('-c', '--config-file', 
+parser.add_argument('-c', '--config-file',
                     default='/etc/awnet.ini',
                     help='Configuration file',
                     metavar='FILE')
-parser.add_argument('--host', 
+parser.add_argument('--clear-pending',
+                    action='store_true',
+                    help='Clear all pending commands')
+parser.add_argument('--host',
                     default='localhost',
                     help='Hostname where daemon is running')
-parser.add_argument('--log-level', 
+parser.add_argument('--log-level',
                     choices=['debug', 'info', 'warning', 'error', 'critical'],
                     default='warning',
                     help='Control how much details is printed',
@@ -97,7 +100,7 @@ parser.add_argument('--log-format',
                     default='%(levelname)s:%(message)s',
                     help='Set format of log messages',
                     metavar='FORMAT')
-parser.add_argument('-v', '--verbose', 
+parser.add_argument('-v', '--verbose',
                     action='count',
                     help='Be verbose')
 
@@ -127,7 +130,7 @@ for k in sorted(eeprom.eeprom.keys()):
                                        help='Read setting: ' + \
                                            eeprom.eeprom[k].get('help'))
     read_cmds.append(k)
-                                       
+
 # Process the command line arguments
 args = parser.parse_args()
 if __name__ == '__main__':
@@ -136,6 +139,8 @@ if __name__ == '__main__':
 
 config = awn.read_config_file(args.config_file)
 user_cmds = []
+if args.clear_pending:
+    user_cmds.append(dict(name='clear_pending_tags'))
 
 for k in aw_cmds:
     cmd_name = k
@@ -173,11 +178,11 @@ for k in aw_cmds:
         else:
             eeprom_data = struct.pack(eeprom.eeprom[eeprom_setting]['format'],
                                            data)
-            
+
         # Convert the bytewise values into a string, remembering to
         # prepend the address
         cmd['value'] = str(eeprom.eeprom[eeprom_setting]['address']) + \
-            ',' + ','.join([str(ord(x)) for x in eeprom_data])
+            ',' + ','.join([str(x) for x in eeprom_data])
     else:
         cmd['name'] = cmd_name
         cmd['value'] = s
@@ -191,7 +196,6 @@ for k in read_cmds:
                 'name': 'read_eeprom',
                 'value': str(eeprom.eeprom[k]['address']) + ',' + \
                     str(struct.calcsize(eeprom.eeprom[k]['format']))})
-        
 
 host = args.host
 port = int(config.get('controlsocket', 'port'))
@@ -201,17 +205,21 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
 s.settimeout(5)
 for cmd in user_cmds:
-    cmd_str = cmd['name'] + '=' + cmd['value']
+    cmd_str = cmd['name']
+    if 'value' in cmd:
+        cmd_str += '=' + cmd['value']
     if args.verbose:
-        print("Sending '" + cmd_str + "'")
-    s.send(cmd_str + '\n')
-    response = s.recv(256)
+        print(f'Sending {cmd_str!r}')
+    s.send((cmd_str + '\n').encode('ascii'))
+    response = s.recv(256).decode('ascii').rstrip('\r\n')
     if args.verbose:
-        print("Received '" + response.rstrip('\r\n') + "'")
+        print(f'Received {response!r}')
+    elif response.startswith('ERROR'):
+        print(response)
 
 # Enquire about pending tags
-s.send('pending_tags\n')
-pending_tags = s.recv(256).rstrip('\r\n')
+s.send(b'pending_tags\n')
+pending_tags = s.recv(256).decode('ascii').rstrip('\r\n')
 pending_actions = pending_tags.split(':')[1].replace(',', ', ')
 if pending_actions != '':
     print('Pending commands: ' + pending_actions)
