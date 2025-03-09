@@ -170,24 +170,24 @@ and then log back in.
 \subsection{Upgrade installed software}
 As user \rootUser
 \begin{Cmd}
-apt-get update
-apt-get upgrade
-apt-get dist-upgrade
+apt update
+apt upgrade
+apt dist-upgrade
 \end{Cmd}
 
 \subsection{Remove swap file}
 To prolong the life of the \sd\ card a swap file is not used. As user
 \rootUser
 \begin{Cmd}
-apt-get remove dphys-swapfile
+apt remove dphys-swapfile
 \end{Cmd}
 
 \subsection{Remove Wolfram Engine}
 Wolfram Engine uses over \MB{680} and is not needed. Remove to save
 valuable space on the \sd\ card. As user \rootUser
 \begin{Cmd}
-apt-get purge wolfram-engine
-apt-get autoremove
+apt purge wolfram-engine
+apt autoremove
 \end{Cmd}
 
 \helpbox{Wolfram engine is not installed by default in the light
@@ -196,10 +196,11 @@ apt-get autoremove
 \subsection{Install missing software packages}
 As user \rootUser
 \begin{Cmd}
-apt-get install screen git git-doc git-man \textbackslash
+apt install screen git git-doc git-man \textbackslash
     python3-pip ipython3 python3-matplotlib \textbackslash
     python3-scipy python3-serial python3-daemon python3-lockfile \textbackslash
-    avahi-daemon dnsutils i2c-tools python3-smbus python3-smbus ntp ntpstat
+    avahi-daemon dnsutils i2c-tools python3-smbus python3-smbus \textbackslash
+    ntp ntpstat
 \end{Cmd}
 
 \subsection{Configure file system mount options}
