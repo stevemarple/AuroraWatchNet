@@ -155,7 +155,7 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
             if tag_name in message_tags:
                 found = True
                 comp = struct.unpack(awn.message.tag_data[tag_name]['format'],
-                                     str(message_tags[tag_name][0]))
+                                     message_tags[tag_name][0])
                 data.append(1e9 * awn.message.adc_counts_to_tesla(comp[1] + 0.0))
             else:
                 data.append(float('NaN'))
@@ -164,14 +164,14 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
             if tag_name in message_tags:
                 found = True
                 data.append(struct.unpack(awn.message.tag_data[tag_name]['format'],
-                                          str(message_tags[tag_name][0]))[0] / 100.0)
+                                          message_tags[tag_name][0])[0] / 100.0)
             else:
                 data.append(float('NaN'))
 
         if 'supply_voltage' in message_tags:
             found = True
             data.append(struct.unpack(awn.message.tag_data['supply_voltage']['format'],
-                                      str(message_tags['supply_voltage'][0]))[0]
+                                      message_tags['supply_voltage'][0])[0]
                         / 1000.0)
         else:
             data.append(float('NaN'))
@@ -181,11 +181,11 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
             awnet_text_file = get_file_for_time(t, awnet_text_file, fstr,
                                                 extension=extension)
             # Write the time
-            awnet_text_file.write('%.06f' % t)
+            awnet_text_file.write(b'%.06f' % t)
 
-            awnet_text_file.write('\t')
-            awnet_text_file.write('\t'.join(map(str, data)))
-            awnet_text_file.write('\n')
+            awnet_text_file.write(b'\t')
+            awnet_text_file.write(b'\t'.join(map(lambda x: str(x).encode('ascii'), data)))
+            awnet_text_file.write(b'\n')
             awnet_text_file.flush()
             global close_after_write
             if close_after_write:
@@ -193,6 +193,7 @@ def write_aurorawatchnet_text_data(t, message_tags, fstr, extension):
     except KeyboardInterrupt:
         raise
     except Exception as e:
+        logger.exception(e)
         print('Could not write aurorawatchnet format data: ' + str(e))
 
 
@@ -208,7 +209,7 @@ def write_system_temperature(t, message_tags, fstr, extension):
         if 'system_temperature' in message_tags:
             found = True
             data.append(struct.unpack(awn.message.tag_data['system_temperature']['format'],
-                                      message_tags['system_temperature'][0])[0] / 100.0)
+                                      str(message_tags['system_temperature'][0]))[0] / 100.0)
         else:
             data.append(float('NaN'))
 
@@ -216,15 +217,12 @@ def write_system_temperature(t, message_tags, fstr, extension):
         if found:
             system_temperature_file = get_file_for_time(t, system_temperature_file, fstr,
                                                         extension=extension)
-            # # Write the time
-            # system_temperature_file.write('%.06f' % t)
-            # system_temperature_file.write('\t')
-            # system_temperature_file.write('\t'.join(map(str, data)))
-            # system_temperature_file.write('\n')
-            data_columns = '\t'.join(map(str, data))
-            system_temperature_file.write(f'{t:.06f}\t{data_columns}\n'.encode('ascii'))
+            # Write the time
+            system_temperature_file.write('%.06f' % t)
 
-
+            system_temperature_file.write('\t')
+            system_temperature_file.write('\t'.join(map(str, data)))
+            system_temperature_file.write('\n')
             system_temperature_file.flush()
             global close_after_write
             if close_after_write:
@@ -360,11 +358,11 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
             lon = data[1] * 1e-6
             alt = data[2] * 1e-3
             gnss_file = get_file_for_time(t, gnss_file, fstr)
+            # d = ('{t:d}\t{is_valid:d}\t{nav_system}\t' +
             d = ('{t:f}\t{is_valid:d}\t{nav_system}\t' +
                              '{num_sat:02d}\t{hdop:03.1f}\t' +
                              '{lat:10.6f}\t{lon:11.6f}\t' +
                              '{alt:8.3f}\n').format(**locals())
-            gnss_file.write(d.encode('ascii'))
 
             global close_after_write
             if close_after_write:
@@ -372,8 +370,8 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
     except KeyboardInterrupt:
         raise
     except Exception as e:
-        logger.exception('Could not save GNSS data')
         print('====> write_generic_data()')
+
         print('Could not save GNSS data: ' + str(e))
 
 generic_adc_data_file = None
@@ -478,7 +476,8 @@ def write_generic_data(t, message_tags, extension, message, config=None):
                         # a.append(format % ((d * scale_factor) + offset))
                         a.append(format % d)
 
-                    generic_data_files[data_id].write((sep.join(a) + eol).encode('ascii'))
+                    generic_data_files[data_id].write(sep.join(a))
+                    generic_data_files[data_id].write(eol)
 
                     global close_after_write
                     if close_after_write:
@@ -540,11 +539,7 @@ def iso_timestamp(t):
     :return:
     """
     us_str = '.%06d' % (int((t * 1e6) % 1e6))  # microseconds fraction
-    try:
-        return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
-    except OverflowError:
-        #      'YYYY-MM-DDThh:mm:ss.ssssss'
-        return '<ERROR: timestamp too big>'
+    return time.strftime('%Y-%m-%dT%H:%M:%S' + us_str, time.gmtime(t))
 
 
 aw_log_file = None

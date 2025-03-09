@@ -39,20 +39,20 @@ import random
 import sys
 import subprocess
 import time
-import urlparse
-import urllib
-import urllib2
+import urllib.parse
+import urllib.request
+import urllib.request
 import aurorawatchnet as awn
 
 if sys.version_info[0] >= 3:
     from configparser import SafeConfigParser
 else:
-    from ConfigParser import SafeConfigParser
+    from configparser import SafeConfigParser
 
 logger = logging.getLogger(__name__)
 
 
-class NoRedirection(urllib2.HTTPErrorProcessor):
+class NoRedirection(urllib.request.HTTPErrorProcessor):
     def http_response(self, request, response):
         return response
 
@@ -77,7 +77,7 @@ def get_redirected_url(url, authhandler):
 
     # Disable redirection and handle manually with limit on number of
     # redirects.
-    opener = urllib2.build_opener(NoRedirection)
+    opener = urllib.request.build_opener(NoRedirection)
     max_redirects = 5
     for n in range(max_redirects + 1):
         response = opener.open(url)
@@ -95,9 +95,9 @@ def http_upload(file_name, url, remove_source=False):
     values = {'file_name': file_name}
     fh = open(file_name, 'r')
 
-    url_for_get = url + '?' + urllib.urlencode({'file_name': file_name})
+    url_for_get = url + '?' + urllib.parse.urlencode({'file_name': file_name})
     logger.debug('GET ' + url_for_get)
-    get_req = urllib2.urlopen(url_for_get)
+    get_req = urllib.request.urlopen(url_for_get)
     file_details = SafeConfigParser()
     file_details.readfp(get_req)
     section_name = os.path.basename(file_name)
@@ -143,12 +143,12 @@ def http_upload(file_name, url, remove_source=False):
     values['file_data'] = fh.read()
     fh.close()
 
-    post_data = urllib.urlencode(values)
+    post_data = urllib.parse.urlencode(values)
 
     try:
         logger.debug('POST ' + url)
-        request = urllib2.Request(url, post_data)
-        response = urllib2.urlopen(request)
+        request = urllib.request.Request(url, post_data)
+        response = urllib.request.urlopen(request)
         if response.code == 200:
             logger.info('Uploaded ' + file_name)
         else:
@@ -192,12 +192,12 @@ def report_no_data(url, t, file_type):
     Report to the server that no data was available for upload.
     """
     logger.debug('Reporting no ' + file_type + ' file for ' + str(t))
-    no_data_url = url + '?' + urllib.urlencode(
+    no_data_url = url + '?' + urllib.parse.urlencode(
         {'no_data': '1',
          'start_time': t.strftime('%Y-%m-%dT%H:%M:%SZ'),
          'file_type': file_type})
     logger.debug('GET ' + no_data_url)
-    req = urllib2.urlopen(no_data_url)
+    req = urllib.request.urlopen(no_data_url)
     req.read()
     req.close()
 
@@ -402,7 +402,7 @@ if method in ['rsync', 'rrsync']:
             t_next_day = t + datetime.timedelta(days=1)
             file_list = []
             # Find matching files, at their intervals
-            for ft in file_type_data.keys():
+            for ft in list(file_type_data.keys()):
                 fstr = file_type_data[ft]['fstr']
                 interval = file_type_data[ft]['interval']
                 t2 = t
@@ -447,7 +447,7 @@ if method in ['rsync', 'rrsync']:
                 cmd2.append(remote_host + ':' + target_dir + '/')
                 logger.info('cmd: ' + ' '.join(cmd2))
                 if args.verbose:
-                    print(' '.join(cmd2))
+                    print((' '.join(cmd2)))
                 subprocess.call(cmd2)
             t = t_next_day
 
@@ -459,7 +459,7 @@ elif method in ('http', 'https'):
 
     # If method is https then URL ought to use that scheme, but using
     # https URL for http upload is ok.
-    if method == 'https' and urlparse.urlparse(url).scheme == 'http':
+    if method == 'https' and urllib.parse.urlparse(url).scheme == 'http':
         logger.error('https upload method specified but url scheme is http')
         exit(1)
 
@@ -475,10 +475,10 @@ elif method in ('http', 'https'):
     password = config.get(args.section, 'password')
     realm = config.get(args.section, 'realm')
 
-    authhandler = urllib2.HTTPDigestAuthHandler()
+    authhandler = urllib.request.HTTPDigestAuthHandler()
     authhandler.add_password(realm, url, username, password)
-    opener = urllib2.build_opener(authhandler)
-    urllib2.install_opener(opener)
+    opener = urllib.request.build_opener(authhandler)
+    urllib.request.install_opener(opener)
 
     # Check for HTTP redirects. Do this once and update the url used
     # here. Don't update the config file.
@@ -488,7 +488,7 @@ elif method in ('http', 'https'):
         logger.info('HTTP redirection, using %s', url)
 
     all_ok = True
-    for ft in file_type_data.keys():
+    for ft in list(file_type_data.keys()):
         fstr = file_type_data[ft]['fstr']
         interval = file_type_data[ft]['interval']
         t = start_time

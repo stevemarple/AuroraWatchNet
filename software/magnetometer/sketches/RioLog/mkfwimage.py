@@ -44,7 +44,7 @@ except subprocess.CalledProcessError as e:
     os.sys.exit(1)
 
 # Windows support doubtful but use binary mode anyway
-bin_file = open(bin_filename, 'r+b')
+bin_file = open(bin_filename, 'a+b') 
 bin_contents = bin_file.read()
 
 block_size = awn.message.firmware_block_size
