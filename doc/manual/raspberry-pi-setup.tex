@@ -224,20 +224,6 @@ mkdir /home/pi/tmpfs
 mount /home/pi/tmpfs
 \end{Cmd}
 
-\subsection{Automatically create symlinks for FTDI all-in-one}
-
-As user \rootUser
-\begin{Cmd}
-nano /etc/udev/rules.d/90-usb_serial.rules
-\end{Cmd}
-
-Insert the following lines into the file if they are not present:
-\begin{Cmd}[fontsize=\relsize{-3}]
-# Have symlinks based on serial number for FTDI devices. Used for
-# awnetd_monitor
-SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS\{idVendor\}=="0403", ATTRS\{idProduct\}=="6001", SYMLINK+="tty_ftdi_\%s\{serial\}"
-\end{Cmd}
-
 \section{Installing the AuroraWatchNet server software}
 
 \subsection{Install the Git repository}
