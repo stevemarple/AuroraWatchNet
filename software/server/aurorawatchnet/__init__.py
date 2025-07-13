@@ -1,3 +1,4 @@
+import binascii
 import datetime
 import grp
 import logging
@@ -113,7 +114,7 @@ def get_rt_transfer_info(config):
                 mo = re.match('^remote_host(.*)$', i[0])
                 if mo:
                     suf = mo.group(1) # suffix
-                    hmac_key = config.get(sec, 'remote_key' + suf).decode('hex')
+                    hmac_key = binascii.unhexlify(config.get(sec, 'remote_key' + suf))
                     # Hostnames may resolve to multiple IP addresses, add all
                     try:
                         ip_list = socket.gethostbyname_ex(i[1])[2]
