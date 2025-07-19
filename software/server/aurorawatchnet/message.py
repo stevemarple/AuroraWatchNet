@@ -96,7 +96,14 @@ def format_tag_blank(tag_name, data_len, payload, epoch):
 
 
 def format_null_terminated_string(tag_name, data_len, payload, epoch):
-    return "'" + str(payload.split(b'\x00')[0]) + "'"
+    if isinstance(payload, str):
+        s = payload
+    elif isinstance(payload, (bytes, bytearray)):
+        # Firmware nam can be sent as bytearray(b'RioLog-1.2i\x00\x00\x00\x00\x00')
+        s = payload.decode('ascii')
+    else:
+        return repr(payload)
+    return "'" + s.split('\x00')[0] + "'"
 
 
 def format_unix_epoch_32678(tag_name, data_len, payload, epoch):

@@ -209,7 +209,7 @@ def write_system_temperature(t, message_tags, fstr, extension):
         if 'system_temperature' in message_tags:
             found = True
             data.append(struct.unpack(awn.message.tag_data['system_temperature']['format'],
-                                      str(message_tags['system_temperature'][0]))[0] / 100.0)
+                                      message_tags['system_temperature'][0])[0] / 100.0)
         else:
             data.append(float('NaN'))
 
@@ -218,11 +218,11 @@ def write_system_temperature(t, message_tags, fstr, extension):
             system_temperature_file = get_file_for_time(t, system_temperature_file, fstr,
                                                         extension=extension)
             # Write the time
-            system_temperature_file.write('%.06f' % t)
+            system_temperature_file.write(f'{t:.06f}'.encode('ascii'))
 
-            system_temperature_file.write('\t')
-            system_temperature_file.write('\t'.join(map(str, data)))
-            system_temperature_file.write('\n')
+            system_temperature_file.write('\t'.encode('ascii'))
+            system_temperature_file.write('\t'.join(map(str, data)).encode('ascii'))
+            system_temperature_file.write('\n'.encode('ascii'))
             system_temperature_file.flush()
             global close_after_write
             if close_after_write:
@@ -230,6 +230,7 @@ def write_system_temperature(t, message_tags, fstr, extension):
     except KeyboardInterrupt:
         raise
     except Exception as e:
+        logger.exception('Could not write system temperature data')
         print('Could not write system temperature data: ' + str(e))
 
 
@@ -332,8 +333,6 @@ gnss_file = None
 
 def write_gnss_data(timetamp_s, message_tags, fstr):
     global gnss_file
-    found = False
-    t = None
     tag_name = 'gnss_status'
     try:
         if tag_name in message_tags:
@@ -357,22 +356,18 @@ def write_gnss_data(timetamp_s, message_tags, fstr):
             lat = data[0] * 1e-6
             lon = data[1] * 1e-6
             alt = data[2] * 1e-3
-            gnss_file = get_file_for_time(t, gnss_file, fstr)
-            # d = ('{t:d}\t{is_valid:d}\t{nav_system}\t' +
-            d = ('{t:f}\t{is_valid:d}\t{nav_system}\t' +
-                             '{num_sat:02d}\t{hdop:03.1f}\t' +
-                             '{lat:10.6f}\t{lon:11.6f}\t' +
-                             '{alt:8.3f}\n').format(**locals())
-
+            gnss_file = get_file_for_time(t, gnss_file, fstr, mode='a+t', buffering=-1)
+            d = f'{t:f}\t{is_valid:d}\t{nav_system}\t{num_sat:02d}\t{hdop:03.1f}\t{lat:10.6f}\t{lon:11.6f}\t{alt:8.3f}\n'
+            gnss_file.write(d)
+            gnss_file.flush()
             global close_after_write
             if close_after_write:
                 gnss_file.close()
     except KeyboardInterrupt:
         raise
     except Exception as e:
-        print('====> write_generic_data()')
+        logger.exception(f'Could not save GNSS data: {e}')
 
-        print('Could not save GNSS data: ' + str(e))
 
 generic_adc_data_file = None
 
@@ -476,8 +471,8 @@ def write_generic_data(t, message_tags, extension, message, config=None):
                         # a.append(format % ((d * scale_factor) + offset))
                         a.append(format % d)
 
-                    generic_data_files[data_id].write(sep.join(a))
-                    generic_data_files[data_id].write(eol)
+                    generic_data_files[data_id].write(sep.join(a).encode('ascii'))
+                    generic_data_files[data_id].write(eol.encode('ascii'))
 
                     global close_after_write
                     if close_after_write:
@@ -552,10 +547,14 @@ def write_to_log_file(t, s):
         return
 
     try:
-        # Open as binary, flush ourselves when finished here.
+        # Open as text, flush ourselves when finished here.
         aw_log_file = get_file_for_time(t, aw_log_file,
-                                        config.get('logfile', 'filename'))
-        aw_log_file.write(s.encode('ascii'))
+                                        config.get('logfile', 'filename'), mode='a+', buffering=-1)
+        if isinstance(s, str):
+            aw_log_file.write(s)
+        else:
+            aw_log_file.write(s.encode('ascii'))
+
         aw_log_file.flush()
         global close_after_write
         if close_after_write:
@@ -596,6 +595,8 @@ def log_message_events(t, message_tags, epoch, is_response=False):
     for tag_name in tags_to_log:
         if tag_name in message_tags:
             for tag_payload in message_tags[tag_name]:
+                if tag_name == 'log_message' and isinstance(tag_payload, (bytes, bytearray)):
+                    tag_payload = tag_payload.decode('ascii')
                 data_repr = awn.message.format_tag_payload(tag_name, tag_payload, epoch,
                                                            '\n' + prefix + tag_name + ' ')
                 lines.append(prefix + tag_name + ' ' + data_repr + '\n')
