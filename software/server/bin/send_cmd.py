@@ -15,12 +15,11 @@ import aurorawatchnet.eeprom as eeprom
 
 
 
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
 

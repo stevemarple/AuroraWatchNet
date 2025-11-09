@@ -69,12 +69,11 @@ import traceback
 import smtplib
 from email.mime.text import MIMEText
 
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 import numpy as np
 
@@ -521,7 +520,7 @@ def fbcmd(cmd_options, mesg):
 
             
 def read_config(test_mode, combined=False, project=None, site=None):
-    config = SafeConfigParser()
+    config = ConfigParser()
 
     # Set some sensible defaults
     config.add_section('all_alerts')

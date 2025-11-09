@@ -13,19 +13,17 @@ import os
 import requests
 import sys
 
-if sys.version_info[0] >= 3:
-    # noinspection PyCompatibility
-    from configparser import SafeConfigParser
-else:
-    # noinspection PyCompatibility
-    from ConfigParser import SafeConfigParser
-logger = logging.getLogger(__name__)
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 
 def read_config_file(filename):
     """Read config file."""
     logger.info('Reading config file ' + filename)
-    config = SafeConfigParser()
+    config = ConfigParser()
     config_files_read = config.read(filename)
     if filename not in config_files_read:
         raise UserWarning('Could not read ' + filename)

@@ -24,10 +24,11 @@ import aurorawatchnet.message
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info[0] >= 3:
-    from six.moves.configparser import ConfigParser as SafeConfigParser
-else:
-    from six.moves.configparser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 
 class DataMappingException(Exception):

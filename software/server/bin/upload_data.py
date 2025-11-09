@@ -44,10 +44,11 @@ import urllib.request
 import urllib.request
 import aurorawatchnet as awn
 
-if sys.version_info[0] >= 3:
-    from configparser import SafeConfigParser
-else:
-    from configparser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def http_upload(file_name, url, remove_source=False):
     url_for_get = url + '?' + urllib.parse.urlencode({'file_name': file_name})
     logger.debug('GET ' + url_for_get)
     get_req = urllib.request.urlopen(url_for_get)
-    file_details = SafeConfigParser()
+    file_details = ConfigParser()
     file_details.readfp(get_req)
     section_name = os.path.basename(file_name)
     if int(file_details.get(section_name, 'found')):

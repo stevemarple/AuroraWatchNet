@@ -11,13 +11,11 @@ import time
 import AWEeprom
 from AWEeprom import eeprom
 
-
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +24,7 @@ logger = logging.getLogger(__name__)
 def read_config(config_file):
     logger.info('Reading config file ' + args.config_file)
     global config
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.add_section('controlsocket')
     # config.set('controlsocket', 'interface', 'localhost')
     config.set('controlsocket', 'port', '6587')

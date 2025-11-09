@@ -9,12 +9,11 @@ import socket
 import sys
 import time
 
-if sys.version_info[0] >= 3:
-    import configparser
-    from configparser import SafeConfigParser
-else:
-    import ConfigParser
-    from ConfigParser import SafeConfigParser
+try:
+    from configparser import SafeConfigParser as ConfigParser
+except ImportError:
+    # SafeConfigParser removed from later versions
+    from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ def read_config_file(filename):
     """Read config file."""
     logger.info('Reading config file ' + filename)
 
-    config = SafeConfigParser()
+    config = ConfigParser()
     
     config.add_section('daemon')
     # The configuration file is the same for the original
