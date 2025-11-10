@@ -359,7 +359,6 @@ that NTP is not synchronized consult your network manager for the
 correct \ntp\ settings on your network.
 
 
-
 \section{Backup of SD card and expand filesystem}
 
 If you did not expand the (micro)\sd\ card earlier then make a backup
@@ -368,3 +367,9 @@ If you did not expand the (micro)\sd\ card earlier then make a backup
 sudo raspi-config
 \end{Cmd}
 Select \code{Expand Filesystem}. Choose \code{Finish} and then reboot.
+
+\ifdef{\usesMicrocontroller}{%
+  %%% Raspbbery Pi Private Network
+  \input{raspberry-pi-private-network}
+}{}
+

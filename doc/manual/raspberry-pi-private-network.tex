@@ -1,0 +1,153 @@
+\section{Add a Private Network}
+
+When a separate microcontroller is used for data acquisition it must
+be programmed with the IP address or hostname of the Raspberry Pi data
+logger. This can be a problem when the full network details are not
+known before deployment. In such cases it is helpful to install a
+private network between the microcontroller and Raspberry Pi.
+
+These instructions assume that the Raspberry Pi will connect to the
+main network using a wired Ethernet connection, and thus a second
+Ethernet interface must be fitted. If the main connection is via Wi-Fi
+then the original wired Ethernet connection can be used for the
+private network and the instructions adapted accordingly.
+
+The second network interface could be provided by a USB Ethernet
+adapter. If using the Raspberry Pi 5 then the fastest and most
+reliable method is likely a PCI Express network interface card. The
+second network interface should be configured with a static IP
+address; it is recommended to use a class C network from the 256
+contiguous class C networks in the 192.168.0.0 address space. This
+example will use the 192.168.200.0/24 private network.
+
+\subsection{Network interface configuration}
+
+\subsubsection{Enable predictable network interface names}
+
+Run
+\begin{Cmd}
+  sudo raspi-config
+\end{Cmd}
+from the \code{Advanced Options} menu select the \code{Network
+  Interface Names} option to enable predictable network interface
+names. Save, exit \code{raspi-config}, and reboot.
+
+Identify the name of the second network interface. The available
+interfaces can be found with the command
+
+\begin{Cmd}
+  ls /sys/class/net
+\end{Cmd}
+
+The built-in Ethernet address is probably \code{end0}, ignore the
+loopback interface (\code{lo}) and any wireless interfaces
+(\code{wlan*}). This example uses a PCI Express adapter where the
+predictable interface name is \code{enP1p1s0}.
+
+\subsubsection{Configure a static IP address}
+
+Configure the second Ethernet interface with a static IP address; this
+example will use \code{192.168.200.1}. When using Debian 13 the static
+IP address can be configured with \code{netplan} as follows. Create
+the file \filename{/etc/netplan/20-enP1p1s0.yaml} (as \rootUser) with
+your favourite editor. The contents should be:
+\begin{Code}
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enP1p1s0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - 192.168.200.1/24
+\end{Code}
+
+Check the file:
+\begin{Cmd}
+  yamllint /etc/netplan/20-enP1p1s0.yaml
+\end{Cmd}
+
+Ignore any errors about the document not starting with \code{---} but
+do fix any indentation problems.
+
+\subsection{Install \code{dnsmasq}}
+
+Install the \code{dnsmasq} and \code{dnsmasq-utils} packages to obtain
+a local DHCP and caching DNS server:
+\begin{Cmd}
+  sudo apt update
+  sudo apt install dnsmasq dnsmasq-utils
+\end{Cmd}
+
+Configure \code{dnsmasq} by adding files (as user \rootUser) into the
+directory \filename{/etc/dnsmasq.d}, do not modify the existing
+\filename{/etc/dnsmasq.conf} file.
+
+Create the main configuration file,
+\filename{/etc/dnsmasq.d/00-main-config.conf}:
+\begin{Code}
+# Enable dbus for better openresolv support (no need to restart daemon)
+# enable-dbus
+
+# Never forward plain names (without a dot or domain part)
+domain-needed
+
+# Never forward addresses in the non-routed address spaces.
+# bogus-priv
+
+# If you want dnsmasq to listen for DHCP and DNS requests only on
+# specified interfaces (and the loopback) give the name of the
+# interface (eg eth0) here.
+# Repeat the line for more than one interface.
+interface=eth1
+interface=enP1p1s0
+
+# Set this (and domain: see below) if you want to have a domain
+# automatically added to simple names in a hosts-file.
+expand-hosts
+
+# Set the domain for dnsmasq. this is optional, but if it is set, it
+# does the following things.
+# 1) Allows DHCP hosts to have fully qualified domain names, as long
+#     as the domain part matches this setting.
+# 2) Sets the "domain" DHCP option thereby potentially setting the
+#    domain of all systems configured by DHCP
+# 3) Provides the domain part for "expand-hosts"
+domain=lan
+# Note that .lan is a reserved top-level domain name (see
+# https://www.ietf.org/archive/id/draft-chapin-rfc2606bis-00.html#rfc.section.2).
+# We
+# use it here as the config is restricted to the internal LAN.
+\end{Code}
+
+Leases are defined in a separate configuration file, 
+\filename{/etc/dnsmasq.d/10-leases.conf}:
+\begin{Code}
+# This file should contain only the fixed leases for dnsmasq
+
+# The DHCP server needs somewhere on disk to keep its lease database.
+# This defaults to a sane location, but if you want to change it, use
+# the line below.
+dhcp-leasefile=/var/lib/misc/dnsmasq.leases
+
+# Uncomment this to enable the integrated DHCP server, you need
+# to supply the range of addresses available for lease and optionally
+# a lease time. If you have more than one network, you will need to
+# repeat this for each network on which you want to supply DHCP
+# service.
+dhcp-range=192.168.200.100,192.168.200.254,12h
+\end{Code}
+
+If the data logger is configured to find the Raspberry Pi server by
+hostname (\eg, \code{raspberrypi.example.com}) then it will be
+necessary to ensure that \code{dnsmasq} returns the correct IP address
+(\code{192.168.2001.}). This can be achieved inserting an entry into
+\filename{/etc/hosts}:
+
+\begin{Code}
+# Intercept the DNS request for riometer data lgger and have 
+# dnsmasq provide our IP address on the internal network.
+192.168.200.1   raspberrypi.example.com
+\end{Code}
+
