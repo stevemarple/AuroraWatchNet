@@ -176,7 +176,7 @@ for k in aw_cmds:
                                       *data)
         else:
             eeprom_data = struct.pack(eeprom.eeprom[eeprom_setting]['format'],
-                                           data)
+                                           data.encode('ascii'))
 
         # Convert the bytewise values into a string, remembering to
         # prepend the address
