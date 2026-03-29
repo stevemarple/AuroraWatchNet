@@ -1,0 +1,65 @@
+name: Reusable make docs
+
+on:
+  workflow_call:
+    inputs:
+      publish_to_github:
+        description: 'Publish artifacts to GitHub'
+        type: boolean
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: true
+
+      - name: Install LaTeX
+        run: |
+            sudo apt update
+            sudo apt install texlive texlive-latex-extra texlive-science libreoffice
+
+      - name: Make documentation
+        run: |
+            make -C doc/manual doc
+
+      - name: Upload BGS magnetometer manual
+        uses: actions/upload-artifact@v6
+        with:
+          name: BGS magnetometer manual
+          path: |
+            doc/manual/bgs-mag-manual.pdf
+
+      - name: Upload Calunium magnetometer manual
+        uses: actions/upload-artifact@v6
+        with:
+          name: Calunium magnetometer manual
+          path: |
+            doc/manual/calunium-mag-manual.pdf
+
+      - name: Upload Raspberry Pi magnetometer manual
+        uses: actions/upload-artifact@v6
+        with:
+          name: Raspberry Pi magnetometer manual
+          path: |
+            doc/manual/raspi-mag-manual.pdf
+
+      - name: Upload Riometer manual
+        uses: actions/upload-artifact@v6
+        with:
+          name: Riometer manual
+          path: |
+            doc/manual/riometer-manual.pdf
+
+      - name: Publish release
+        if: ${{ inputs.publish_to_github }}
+        run: |
+          # shellcheck disable=SC2046
+          gh release create "${GITHUB_REF_NAME}" -t "${GITHUB_REF_NAME}" --generate-notes "$(find dist -iname '*.pdf' -printf '%p#Operation manual (pdf)')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
