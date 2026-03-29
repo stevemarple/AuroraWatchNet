@@ -2,7 +2,10 @@ PDFLATEX = pdflatex
 BIBTEX = bibtex
 MAKEABBREV = ./makeabbrev
 
-CP = cp -a
+CP ?= cp -a
+ECHO ?= echo
+GIT ?= git
+LIBREOFFICE ?= libreoffice
 
 MANUALS = calunium-mag-manual raspi-mag-manual bgs-mag-manual riometer-manual
 
@@ -80,14 +83,14 @@ calunium-mag/images/Calunium-v2-1-sch.pdf : ../../hardware/Calunium/hardware/pcb
 	$(CP) $< $@
 
 calunium-mag/images/system-overview.pdf : calunium-mag/images/src/system-overview.odg
-	libreoffice --headless --convert-to pdf --outdir $(dir $@) $<
+	$(LIBREOFFICE) --headless --convert-to pdf --outdir $(dir $@) $<
 
 
 .PHONY : raspi-mag-images
 raspi-mag-images : raspi-mag/images/system-overview.pdf
 
 raspi-mag/images/system-overview.pdf : raspi-mag/images/src/system-overview.odg
-	libreoffice --headless --convert-to pdf --outdir $(dir $@) $<
+	$(LIBREOFFICE) --headless --convert-to pdf --outdir $(dir $@) $<
 
 .PHONY :  bgs-mag-images
 # images : raspi-mag/images/system-overview.pdf
@@ -106,7 +109,8 @@ GIT_LOG_PATH = . \
 ../../hardware/Calunium/hardware/pcb/Calunium_v2.1/Calunium_v2.1_sch.pdf
 
 .PHONY : gitlog.tex
+gitlog.tex : GIT_VERSION:=$(shell $(GIT) describe --always --match 'v*')
 gitlog.tex :
-	TZ=UTC git log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' $(GIT_LOG_PATH) > $@
-	TZ=UTC git log -1 --date=iso --format='\newcommand{\gitCommitYear}{%cd}' . | sed 's/-[^}]*//' >> $@
-
+	TZ=UTC $(GIT) log -1 --date=iso --format='\newcommand{\gitCommitDate}{%cd}%n\newcommand{\gitCommit}{%H}' $(GIT_LOG_PATH) > $@
+	TZ=UTC $(GIT) log -1 --date=iso --format='\newcommand{\gitCommitYear}{%cd}' . | sed 's/-[^}]*//' >> $@
+	TZ=UTC $(ECHO) '\\newcommand{\gitVersion}{$(GIT_VERSION)}' >> $@
