@@ -1,0 +1,14 @@
+name: Validate workflows
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: stevemarple/workflows/.github/workflows/validate-workflows.yaml@stable
