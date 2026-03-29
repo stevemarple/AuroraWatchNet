@@ -28,38 +28,22 @@ jobs:
         run: |
             make -C doc/manual doc
 
-      - name: Upload BGS magnetometer manual
+      - name: Upload manuals
         uses: actions/upload-artifact@v6
         with:
-          name: BGS magnetometer manual
+          name: Manuals
           path: |
-            doc/manual/bgs-mag-manual.pdf
-
-      - name: Upload Calunium magnetometer manual
-        uses: actions/upload-artifact@v6
-        with:
-          name: Calunium magnetometer manual
-          path: |
-            doc/manual/calunium-mag-manual.pdf
-
-      - name: Upload Raspberry Pi magnetometer manual
-        uses: actions/upload-artifact@v6
-        with:
-          name: Raspberry Pi magnetometer manual
-          path: |
-            doc/manual/raspi-mag-manual.pdf
-
-      - name: Upload Riometer manual
-        uses: actions/upload-artifact@v6
-        with:
-          name: Riometer manual
-          path: |
-            doc/manual/riometer-manual.pdf
+            doc/manual/*manual.pdf
 
       - name: Publish release
         if: ${{ inputs.publish_to_github }}
-        run: |
-          # shellcheck disable=SC2046
-          gh release create "${GITHUB_REF_NAME}" -t "${GITHUB_REF_NAME}" --generate-notes "$(find dist -iname '*.pdf' -printf '%p#Operation manual (pdf)')"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # shellcheck disable=SC2046
+          gh release create "${GITHUB_REF_NAME}" -t "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            'doc/manual/bgs-mag-manual.pdf#BGS magnetometer manual' \
+            'doc/manual/calunium-mag-manual.pdf#Calunium magnetometer manual' \
+            'doc/manual/raspi-mag-manual.pdf#Raspberry Pi magnetometer manual' \
+            'doc/manual/riometer-manual.pdf#Riometer manual'
